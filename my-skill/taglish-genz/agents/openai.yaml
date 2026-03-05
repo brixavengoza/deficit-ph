@@ -1,0 +1,4 @@
+interface:
+  display_name: 'Taglish Genz'
+  short_description: 'Write app content in clear Taglish'
+  default_prompt: 'Use $taglish-genz to rewrite this screen copy into natural Taglish while keeping button and link labels unchanged.'

@@ -1,0 +1,4 @@
+interface:
+  display_name: "RN Async Error Handling"
+  short_description: "Standardize async flow and failure handling"
+  default_prompt: "Use $async-error-handling to refactor this React Native async logic into safe try/catch/finally patterns."

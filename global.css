@@ -1,0 +1,189 @@
+@import 'tailwindcss';
+@import 'uniwind';
+
+@import 'tw-animate-css';
+
+@theme {
+  /* Border Radius System - Extracted from screens */
+  --radius: 16px; /* DEFAULT: 1rem */
+  --radius-sm: 12px; /* Small cards/inputs: 0.75rem */
+  --radius-md: 20px; /* Medium cards: 1.25rem */
+  --radius-lg: 24px; /* Large cards: 1.5rem */
+  --radius-xl: 32px; /* Extra large: 2rem */
+  --radius-2xl: 40px; /* 2XL: 2.5rem */
+  --radius-3xl: 48px; /* 3XL: 3rem */
+  --radius-full: 9999px; /* Fully rounded */
+
+  --spacing-hairline: hairlineWidth();
+}
+
+@layer theme {
+  :root {
+    @variant light {
+      /* Primary Brand Color - Green (#21c45d) */
+      --color-primary: oklch(0.72 0.18 145); /* #21c45d - Main green */
+      --color-primary-foreground: oklch(1 0 0); /* White text on primary */
+      --color-primary-dark: oklch(0.62 0.18 145); /* #16a34a - Darker green for hover */
+      --color-primary-light: oklch(0.95 0.05 145); /* #dcfce7 - Light green tint */
+
+      /* Background Colors */
+      --color-background: oklch(0.99 0.002 145); /* #f6f8f7 - Warm light background */
+      --color-background-light: oklch(0.985 0.002 145); /* #f8fbfa - Slightly lighter */
+      --color-background-dark: oklch(0.18 0.02 145); /* Dark mode bg value (for consistency) */
+      --color-background-subtle: oklch(0.96 0 0); /* #f3f4f6 - Gray subtle bg */
+
+      /* Surface/Card Colors */
+      --color-surface: oklch(1 0 0); /* #ffffff - White cards */
+      --color-surface-light: oklch(1 0 0); /* #ffffff - White */
+      --color-surface-dark: oklch(0.22 0.02 145); /* Dark surface (for consistency) */
+      --color-card: oklch(1 0 0); /* White cards */
+      --color-card-foreground: oklch(0.25 0.01 145); /* Dark text on cards */
+
+      /* Text Colors */
+      --color-text-main: oklch(0.2 0.01 145); /* #0f1a13 - Primary text */
+      --color-text-secondary: oklch(0.55 0.06 145); /* #53936a - Secondary green text */
+      --color-text-muted: oklch(0.5 0.01 220); /* #64748b - Muted slate */
+      --color-foreground: oklch(0.25 0.01 145); /* Dark text */
+
+      /* Input Colors */
+      --color-input-bg: oklch(0.96 0 0); /* #f3f4f6 - Light gray input bg */
+      --color-input: oklch(0.88 0 0); /* Input border */
+      --color-border: oklch(0.93 0 0); /* #e8e8e8 - General borders */
+      --color-ring: oklch(0.72 0.18 145); /* Primary for focus rings */
+
+      /* Semantic Colors */
+      --color-success: oklch(0.72 0.18 145); /* Green */
+      --color-warning: oklch(0.75 0.15 65); /* Orange #f97316 */
+      --color-error: oklch(0.577 0.245 27.325); /* Red */
+      --color-info: oklch(0.6 0.15 240); /* Blue */
+
+      /* Accent Colors */
+      --color-accent-orange: oklch(0.75 0.15 40); /* #f97316 - Streak/accent */
+      --color-accent-blue: oklch(0.6 0.15 240); /* Blue accents */
+
+      /* Popover */
+      --color-popover: oklch(1 0 0);
+      --color-popover-foreground: oklch(0.25 0.01 145);
+
+      /* Secondary */
+      --color-secondary: oklch(0.97 0 0);
+      --color-secondary-foreground: oklch(0.25 0.01 145);
+
+      /* Muted */
+      --color-muted: oklch(0.97 0 0);
+      --color-muted-foreground: oklch(0.55 0 0);
+
+      /* Accent */
+      --color-accent: oklch(0.97 0 0);
+      --color-accent-foreground: oklch(0.25 0.01 145);
+
+      /* Destructive */
+      --color-destructive: oklch(0.577 0.245 27.325);
+      --color-destructive-foreground: oklch(1 0 0);
+
+      /* Charts */
+      --color-chart-1: oklch(0.72 0.18 145); /* Primary green */
+      --color-chart-2: oklch(0.6 0.15 240); /* Blue */
+      --color-chart-3: oklch(0.75 0.15 40); /* Orange */
+      --color-chart-4: oklch(0.65 0.15 300); /* Purple */
+      --color-chart-5: oklch(0.75 0.15 60); /* Yellow */
+
+      /* Sidebar (for completeness) */
+      --color-sidebar: oklch(0.985 0 0);
+      --color-sidebar-foreground: oklch(0.25 0.01 145);
+      --color-sidebar-primary: oklch(0.72 0.18 145);
+      --color-sidebar-primary-foreground: oklch(1 0 0);
+      --color-sidebar-accent: oklch(0.97 0 0);
+      --color-sidebar-accent-foreground: oklch(0.25 0.01 145);
+      --color-sidebar-border: oklch(0.93 0 0);
+      --color-sidebar-ring: oklch(0.72 0.18 145);
+    }
+
+    @variant dark {
+      /* Primary Brand Color - Brighter green for dark mode */
+      --color-primary: oklch(0.72 0.18 145); /* #21c45d - Stays vibrant */
+      --color-primary-foreground: oklch(1 0 0); /* White text */
+      --color-primary-dark: oklch(0.62 0.18 145); /* Darker for hover */
+      --color-primary-light: oklch(0.25 0.08 145); /* Dark green tint */
+
+      /* Background Colors - Dark green-tinted */
+      --color-background: oklch(0.18 0.02 145); /* #122017 - Dark green bg */
+      --color-background-light: oklch(0.985 0.002 145); /* Light mode bg (for consistency) */
+      --color-background-dark: oklch(0.15 0.02 145); /* Darker variant */
+      --color-background-subtle: oklch(0.22 0.02 145); /* Slightly lighter */
+
+      /* Surface/Card Colors - Dark surfaces */
+      --color-surface: oklch(0.22 0.02 145); /* #1a2e22 - Dark green card */
+      --color-surface-light: oklch(1 0 0); /* Light surface (for consistency) */
+      --color-surface-dark: oklch(0.2 0.02 145); /* #1a2c22 - Darker card */
+      --color-card: oklch(0.22 0.02 145); /* Dark cards */
+      --color-card-foreground: oklch(0.95 0 0); /* Light text on cards */
+
+      /* Text Colors */
+      --color-text-main: oklch(0.95 0 0); /* Nearly white text */
+      --color-text-secondary: oklch(0.65 0.06 145); /* Lighter green text */
+      --color-text-muted: oklch(0.6 0.01 220); /* Muted slate */
+      --color-foreground: oklch(0.95 0 0); /* Light text */
+
+      /* Input Colors */
+      --color-input-bg: oklch(0.2 0.02 145); /* #24342a - Dark input bg */
+      --color-input: oklch(0.3 0.02 145); /* Input border */
+      --color-border: oklch(0.25 0.02 145); /* Dark borders */
+      --color-ring: oklch(0.72 0.18 145); /* Primary for focus */
+
+      /* Semantic Colors - Adjusted for dark mode */
+      --color-success: oklch(0.72 0.18 145); /* Green */
+      --color-warning: oklch(0.75 0.15 65); /* Orange */
+      --color-error: oklch(0.65 0.22 27); /* Softer red */
+      --color-info: oklch(0.65 0.15 240); /* Softer blue */
+
+      /* Accent Colors */
+      --color-accent-orange: oklch(0.75 0.15 40); /* Orange for streaks */
+      --color-accent-blue: oklch(0.65 0.15 240); /* Blue accents */
+
+      /* Popover */
+      --color-popover: oklch(0.22 0.02 145);
+      --color-popover-foreground: oklch(0.95 0 0);
+
+      /* Secondary */
+      --color-secondary: oklch(0.25 0.02 145);
+      --color-secondary-foreground: oklch(0.95 0 0);
+
+      /* Muted */
+      --color-muted: oklch(0.25 0.02 145);
+      --color-muted-foreground: oklch(0.65 0 0);
+
+      /* Accent */
+      --color-accent: oklch(0.25 0.02 145);
+      --color-accent-foreground: oklch(0.95 0 0);
+
+      /* Destructive */
+      --color-destructive: oklch(0.65 0.22 27);
+      --color-destructive-foreground: oklch(1 0 0);
+
+      /* Charts - Vibrant for dark mode */
+      --color-chart-1: oklch(0.72 0.18 145); /* Primary green */
+      --color-chart-2: oklch(0.65 0.15 240); /* Blue */
+      --color-chart-3: oklch(0.75 0.15 40); /* Orange */
+      --color-chart-4: oklch(0.65 0.15 300); /* Purple */
+      --color-chart-5: oklch(0.75 0.15 60); /* Yellow */
+
+      /* Sidebar (for completeness) */
+      --color-sidebar: oklch(0.22 0.02 145);
+      --color-sidebar-foreground: oklch(0.95 0 0);
+      --color-sidebar-primary: oklch(0.72 0.18 145);
+      --color-sidebar-primary-foreground: oklch(1 0 0);
+      --color-sidebar-accent: oklch(0.25 0.02 145);
+      --color-sidebar-accent-foreground: oklch(0.95 0 0);
+      --color-sidebar-border: oklch(0.25 0.02 145);
+      --color-sidebar-ring: oklch(0.72 0.18 145);
+    }
+  }
+}
+
+/* Font Family - Inter */
+@layer base {
+  * {
+    @apply font-['Inter',_sans-serif];
+  }
+}

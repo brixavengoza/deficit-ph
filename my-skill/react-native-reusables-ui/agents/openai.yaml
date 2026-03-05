@@ -1,0 +1,4 @@
+interface:
+  display_name: "React Native Reusables UI"
+  short_description: "Build UI with project reusables only"
+  default_prompt: "Use $react-native-reusables-ui to build this screen using the local Button, Text, and Icon primitives with standard variants."

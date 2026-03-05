@@ -1,0 +1,4 @@
+interface:
+  display_name: "RN Forms and Validation"
+  short_description: "Build typed RN forms with clear errors"
+  default_prompt: "Use $forms-validation-errors to implement this React Native form with React Hook Form and Zod."

@@ -1,0 +1,4 @@
+interface:
+  display_name: "RN Naming Conventions"
+  short_description: "Apply consistent mobile naming standards"
+  default_prompt: "Use $naming-conventions to rename files and symbols to match React Native naming standards."

@@ -1,0 +1,4 @@
+interface:
+  display_name: "RN Data Fetching"
+  short_description: "Implement mobile-safe query and mutation flows"
+  default_prompt: "Use $data-fetching to build React Native query and mutation hooks with TanStack Query."

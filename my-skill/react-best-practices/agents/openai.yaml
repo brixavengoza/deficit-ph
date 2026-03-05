@@ -1,0 +1,4 @@
+interface:
+  display_name: "React Native Best Practices"
+  short_description: "Structure robust RN screens and components"
+  default_prompt: "Use $react-best-practices to refactor this React Native screen into smaller, testable layers."
