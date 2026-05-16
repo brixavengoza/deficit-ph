@@ -1,6 +1,5 @@
 import { Button } from '@/components/ui/button';
 import { Text } from '@/components/ui/text';
-import { supabase } from '@/lib/supabase';
 import { useProfileBundleStore } from '@/stores/use-profile-bundle-store';
 import { useSavedFoodStore } from '@/stores/use-saved-food-store';
 import { useRouter } from 'expo-router';
@@ -15,21 +14,15 @@ export default function LogoutRow() {
 
   const handleLogout = async () => {
     setOpen(false);
-    try {
-      await supabase.auth.signOut();
-    } catch (error) {
-      console.error('[LogoutRow.signOut]', error);
-    } finally {
-      clearSavedFoods();
-      resetProfile();
-      router.replace('/welcome');
-    }
+    clearSavedFoods();
+    resetProfile();
+    router.replace('/welcome');
   };
 
   return (
     <>
       <Pressable className="items-center justify-center p-4" onPress={() => setOpen(true)}>
-        <Text className="text-sm font-bold text-red-500">Log Out</Text>
+        <Text className="text-destructive text-sm font-bold">Log Out</Text>
       </Pressable>
 
       <Modal visible={open} transparent animationType="fade" onRequestClose={() => setOpen(false)}>
@@ -37,11 +30,11 @@ export default function LogoutRow() {
           className="flex-1 items-center justify-center bg-black/35 px-5"
           onPress={() => setOpen(false)}>
           <Pressable
-            className="w-full max-w-md rounded-[22px] bg-white p-5"
+            className="bg-card w-full max-w-md rounded-[22px] p-5"
             onPress={(e) => e.stopPropagation()}>
-            <Text className="text-foreground text-lg font-bold">Log Out?</Text>
+            <Text className="text-foreground text-lg font-bold">Leave profile?</Text>
             <Text className="text-muted-foreground mt-2 text-sm leading-5">
-              Sure ka na? Kailangan mong mag-login ulit para ma-access ang account mo.
+              This only exits to the welcome screen. Your offline data stays on this device.
             </Text>
 
             <View className="mt-5 gap-2">
@@ -51,7 +44,7 @@ export default function LogoutRow() {
                 onPress={() => {
                   void handleLogout();
                 }}>
-                <Text>Log Out</Text>
+                <Text>Continue</Text>
               </Button>
 
               <Button

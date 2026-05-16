@@ -5,6 +5,7 @@ import { Camera, Image, X } from 'lucide-react-native';
 import React from 'react';
 import { Pressable, View } from 'react-native';
 import ActionSheet, { type ActionSheetRef } from 'react-native-actions-sheet';
+import { useUniwind } from 'uniwind';
 
 type PhotoActionsSheetProps = {
   open: boolean;
@@ -20,6 +21,9 @@ export function PhotoActionsSheet({
   onTakePhoto,
 }: PhotoActionsSheetProps) {
   const sheetRef = React.useRef<ActionSheetRef>(null);
+  const { theme } = useUniwind();
+  const sheetBackground = theme === 'dark' ? '#1a2e22' : '#ffffff';
+  const indicatorBackground = theme === 'dark' ? '#365141' : '#cbd5e1';
 
   React.useEffect(() => {
     if (open) {
@@ -38,9 +42,9 @@ export function PhotoActionsSheet({
       containerStyle={{
         borderTopLeftRadius: 22,
         borderTopRightRadius: 22,
-        backgroundColor: '#fff',
+        backgroundColor: sheetBackground,
       }}
-      indicatorStyle={{ width: 44, backgroundColor: '#cbd5e1' }}>
+      indicatorStyle={{ width: 44, backgroundColor: indicatorBackground }}>
       <View className="px-5 pt-2 pb-6">
         <View className="mb-4 flex-row items-center justify-between">
           <Text className="text-foreground text-lg font-bold">Select Profile Photo</Text>

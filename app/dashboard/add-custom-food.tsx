@@ -4,7 +4,6 @@ import { Icon } from '@/components/ui/icon';
 import { Input } from '@/components/ui/input';
 import { Text } from '@/components/ui/text';
 import { useInsertFoodLogMutation, useUpsertUserFoodMutation } from '@/hooks/use-trackk-query';
-import { useSavedFoodStore } from '@/stores/use-saved-food-store';
 import { formatTimeLabelFromDate } from '@/utils/add-food-utils';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { router } from 'expo-router';
@@ -81,9 +80,7 @@ function NumericField({
 }) {
   return (
     <View className="gap-1.5">
-      <Text className="px-1 text-[15px] font-medium text-slate-900 dark:text-slate-100">
-        {label}
-      </Text>
+      <Text className="text-foreground px-1 text-[15px] font-medium">{label}</Text>
       <Controller
         control={control}
         name={name}
@@ -97,7 +94,7 @@ function NumericField({
             placeholder="0"
             format="number"
             maxNumericValue={maxValue}
-            className="bg-background-subtle h-13 rounded-xl border-0 px-4 font-medium"
+            className="bg-input-bg h-13 rounded-xl px-4 font-medium"
             returnKeyType="done"
           />
         )}
@@ -110,7 +107,6 @@ function NumericField({
 export default function AddCustomFoodScreen() {
   const insets = useSafeAreaInsets();
   const [isSubmitting, setIsSubmitting] = React.useState(false);
-  const isPremiumUser = useSavedFoodStore((state) => state.isPremiumUser);
   const upsertFoodMutation = useUpsertUserFoodMutation();
   const insertFoodLogMutation = useInsertFoodLogMutation();
 
@@ -142,7 +138,6 @@ export default function AddCustomFoodScreen() {
           carbsPer100g: Number(values.carbsPer100g),
           fatsPer100g: Number(values.fatsPer100g),
           servingSizeLabel: values.servingSizeLabel.trim(),
-          isPremiumUser,
         });
 
         await insertFoodLogMutation.mutateAsync({
@@ -171,7 +166,7 @@ export default function AddCustomFoodScreen() {
         setIsSubmitting(false);
       }
     },
-    [insertFoodLogMutation, isPremiumUser, setError, upsertFoodMutation]
+    [insertFoodLogMutation, setError, upsertFoodMutation]
   );
 
   return (
@@ -179,7 +174,9 @@ export default function AddCustomFoodScreen() {
       className="flex-1"
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
       <View className="bg-color-surface flex-1">
-        <View className="border-border/70 bg-background/90 flex-row items-center justify-between border-b px-4 py-3">
+        <View
+          className="border-border/70 bg-background/90 flex-row items-center justify-between border-b px-4 pb-3"
+          style={{ paddingTop: insets.top + 12 }}>
           <Button variant="ghost" size="icon" className="h-10 w-10" onPress={() => router.back()}>
             <Icon as={ArrowLeft} className="text-foreground size-5" />
           </Button>
@@ -200,9 +197,7 @@ export default function AddCustomFoodScreen() {
 
               <View className="gap-4">
                 <View className="gap-1.5">
-                  <Text className="px-1 text-[15px] font-medium text-slate-900 dark:text-slate-100">
-                    Food Name
-                  </Text>
+                  <Text className="text-foreground px-1 text-[15px] font-medium">Food Name</Text>
                   <Controller
                     control={control}
                     name="foodName"
@@ -212,7 +207,7 @@ export default function AddCustomFoodScreen() {
                         onBlur={onBlur}
                         onChangeText={onChange}
                         placeholder="e.g. Homemade Chicken Adobo"
-                        className="bg-background-subtle h-13 rounded-xl border-0 px-4 font-medium"
+                        className="bg-input-bg h-13 rounded-xl px-4 font-medium"
                         returnKeyType="next"
                       />
                     )}
@@ -221,7 +216,7 @@ export default function AddCustomFoodScreen() {
                 </View>
 
                 <View className="gap-1.5">
-                  <Text className="px-1 text-[15px] font-medium text-slate-900 dark:text-slate-100">
+                  <Text className="text-foreground px-1 text-[15px] font-medium">
                     Serving Size Label
                   </Text>
                   <Controller
@@ -233,7 +228,7 @@ export default function AddCustomFoodScreen() {
                         onBlur={onBlur}
                         onChangeText={onChange}
                         placeholder="e.g. 1 slice or 1 bowl"
-                        className="bg-background-subtle h-13 rounded-xl border-0 px-4 font-medium"
+                        className="bg-input-bg h-13 rounded-xl px-4 font-medium"
                         returnKeyType="done"
                       />
                     )}
@@ -286,7 +281,7 @@ export default function AddCustomFoodScreen() {
               <Icon as={Info} className="text-primary size-4" />
             </View>
             <View className="min-w-0 flex-1">
-              <Text className="text-sm leading-5 text-slate-700 dark:text-slate-300">
+              <Text className="text-muted-foreground text-sm leading-5">
                 Tip: Most store-bought foods provide nutrition per 100g on the package label.
                 Accurate values help keep your logs consistent.
               </Text>

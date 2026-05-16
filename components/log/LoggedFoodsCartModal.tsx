@@ -10,6 +10,7 @@ import React from 'react';
 import { Pressable, ScrollView, View, useWindowDimensions } from 'react-native';
 import RBSheet from 'react-native-raw-bottom-sheet';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useUniwind } from 'uniwind';
 
 type LoggedFoodsCartModalProps = {
   open: boolean;
@@ -20,6 +21,9 @@ type LoggedFoodsCartModalProps = {
 export function LoggedFoodsCartModal({ open, onClose, dayKey }: LoggedFoodsCartModalProps) {
   const sheetRef = React.useRef<{ open: () => void; close: () => void } | null>(null);
   const insets = useSafeAreaInsets();
+  const { theme } = useUniwind();
+  const sheetBackground = theme === 'dark' ? '#1a2e22' : '#ffffff';
+  const indicatorBackground = theme === 'dark' ? '#365141' : '#cbd5e1';
   const { height: windowHeight } = useWindowDimensions();
   const logsQuery = useFoodLogsQuery();
   const deleteLogMutation = useDeleteFoodLogMutation();
@@ -123,7 +127,7 @@ export function LoggedFoodsCartModal({ open, onClose, dayKey }: LoggedFoodsCartM
             key={item.id}
             className="border-border/70 bg-background-subtle/50 flex-row items-start justify-between gap-3 rounded-md border p-3">
             <View className="flex-1 flex-row items-start gap-3">
-              <View className="h-10 w-10 items-center justify-center rounded-xl bg-white dark:bg-slate-800">
+              <View className="bg-card h-10 w-10 items-center justify-center rounded-xl">
                 <Text className="text-lg">{getFoodEmoji(item.foodName)}</Text>
               </View>
               <View className="flex-1">
@@ -142,7 +146,7 @@ export function LoggedFoodsCartModal({ open, onClose, dayKey }: LoggedFoodsCartM
                 accessibilityRole="button"
                 accessibilityLabel={`Edit ${item.foodName}`}
                 onPress={() => handleEditItem(item.id)}
-                className="h-8 w-8 items-center justify-center rounded-full border border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-800">
+                className="border-border bg-card h-8 w-8 items-center justify-center rounded-full border">
                 <View>
                   <Icon as={Pencil} className="text-foreground size-4" />
                 </View>
@@ -161,9 +165,9 @@ export function LoggedFoodsCartModal({ open, onClose, dayKey }: LoggedFoodsCartM
                     }
                   })();
                 }}
-                className="h-8 w-8 items-center justify-center rounded-full bg-red-50 dark:bg-red-900/20">
+                className="bg-destructive/10 h-8 w-8 items-center justify-center rounded-full">
                 <View>
-                  <Icon as={Trash2} className="size-4 text-red-600 dark:text-red-300" />
+                  <Icon as={Trash2} className="text-destructive size-4" />
                 </View>
               </Pressable>
             </View>
@@ -211,10 +215,10 @@ export function LoggedFoodsCartModal({ open, onClose, dayKey }: LoggedFoodsCartM
           borderTopLeftRadius: 20,
           borderTopRightRadius: 20,
           overflow: 'hidden',
-          backgroundColor: '#ffffff',
+          backgroundColor: sheetBackground,
         },
         draggableIcon: {
-          backgroundColor: '#cbd5e1',
+          backgroundColor: indicatorBackground,
           width: 44,
         },
       }}

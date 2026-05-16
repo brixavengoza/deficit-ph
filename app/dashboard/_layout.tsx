@@ -3,8 +3,9 @@ import { Text } from '@/components/ui/text';
 import { Link, Stack, router, usePathname } from 'expo-router';
 import { BarChart3, BookOpenText, Home, Plus, User } from 'lucide-react-native';
 import { Platform, Pressable, View } from 'react-native';
-import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
+import { useUniwind } from 'uniwind';
 
 enum TabRoutes {
   Dashboard = '/dashboard',
@@ -48,6 +49,7 @@ function TabItem({
 
 export default function DashboardLayout() {
   const insets = useSafeAreaInsets();
+  const { theme } = useUniwind();
   const pathname = usePathname();
   const isHome = pathname === '/dashboard' || pathname === '/dashboard/';
   const isLog = pathname.startsWith('/dashboard/log');
@@ -57,35 +59,27 @@ export default function DashboardLayout() {
   const isSavedFoods = pathname.startsWith('/dashboard/saved-foods');
   const isProgress = pathname.startsWith('/dashboard/progress');
   const isProfile = pathname.startsWith('/dashboard/profile');
-  const isSubscriptionPlan = pathname.startsWith('/dashboard/subscription-plan');
   const isPrivacyPolicy = pathname.startsWith('/dashboard/privacy-policy');
-  const topSafeAreaBg =
-    isLog || isLogSearch || isAddFood || isAddCustomFood || isSavedFoods ? '#ffffff' : '#f8fbfa';
+  const tabBarFill = theme === 'dark' ? '#1a2e22' : '#ffffff';
 
   return (
     <>
       <View className="bg-background flex-1">
-        <SafeAreaView edges={['top']} style={{ flex: 1, backgroundColor: topSafeAreaBg }}>
+        <View className="bg-background flex-1">
           <Stack screenOptions={{ headerShown: false }}>
             <Stack.Screen name="index" options={{ gestureEnabled: false, animation: 'none' }} />
             <Stack.Screen name="log" options={{ gestureEnabled: false, animation: 'none' }} />
             <Stack.Screen name="progress" options={{ gestureEnabled: false, animation: 'none' }} />
             <Stack.Screen name="profile" options={{ gestureEnabled: false, animation: 'none' }} />
-            <Stack.Screen name="subscription-plan" options={{ gestureEnabled: true }} />
             <Stack.Screen name="privacy-policy" options={{ gestureEnabled: true }} />
             <Stack.Screen name="log-food-search" options={{ gestureEnabled: true }} />
             <Stack.Screen name="saved-foods" options={{ gestureEnabled: true }} />
             <Stack.Screen name="add-food" options={{ gestureEnabled: true }} />
             <Stack.Screen name="add-custom-food" options={{ gestureEnabled: true }} />
           </Stack>
-        </SafeAreaView>
+        </View>
 
-        {isLogSearch ||
-        isSavedFoods ||
-        isAddFood ||
-        isAddCustomFood ||
-        isSubscriptionPlan ||
-        isPrivacyPolicy ? null : (
+        {isLogSearch || isSavedFoods || isAddFood || isAddCustomFood || isPrivacyPolicy ? null : (
           <View
             pointerEvents="box-none"
             style={{ position: 'absolute', left: 0, right: 0, bottom: 0 }}>
@@ -108,7 +102,7 @@ export default function DashboardLayout() {
                   className="absolute inset-0">
                   <Path
                     d="M 0 0 L 127 0 C 155 0 157 44 187 44 C 220 44 220 0 252 0 L 375 0 L 375 80 L 0 80 Z"
-                    fill="#FFFFFF"
+                    fill={tabBarFill}
                   />
                 </Svg>
               </View>
@@ -138,7 +132,7 @@ export default function DashboardLayout() {
               <View pointerEvents="box-none" className="absolute inset-x-0 -top-6 items-center">
                 <Link href="/dashboard/log-food-search" asChild>
                   <Pressable>
-                    <View className="bg-primary h-16 w-16 items-center justify-center rounded-full border-4 border-white shadow-lg shadow-green-700/25">
+                    <View className="border-card bg-primary h-16 w-16 items-center justify-center rounded-full border-4 shadow-lg shadow-green-700/25">
                       <Icon as={Plus} className="size-8 text-white" />
                     </View>
                   </Pressable>
@@ -146,7 +140,7 @@ export default function DashboardLayout() {
               </View>
             </View>
 
-            <View style={{ height: insets.bottom, backgroundColor: '#ffffff' }} />
+            <View style={{ height: insets.bottom, backgroundColor: tabBarFill }} />
           </View>
         )}
       </View>

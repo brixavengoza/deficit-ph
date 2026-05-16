@@ -2,7 +2,6 @@ import '@/global.css';
 
 import { NAV_THEME } from '@/lib/theme';
 import { queryClient } from '@/lib/query-client';
-import { supabase } from '@/lib/supabase';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { ThemeProvider } from '@react-navigation/native';
 import { PortalHost } from '@rn-primitives/portal';
@@ -26,7 +25,6 @@ void SplashScreen.preventAutoHideAsync().catch((error) => {
 
 export default function RootLayout() {
   const { theme } = useUniwind();
-  const ensureLoaded = useProfileBundleStore((state) => state.ensureLoaded);
   const preferredTheme = useProfileBundleStore((state) => state.bundle.theme);
   const [appIsReady, setAppIsReady] = React.useState(false);
   const hasHiddenSplash = React.useRef(false);
@@ -43,24 +41,6 @@ export default function RootLayout() {
 
     void prepare();
   }, []);
-
-  React.useEffect(() => {
-    let isMounted = true;
-
-    void supabase.auth
-      .getSession()
-      .then(({ data }) => {
-        if (!isMounted || !data.session) return;
-        void ensureLoaded();
-      })
-      .catch((error) => {
-        console.error('[RootLayout.getSession]', error);
-      });
-
-    return () => {
-      isMounted = false;
-    };
-  }, [ensureLoaded]);
 
   React.useEffect(() => {
     if (preferredTheme === 'Auto') {

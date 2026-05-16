@@ -37,8 +37,8 @@ export default function BodyMeasurementsCollapsibleRow() {
   return (
     <BaseCollapsibleRow
       icon={Ruler}
-      iconWrapClass="bg-purple-100"
-      iconClassName="text-purple-600"
+      iconWrapClass="bg-accent"
+      iconClassName="text-accent-foreground"
       label="Body Measurements"
       open={open}
       onToggle={() => setOpen((prev) => !prev)}>
@@ -57,7 +57,7 @@ export default function BodyMeasurementsCollapsibleRow() {
                   onChangeText={field.onChange}
                   onBlur={field.onBlur}
                   keyboardType="decimal-pad"
-                  className="bg-background-subtle h-11 rounded-xl border-transparent"
+                  className="bg-input-bg h-11 rounded-xl"
                 />
               )}
             />
@@ -77,7 +77,7 @@ export default function BodyMeasurementsCollapsibleRow() {
                   onChangeText={field.onChange}
                   onBlur={field.onBlur}
                   keyboardType="decimal-pad"
-                  className="bg-background-subtle h-11 rounded-xl border-transparent"
+                  className="bg-input-bg h-11 rounded-xl"
                 />
               )}
             />
@@ -98,7 +98,7 @@ export default function BodyMeasurementsCollapsibleRow() {
                 onChangeText={field.onChange}
                 onBlur={field.onBlur}
                 keyboardType="decimal-pad"
-                className="bg-background-subtle h-11 rounded-xl border-transparent"
+                className="bg-input-bg h-11 rounded-xl"
               />
             )}
           />

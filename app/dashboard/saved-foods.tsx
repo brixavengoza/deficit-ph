@@ -5,11 +5,11 @@ import { Text } from '@/components/ui/text';
 import { getFoodEmoji } from '@/lib/food-emoji';
 import { formatNumberGrouped } from '@/lib/number-format';
 import { useFoodsQuery } from '@/hooks/use-trackk-query';
-import { useSavedFoodStore } from '@/stores/use-saved-food-store';
 import { router } from 'expo-router';
 import { ArrowLeft, Search } from 'lucide-react-native';
 import React from 'react';
 import { Pressable, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 type SavedFoodListItem = {
   id: string;
@@ -29,8 +29,8 @@ function SavedFoodRow({
       onPress={() => onPress(item)}
       android_ripple={{ color: 'rgba(15, 23, 42, 0.06)' }}
       style={({ pressed }) => [{ opacity: pressed ? 0.75 : 1 }]}
-      className="border-border bg-surface flex-row items-center justify-between border-b border-b-gray-100 px-4 py-3">
-      <View className="mr-3 h-11 w-11 items-center justify-center rounded-xl bg-gray-100">
+      className="border-border bg-surface flex-row items-center justify-between border-b px-4 py-3">
+      <View className="bg-background-subtle mr-3 h-11 w-11 items-center justify-center rounded-xl">
         <Text className="text-xl">{getFoodEmoji(item.name)}</Text>
       </View>
 
@@ -47,6 +47,7 @@ function SavedFoodRow({
 }
 
 export default function SavedFoodsScreen() {
+  const insets = useSafeAreaInsets();
   const [query, setQuery] = React.useState('');
   const foodsQuery = useFoodsQuery();
   const savedFoods = foodsQuery.data ?? [];
@@ -54,8 +55,6 @@ export default function SavedFoodsScreen() {
     () => savedFoods.filter((food) => food.source === 'user'),
     [savedFoods]
   );
-  const isPremiumUser = useSavedFoodStore((state) => state.isPremiumUser);
-  const savedFoodsLimit = useSavedFoodStore((state) => state.savedFoodsLimit);
 
   const normalizedQuery = query.trim().toLowerCase();
   const rows = React.useMemo(() => {
@@ -81,7 +80,9 @@ export default function SavedFoodsScreen() {
 
   return (
     <View className="bg-surface flex-1">
-      <View className="bg-surface flex-row items-center justify-between px-4 pt-2">
+      <View
+        className="bg-surface flex-row items-center justify-between px-4"
+        style={{ paddingTop: insets.top + 8 }}>
         <Pressable
           accessibilityRole="button"
           accessibilityLabel="Go back"
@@ -96,7 +97,7 @@ export default function SavedFoodsScreen() {
       </View>
 
       <View className="px-4 pt-2 pb-3">
-        <View className="bg-background-subtle flex-row items-center overflow-hidden rounded-full">
+        <View className="bg-input-bg border-input flex-row items-center overflow-hidden rounded-full border">
           <View className="px-4 pr-2">
             <Icon as={Search} className="text-muted-foreground size-5" />
           </View>
@@ -115,9 +116,7 @@ export default function SavedFoodsScreen() {
           <Text className="text-muted-foreground text-xs">
             {userSavedFoods.length} saved food{userSavedFoods.length === 1 ? '' : 's'}
           </Text>
-          <Text className="text-muted-foreground text-xs">
-            {isPremiumUser ? 'Unlimited (Pro)' : `${savedFoodsLimit ?? 10} max (Free)`}
-          </Text>
+          <Text className="text-muted-foreground text-xs">Unlimited</Text>
         </View>
       </View>
 

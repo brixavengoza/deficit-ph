@@ -1,7 +1,7 @@
 import { Button } from '@/components/ui/button';
 import { Text } from '@/components/ui/text';
 import { stepThreeSchema, type OnboardingFormValues } from '@/lib/onboarding-form';
-import { completeOnboarding } from '@/lib/supabase-data';
+import { completeOnboarding } from '@/lib/local-data';
 import { useRouter } from 'expo-router';
 import { CircleCheckBig, Dumbbell, Scale, TrendingDown } from 'lucide-react-native';
 import { useFormContext } from 'react-hook-form';
@@ -190,8 +190,8 @@ export default function OnboardingStepThreeScreen() {
         ) : null}
 
         {submitError ? (
-          <View className="mx-2 mt-4 rounded-xl bg-red-100 px-3 py-2">
-            <Text className="text-sm text-red-700">{submitError}</Text>
+          <View className="bg-destructive/10 mx-2 mt-4 rounded-xl px-3 py-2">
+            <Text className="text-destructive text-sm">{submitError}</Text>
           </View>
         ) : null}
       </View>

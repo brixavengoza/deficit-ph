@@ -126,8 +126,8 @@
       --color-foreground: oklch(0.95 0 0); /* Light text */
 
       /* Input Colors */
-      --color-input-bg: oklch(0.2 0.02 145); /* #24342a - Dark input bg */
-      --color-input: oklch(0.3 0.02 145); /* Input border */
+      --color-input-bg: oklch(0.26 0.02 145); /* Distinct dark input surface */
+      --color-input: oklch(0.34 0.02 145); /* Input border */
       --color-border: oklch(0.25 0.02 145); /* Dark borders */
       --color-ring: oklch(0.72 0.18 145); /* Primary for focus */
 

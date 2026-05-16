@@ -1,7 +1,5 @@
 import { create } from 'zustand';
 
-export const FREE_SAVED_FOODS_LIMIT = 10;
-
 export type SavedFood = {
   id: string;
   name: string;
@@ -22,7 +20,6 @@ type UpdateSavedFoodInput = Partial<Omit<SavedFood, 'id' | 'createdAtIso' | 'sou
 
 type SavedFoodStoreState = {
   savedFoods: SavedFood[];
-  isPremiumUser: boolean;
   savedFoodsLimit: number | null;
   addSavedFood: (input: CreateSavedFoodInput) => SavedFood;
   upsertSavedFoodByName: (input: CreateSavedFoodInput) => SavedFood;
@@ -49,19 +46,11 @@ function createSavedFoodRecord(input: CreateSavedFoodInput): SavedFood {
 
 export const useSavedFoodStore = create<SavedFoodStoreState>((set) => ({
   savedFoods: [],
-  // Placeholder until auth/subscription backend is wired.
-  isPremiumUser: false,
-  savedFoodsLimit: FREE_SAVED_FOODS_LIMIT,
+  savedFoodsLimit: null,
 
   addSavedFood: (input) => {
     let nextFood: SavedFood | null = null;
     set((state) => {
-      const maxAllowed = state.isPremiumUser ? null : FREE_SAVED_FOODS_LIMIT;
-      if (maxAllowed !== null && state.savedFoods.length >= maxAllowed) {
-        throw new Error(
-          `Free plan limit reached (${FREE_SAVED_FOODS_LIMIT} custom foods). Upgrade to Pro for unlimited custom foods.`
-        );
-      }
       nextFood = createSavedFoodRecord(input);
       return { savedFoods: [nextFood, ...state.savedFoods] };
     });
@@ -77,12 +66,6 @@ export const useSavedFoodStore = create<SavedFoodStoreState>((set) => ({
         (food) => normalizeFoodName(food.name) === normalizedName
       );
       if (!existing) {
-        const maxAllowed = state.isPremiumUser ? null : FREE_SAVED_FOODS_LIMIT;
-        if (maxAllowed !== null && state.savedFoods.length >= maxAllowed) {
-          throw new Error(
-            `Free plan limit reached (${FREE_SAVED_FOODS_LIMIT} custom foods). Upgrade to Pro for unlimited custom foods.`
-          );
-        }
         result = createSavedFoodRecord(input);
         return { savedFoods: [result, ...state.savedFoods] };
       }

@@ -13,7 +13,7 @@ export default function MyDetailsSection() {
           My Details
         </Text>
       </View>
-      <View className="divide-y divide-slate-100">
+      <View className="divide-border divide-y">
         <PersonalInfoCollapsibleRow />
         <BodyMeasurementsCollapsibleRow />
         <ActivityLevelRow />

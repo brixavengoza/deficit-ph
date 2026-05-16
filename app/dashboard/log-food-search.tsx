@@ -17,6 +17,7 @@ import { ArrowLeft, ChevronRight, PencilLine, Plus, Search } from 'lucide-react-
 import React from 'react';
 import { Pressable, TextInput, View } from 'react-native';
 import Animated, { FadeIn, ZoomIn } from 'react-native-reanimated';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 type SearchFood = {
   id: string;
@@ -42,8 +43,8 @@ function FoodRow({ item, onPress }: { item: SearchFood; onPress: (item: SearchFo
       onPress={() => onPress(item)}
       android_ripple={{ color: 'rgba(15, 23, 42, 0.06)' }}
       style={({ pressed }) => [{ opacity: pressed ? 0.75 : 1 }]}
-      className="border-border bg-surface flex-row items-center justify-between border-b border-b-gray-100 px-4 py-3">
-      <View className="mr-3 h-11 w-11 items-center justify-center rounded-xl bg-gray-100">
+      className="border-border bg-surface flex-row items-center justify-between border-b px-4 py-3">
+      <View className="bg-background-subtle mr-3 h-11 w-11 items-center justify-center rounded-xl">
         <Text className="text-xl">{getFoodEmoji(item.name)}</Text>
       </View>
 
@@ -69,6 +70,7 @@ function useDebouncedValue(value: string, delayMs: number) {
 }
 
 export default function LogFoodSearchScreen() {
+  const insets = useSafeAreaInsets();
   const router = useRouter();
   const inputRef = React.useRef<TextInput>(null);
   const navigateTimeoutRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -267,7 +269,9 @@ export default function LogFoodSearchScreen() {
 
   return (
     <View className="bg-surface flex-1">
-      <View className="bg-surface flex-row items-center px-4 pt-2">
+      <View
+        className="bg-surface flex-row items-center px-4"
+        style={{ paddingTop: insets.top + 8 }}>
         <Pressable
           accessibilityRole="button"
           accessibilityLabel="Go back"
@@ -306,7 +310,7 @@ export default function LogFoodSearchScreen() {
       </View>
 
       <View className="bg-surface px-4 pt-2 pb-2">
-        <View className="bg-background-subtle flex-row items-center overflow-hidden rounded-full">
+        <View className="bg-input-bg border-input flex-row items-center overflow-hidden rounded-full border">
           <View className="px-4 pr-2">
             <Icon as={Search} className="text-muted-foreground size-5" />
           </View>
@@ -322,29 +326,7 @@ export default function LogFoodSearchScreen() {
             className="h-12 flex-1 border-0 bg-transparent px-0 font-medium"
             returnKeyType="search"
           />
-
-          {/* <Input
-              ref={inputRef}
-              autoFocus
-              value={query}
-              onChangeText={setQuery}
-              placeholder="Search for food (e.g., Chicken Breast)"
-              placeholderTextColor="#94a3b8"
-              className="h-12 flex-1 border-0 bg-transparent px-0 text-base font-medium"
-              returnKeyType="search"
-            /> */}
-
-          {/* <Pressable className="border-l border-slate-200 py-3 pr-5 pl-4">
-              <Icon as={Barcode} className="text-muted-foreground size-5" />
-            </Pressable> */}
         </View>
-
-        {/* <Pressable className="mt-3 flex-row items-center justify-center gap-1">
-            <Text className="text-primary text-sm font-semibold">
-              Can&apos;t find it? Add custom food instead
-            </Text>
-            <Icon as={ArrowRight} className="text-primary size-4" />
-          </Pressable> */}
       </View>
 
       <FlashList
@@ -360,7 +342,7 @@ export default function LogFoodSearchScreen() {
 
       <View pointerEvents="box-none" className="absolute right-0 bottom-6 left-0 px-6">
         <Button onPress={() => router.push('/dashboard/add-custom-food')}>
-          <Icon as={PencilLine} className="text-primary mr-2 size-4" />
+          <Icon as={PencilLine} className="text-primary-foreground mr-2 size-4" />
           <Text>Add Custom Food</Text>
         </Button>
       </View>

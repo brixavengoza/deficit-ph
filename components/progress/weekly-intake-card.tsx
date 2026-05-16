@@ -27,9 +27,9 @@ function getStatusStyles(status: IntakeStatus) {
     case 'low':
       return {
         bar: '#60a5fa',
-        barMuted: '#bfdbfe',
-        textClass: 'text-blue-600',
-        badgeClass: 'bg-blue-50',
+        barMuted: 'rgba(96,165,250,0.3)',
+        textClass: 'text-info',
+        badgeClass: 'bg-info/10',
         label: 'Low',
       };
     case 'normal':
@@ -43,17 +43,17 @@ function getStatusStyles(status: IntakeStatus) {
     case 'high':
       return {
         bar: '#f59e0b',
-        barMuted: '#fde68a',
-        textClass: 'text-amber-600',
-        badgeClass: 'bg-amber-50',
+        barMuted: 'rgba(245,158,11,0.3)',
+        textClass: 'text-warning',
+        badgeClass: 'bg-warning/10',
         label: 'High',
       };
     case 'veryHigh':
       return {
         bar: '#ef4444',
-        barMuted: '#fecaca',
-        textClass: 'text-red-600',
-        badgeClass: 'bg-red-50',
+        barMuted: 'rgba(239,68,68,0.3)',
+        textClass: 'text-destructive',
+        badgeClass: 'bg-destructive/10',
         label: 'Very High',
       };
   }
@@ -78,15 +78,15 @@ function WeeklyBars({
   return (
     <View className="relative h-46">
       <View className="mb-3 flex-row items-center justify-between">
-        <Text className="text-sm font-semibold text-slate-700">
+        <Text className="text-foreground text-sm font-semibold">
           {selected.label} • {selected.kcal.toLocaleString()} kcal
         </Text>
         <Text className={`text-xs font-semibold ${selectedStatusStyles.textClass}`}>
           {selectedStatusStyles.label}
         </Text>
       </View>
-      <View className="absolute top-[35%] right-0 left-0 border-t border-dashed border-slate-300" />
-      <View className="absolute top-[29%] right-0 bg-white pl-1">
+      <View className="border-border absolute top-[35%] right-0 left-0 border-t border-dashed" />
+      <View className="bg-card absolute top-[29%] right-0 pl-1">
         <Text className="text-[10px] font-bold text-slate-400">Goal: {goalKcal}</Text>
       </View>
 
@@ -129,7 +129,9 @@ function WeeklyBars({
 }
 
 export function WeeklyIntakeCard({ days, goalKcal, avgKcal }: WeeklyIntakeCardProps) {
-  const [selectedBarIndex, setSelectedBarIndex] = React.useState(() => Math.max(days.length - 1, 0));
+  const [selectedBarIndex, setSelectedBarIndex] = React.useState(() =>
+    Math.max(days.length - 1, 0)
+  );
 
   React.useEffect(() => {
     setSelectedBarIndex(Math.max(days.length - 1, 0));
@@ -137,9 +139,9 @@ export function WeeklyIntakeCard({ days, goalKcal, avgKcal }: WeeklyIntakeCardPr
 
   if (!days.length) {
     return (
-      <View className="mb-6 h-78 rounded-[22px] border border-slate-100 bg-white p-5 shadow-sm">
-        <Text className="text-base font-bold text-slate-900">Weekly Intake</Text>
-        <Text className="mt-2 text-sm text-slate-500">No intake data yet.</Text>
+      <View className="border-border bg-card mb-6 h-78 rounded-[22px] border p-5 shadow-sm">
+        <Text className="text-foreground text-base font-bold">Weekly Intake</Text>
+        <Text className="text-muted-foreground mt-2 text-sm">No intake data yet.</Text>
       </View>
     );
   }
@@ -156,13 +158,16 @@ export function WeeklyIntakeCard({ days, goalKcal, avgKcal }: WeeklyIntakeCardPr
         : 'On target';
 
   return (
-    <View className="mb-6 h-78 rounded-[22px] border border-slate-100 bg-white p-5 shadow-sm">
+    <View className="border-border bg-card mb-6 h-78 rounded-[22px] border p-5 shadow-sm">
       <View className="mb-6 flex-row items-center justify-between">
         <View>
-          <Text className="text-base font-bold text-slate-900">Weekly Intake</Text>
-          <Text className="text-xs text-slate-500">Average: {avgKcal.toLocaleString()} kcal</Text>
+          <Text className="text-foreground text-base font-bold">Weekly Intake</Text>
+          <Text className="text-muted-foreground text-xs">
+            Average: {avgKcal.toLocaleString()} kcal
+          </Text>
         </View>
-        <View className={`${avgStatusStyles.badgeClass} flex-row items-center gap-1 rounded-full px-2 py-1`}>
+        <View
+          className={`${avgStatusStyles.badgeClass} flex-row items-center gap-1 rounded-full px-2 py-1`}>
           <Icon as={TrendIcon} className={`${avgStatusStyles.textClass} size-4`} />
           <Text className={`${avgStatusStyles.textClass} text-xs font-semibold`}>{deltaText}</Text>
         </View>

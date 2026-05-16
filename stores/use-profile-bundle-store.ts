@@ -7,7 +7,7 @@ import {
   updateTheme,
   updateUnits,
   type ProfileBundle,
-} from '@/lib/supabase-data';
+} from '@/lib/local-data';
 import { create } from 'zustand';
 
 const DEFAULT_BUNDLE: ProfileBundle = {
@@ -34,8 +34,16 @@ type ProfileBundleState = {
   error: string | null;
   ensureLoaded: () => Promise<void>;
   refresh: () => Promise<void>;
-  savePersonalInfo: (values: { fullName: string; username: string; email: string }) => Promise<void>;
-  saveBodyMeasurements: (values: { height: string; weight: string; goalWeight: string }) => Promise<void>;
+  savePersonalInfo: (values: {
+    fullName: string;
+    username: string;
+    email: string;
+  }) => Promise<void>;
+  saveBodyMeasurements: (values: {
+    height: string;
+    weight: string;
+    goalWeight: string;
+  }) => Promise<void>;
   saveActivityLevel: (value: ProfileBundle['activityLevel']) => Promise<void>;
   saveUnits: (value: ProfileBundle['units']) => Promise<void>;
   saveTheme: (value: ProfileBundle['theme']) => Promise<void>;

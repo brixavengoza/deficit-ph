@@ -22,8 +22,8 @@ export function ProfileHeaderSection() {
       <View className="px-6 py-6">
         <View className="items-center gap-4">
           <Pressable className="relative" onPress={() => setPhotoSheetOpen(true)}>
-            <View className="h-28 w-28 items-center justify-center rounded-full bg-slate-200 ring-4 ring-white">
-              <Text className="text-3xl font-bold text-slate-600">{initials}</Text>
+            <View className="bg-muted ring-background h-28 w-28 items-center justify-center rounded-full ring-4">
+              <Text className="text-muted-foreground text-3xl font-bold">{initials}</Text>
             </View>
             <View className="bg-primary border-surface absolute right-0 bottom-0 h-8 w-8 items-center justify-center rounded-full border-2">
               <Icon as={Camera} className="size-4 text-white" />

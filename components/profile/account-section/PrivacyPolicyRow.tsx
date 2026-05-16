@@ -6,8 +6,8 @@ export default function PrivacyPolicyRow() {
   return (
     <StaticRow
       icon={Shield}
-      iconWrapClass="bg-slate-100"
-      iconClassName="text-slate-600"
+      iconWrapClass="bg-muted"
+      iconClassName="text-muted-foreground"
       label="Privacy Policy"
       onPress={() => router.push('/dashboard/privacy-policy')}
     />

@@ -269,7 +269,7 @@ export default function AddFoodScreen() {
       <View className="bg-color-surface flex-1">
         <ScrollView
           showsVerticalScrollIndicator={false}
-          contentContainerClassName="pb-32"
+          contentContainerStyle={{ paddingTop: insets.top, paddingBottom: 128 }}
           keyboardShouldPersistTaps="handled">
           <View className="items-center px-6 pt-4 pb-5">
             <Button
@@ -279,7 +279,7 @@ export default function AddFoodScreen() {
               className="absolute top-3 left-3 h-10 w-10">
               <Icon as={ArrowLeft} className="text-foreground size-5" />
             </Button>
-            <Text className="text-center text-[28px] font-extrabold tracking-tight text-slate-900 dark:text-slate-100">
+            <Text className="text-foreground text-center text-[28px] font-extrabold tracking-tight">
               {foodName}
             </Text>
             <View className="bg-primary/10 mt-2 flex-row items-center gap-2 rounded-full px-4 py-2">
@@ -291,37 +291,37 @@ export default function AddFoodScreen() {
           </View>
 
           <View className="px-4 pb-5">
-            <View className="border-primary/10 dark:border-primary/20 rounded-xl border bg-green-50/70 p-5 dark:bg-slate-900">
+            <View className="border-primary/20 bg-primary/10 rounded-xl border p-5">
               <View className="mb-2 items-center">
                 <Text className="text-muted-foreground mb-2 text-xs font-semibold tracking-[1.6px] uppercase">
                   Total Calories
                 </Text>
                 <View className="mt-1 flex-row items-end gap-1">
-                  <Text className="text-5xl leading-none font-extrabold tracking-tight text-slate-900 dark:text-white">
+                  <Text className="text-foreground text-5xl leading-none font-extrabold tracking-tight">
                     {formatCompactNumber(nutrition.totalKcal)}
                   </Text>
                   <Text className="text-primary mb-1 text-lg font-bold">kcal</Text>
                 </View>
               </View>
 
-              <View className="border-primary/10 divide-primary/10 dark:divide-primary/20 flex-row divide-x rounded-2xl py-3 dark:bg-slate-800/60">
+              <View className="border-primary/10 divide-primary/10 bg-card/50 flex-row divide-x rounded-2xl py-3">
                 <View className="flex-1 items-center px-2">
                   <Text className="text-shadow-muted-foreground text-xs">Protein</Text>
-                  <Text className="text-foreground border-primary/60 mt-1 rounded-full border bg-white px-3 text-base font-bold">
+                  <Text className="border-primary/60 bg-card text-foreground mt-1 rounded-full border px-3 text-base font-bold">
                     {formatMeasure(nutrition.proteinGrams, 'g')}
                   </Text>
                 </View>
 
                 <View className="flex-1 items-center px-2">
                   <Text className="text-shadow-muted-foreground text-xs">Carbs</Text>
-                  <Text className="text-foreground border-primary/60 mt-1 rounded-full border bg-white px-3 text-base font-bold">
+                  <Text className="border-primary/60 bg-card text-foreground mt-1 rounded-full border px-3 text-base font-bold">
                     {formatMeasure(nutrition.carbsGrams, 'g')}
                   </Text>
                 </View>
 
                 <View className="flex-1 items-center px-2">
                   <Text className="text-shadow-muted-foreground text-xs">Fats</Text>
-                  <Text className="text-foreground border-primary/60 mt-1 rounded-full border bg-white px-3 text-base font-bold">
+                  <Text className="border-primary/60 bg-card text-foreground mt-1 rounded-full border px-3 text-base font-bold">
                     {formatMeasure(nutrition.fatsGrams, 'g')}
                   </Text>
                 </View>
@@ -348,7 +348,7 @@ export default function AddFoodScreen() {
                         size="xlNumeric"
                         format="number"
                         maxNumericValue={MAX_FOOD_QUANTITY_INPUT}
-                        className="bg-background-subtle border-0 text-2xl"
+                        className="bg-input-bg text-2xl"
                         returnKeyType="done"
                       />
                     )}
@@ -440,7 +440,7 @@ export default function AddFoodScreen() {
           pointerEvents="box-none"
           className="absolute inset-x-0 bottom-0 px-4 pt-4"
           style={{ paddingBottom: Math.max(insets.bottom, 12) }}>
-          <View className="bg-background/90 rounded-3xl">
+          <View className="bg-background/90 rounded-xl">
             <Button
               onPress={handleSubmit(handleLogFood)}
               disabled={isSubmitting}

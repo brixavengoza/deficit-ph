@@ -8,8 +8,10 @@ import { useAddWeightMutation, useProgressQuery } from '@/hooks/use-trackk-query
 import React from 'react';
 import { ScrollView, View } from 'react-native';
 import { Text } from '@/components/ui/text';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function DashboardProgressScreen() {
+  const insets = useSafeAreaInsets();
   const progressQuery = useProgressQuery();
   const addWeightMutation = useAddWeightMutation();
   const [weightModalOpen, setWeightModalOpen] = React.useState(false);
@@ -23,12 +25,9 @@ export default function DashboardProgressScreen() {
     setWeightInput(String(progressQuery.data.weight.currentKg));
   }, [progressQuery.data?.weight.currentKg]);
 
-  const onSaveWeight = async () => {
-    const parsed = Number(weightInput);
-    if (!Number.isFinite(parsed) || parsed <= 0) return;
-
+  const onSaveWeight = async (weightKg: number) => {
     try {
-      await addWeightMutation.mutateAsync(parsed);
+      await addWeightMutation.mutateAsync(weightKg);
       setWeightModalOpen(false);
     } catch (error) {
       console.error('[DashboardProgressScreen.onSaveWeight]', error);
@@ -52,7 +51,8 @@ export default function DashboardProgressScreen() {
       <ScrollView
         scrollEnabled={!chartDragging}
         showsVerticalScrollIndicator={false}
-        contentContainerClassName="px-4 pt-4 pb-32">
+        contentContainerStyle={{ paddingTop: insets.top + 16, paddingBottom: 128 }}
+        contentContainerClassName="px-4">
         <StreakCard currentStreak={progress.currentStreak} days={progress.streakDays} />
         <WeeklyIntakeCard
           days={progress.weeklyIntake.days.map((day) => ({ label: day.label, kcal: day.kcal }))}
@@ -83,10 +83,11 @@ export default function DashboardProgressScreen() {
       <WeightLogModal
         open={weightModalOpen}
         value={weightInput}
+        isSaving={addWeightMutation.isPending}
         onChangeValue={setWeightInput}
         onClose={() => setWeightModalOpen(false)}
-        onSave={() => {
-          void onSaveWeight();
+        onSave={(weightKg) => {
+          void onSaveWeight(weightKg);
         }}
       />
     </View>

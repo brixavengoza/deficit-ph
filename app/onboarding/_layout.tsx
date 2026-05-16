@@ -1,6 +1,6 @@
 import { Stack, useSegments } from 'expo-router';
 import { OnboardingHeader } from '@/components/onboarding/header';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { View } from 'react-native';
 import { FormProvider, useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -13,6 +13,7 @@ const STEP_MAP = {
 } as const;
 
 export default function OnboardingLayout() {
+  const insets = useSafeAreaInsets();
   const segments = useSegments();
   const currentScreen = segments[segments.length - 1] as keyof typeof STEP_MAP | undefined;
   const currentStep = currentScreen ? STEP_MAP[currentScreen] : undefined;
@@ -26,14 +27,16 @@ export default function OnboardingLayout() {
 
   return (
     <FormProvider {...form}>
-      <SafeAreaView edges={['top', 'bottom']} style={{ flex: 1, backgroundColor: '#f8fbfa' }}>
+      <View
+        className="bg-background flex-1"
+        style={{ paddingTop: insets.top, paddingBottom: insets.bottom }}>
         {currentStep ? <OnboardingHeader currentStep={currentStep} /> : null}
 
         <View style={{ flex: 1 }}>
           <Stack
             screenOptions={{
               headerShown: false,
-              contentStyle: { backgroundColor: '#f8fbfa' },
+              contentStyle: { backgroundColor: 'transparent' },
             }}>
             <Stack.Screen name="index" />
             <Stack.Screen name="step-1" />
@@ -41,7 +44,7 @@ export default function OnboardingLayout() {
             <Stack.Screen name="step-3" />
           </Stack>
         </View>
-      </SafeAreaView>
+      </View>
     </FormProvider>
   );
 }

@@ -11,7 +11,7 @@ import {
   softDeleteFoodLog,
   updateFoodLog,
   upsertUserFoodByName,
-} from '@/lib/supabase-data';
+} from '@/lib/local-data';
 import { queryKeys } from '@/lib/query-client';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 

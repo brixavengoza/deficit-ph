@@ -45,7 +45,7 @@ export function AddFoodTimePickerModal({
               Pick the exact time for this food log.
             </Text>
 
-            <View className="mt-3 items-center rounded-2xl bg-white dark:bg-slate-900">
+            <View className="bg-card mt-3 items-center rounded-2xl">
               <NativeDateTimePicker
                 value={pickerDateDraft}
                 mode="time"
@@ -78,7 +78,7 @@ export function AddFoodTimePickerModal({
       <Pressable onPress={onClose} className="flex-1 items-center justify-center bg-black/35 px-6">
         <Pressable
           onPress={(event) => event.stopPropagation()}
-          className="bg-background w-full max-w-sm rounded-3xl p-4">
+          className="bg-background w-full max-w-sm rounded-xl p-4">
           <Text className="text-foreground text-lg font-bold">Set Log Time</Text>
           <Text className="text-muted-foreground mt-1 text-sm">
             Native time picker is unavailable in this build. Enter a time like `12:30 PM`.
@@ -89,7 +89,7 @@ export function AddFoodTimePickerModal({
             onChangeText={(text) => setTimeDraft(text.toUpperCase())}
             placeholder="12:30 PM"
             autoCapitalize="characters"
-            className="bg-background-subtle mt-4 h-14 rounded-2xl border-0 px-4 text-base font-medium"
+            className="bg-input-bg mt-4 h-14 rounded-2xl px-4 text-base font-medium"
             returnKeyType="done"
           />
 

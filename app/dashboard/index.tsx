@@ -1,10 +1,16 @@
 import { Button } from '@/components/ui/button';
 import { Icon } from '@/components/ui/icon';
+import { Input } from '@/components/ui/input';
+import { WeightLogModal } from '@/components/progress/weight-log-modal';
 import { Text } from '@/components/ui/text';
 import { getFoodEmoji } from '@/lib/food-emoji';
 import { formatCompactNumber, formatNumberGrouped } from '@/lib/number-format';
-import { useAddHydrationMutation, useFoodLogsQuery, useFoodsQuery, useHomeDashboardQuery } from '@/hooks/use-trackk-query';
-import { FREE_SAVED_FOODS_LIMIT, useSavedFoodStore } from '@/stores/use-saved-food-store';
+import {
+  useAddHydrationMutation,
+  useAddWeightMutation,
+  useFoodLogsQuery,
+  useHomeDashboardQuery,
+} from '@/hooks/use-trackk-query';
 import { router, Stack } from 'expo-router';
 import {
   Bell,
@@ -12,18 +18,15 @@ import {
   Clock3,
   Droplets,
   Edit3,
-  Lock,
   Plus,
   QrCode,
   TriangleAlert,
   TrendingDown,
+  X,
 } from 'lucide-react-native';
 import React from 'react';
-import {
-  Pressable,
-  ScrollView,
-  View,
-} from 'react-native';
+import { Modal, Pressable, RefreshControl, ScrollView, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Circle, Path, Polyline } from 'react-native-svg';
 
 type DayPill = {
@@ -33,6 +36,8 @@ type DayPill = {
   date: number;
   pending?: boolean;
 };
+
+const DASHBOARD_HISTORY_DAYS = 30;
 
 function formatShortDayLabel(date: Date) {
   return new Intl.DateTimeFormat('en-US', { weekday: 'short' }).format(date);
@@ -191,7 +196,7 @@ function QuickAction({
         className={`${iconWrapClass} h-14 w-14 items-center justify-center rounded-2xl shadow-xs`}>
         <Icon as={icon} className={`${iconClassName} size-7`} />
       </View>
-      <Text className="text-[10px] font-bold text-slate-600">{label}</Text>
+      <Text className="text-muted-foreground text-[10px] font-bold">{label}</Text>
     </Pressable>
   );
 }
@@ -215,19 +220,25 @@ const getGreeting = () => {
 };
 
 export default function DashboardScreen() {
+  const insets = useSafeAreaInsets();
   const loggedFoods = useFoodLogsQuery();
-  const savedFoods = useFoodsQuery();
-  const isPremiumUser = useSavedFoodStore((state) => state.isPremiumUser);
-  const homeDashboard = useHomeDashboardQuery(isPremiumUser ? 30 : 7);
+  const homeDashboard = useHomeDashboardQuery(DASHBOARD_HISTORY_DAYS);
   const hydrationMutation = useAddHydrationMutation();
+  const addWeightMutation = useAddWeightMutation();
   const dateStripRef = React.useRef<ScrollView>(null);
-  const dayHistoryCount = isPremiumUser ? 30 : 7;
   const [hydrationTodayMl, setHydrationTodayMl] = React.useState<number | null>(null);
+  const [isRefreshing, setIsRefreshing] = React.useState(false);
+  const [hydrationModalOpen, setHydrationModalOpen] = React.useState(false);
+  const [hydrationInput, setHydrationInput] = React.useState('250');
+  const [hydrationUnit, setHydrationUnit] = React.useState<'ml' | 'liters'>('ml');
+  const [hydrationError, setHydrationError] = React.useState<string | null>(null);
+  const [weightModalOpen, setWeightModalOpen] = React.useState(false);
+  const [weightInput, setWeightInput] = React.useState('');
   const loggedFoodsData = loggedFoods.data ?? [];
 
   const dayStrip = React.useMemo(
-    () => buildDayStrip(dayHistoryCount, loggedFoodsData.length > 0),
-    [dayHistoryCount, loggedFoodsData.length]
+    () => buildDayStrip(DASHBOARD_HISTORY_DAYS, loggedFoodsData.length > 0),
+    [loggedFoodsData.length]
   );
   const [selectedDayIsoDate, setSelectedDayIsoDate] = React.useState<string | null>(null);
   const [isDayDataLoading, setIsDayDataLoading] = React.useState(false);
@@ -242,11 +253,18 @@ export default function DashboardScreen() {
     if (!today) return;
     setHydrationTodayMl(today.hydrationMl);
   }, [homeDashboard.data]);
+
+  React.useEffect(() => {
+    const currentWeight = homeDashboard.data?.currentWeightKg;
+    if (currentWeight == null || currentWeight <= 0) return;
+    setWeightInput(String(currentWeight));
+  }, [homeDashboard.data?.currentWeightKg]);
   const selectedDaySummary = React.useMemo(() => {
     if (!homeDashboard.data) return null;
     return (
-      homeDashboard.data.days.find((day) => day.localDay === (selectedDayIsoDate ?? latestDayIsoDate)) ??
-      null
+      homeDashboard.data.days.find(
+        (day) => day.localDay === (selectedDayIsoDate ?? latestDayIsoDate)
+      ) ?? null
     );
   }, [homeDashboard.data, latestDayIsoDate, selectedDayIsoDate]);
 
@@ -264,9 +282,7 @@ export default function DashboardScreen() {
     };
   }, [loggedFoodsData]);
 
-  const savedFoodLimitLabel = isPremiumUser
-    ? 'Unlimited'
-    : `${savedFoods.data?.length ?? 0}/${FREE_SAVED_FOODS_LIMIT}`;
+  const savedFoodLimitLabel = 'Unlimited';
 
   const goalKcal = homeDashboard.data?.goalKcal ?? 2000;
   const consumedKcal = selectedDaySummary?.totalKcal ?? 0;
@@ -297,31 +313,81 @@ export default function DashboardScreen() {
   const hydrationCurrentMl =
     selectedDayIsoDate === latestDayIsoDate && hydrationTodayMl != null
       ? hydrationTodayMl
-      : selectedDaySummary?.hydrationMl ?? 0;
+      : (selectedDaySummary?.hydrationMl ?? 0);
   const hydrationTargetMl = homeDashboard.data?.hydrationTargetMl ?? 2500;
   const hydrationRatio = hydrationCurrentMl / hydrationTargetMl;
   const hydrationFilled = Math.max(1, Math.round(hydrationRatio * 5));
 
-  const onQuickAddWater = React.useCallback(async () => {
-    if (hydrationMutation.isPending) return;
-    try {
-      await hydrationMutation.mutateAsync(250);
-      setHydrationTodayMl((previous) => (previous ?? 0) + 250);
-    } catch (error) {
-      console.error('[DashboardScreen.addHydrationLog]', error);
+  const onAddWater = React.useCallback(
+    async (volumeMl: number) => {
+      if (hydrationMutation.isPending) return;
+      if (!Number.isFinite(volumeMl) || volumeMl <= 0) return;
+
+      try {
+        setHydrationError(null);
+        const roundedVolume = Math.round(volumeMl);
+        await hydrationMutation.mutateAsync(roundedVolume);
+        setHydrationTodayMl((previous) => (previous ?? 0) + roundedVolume);
+        setHydrationModalOpen(false);
+      } catch (error) {
+        console.error('[DashboardScreen.addHydrationLog]', error);
+      }
+    },
+    [hydrationMutation]
+  );
+
+  const onSaveCustomHydration = React.useCallback(async () => {
+    const parsed = Number(hydrationInput);
+    if (!Number.isFinite(parsed) || parsed <= 0) {
+      setHydrationError('Enter a valid amount.');
+      return;
     }
-  }, [hydrationMutation]);
+    const volumeMl = hydrationUnit === 'liters' ? parsed * 1000 : parsed;
+    await onAddWater(volumeMl);
+  }, [hydrationInput, hydrationUnit, onAddWater]);
+
+  const onSaveWeight = React.useCallback(
+    async (weightKg: number) => {
+      try {
+        await addWeightMutation.mutateAsync(weightKg);
+        setWeightModalOpen(false);
+        await homeDashboard.refetch();
+      } catch (error) {
+        console.error('[DashboardScreen.onSaveWeight]', error);
+      }
+    },
+    [addWeightMutation, homeDashboard]
+  );
+
+  const handleRefresh = React.useCallback(async () => {
+    setIsRefreshing(true);
+    try {
+      await Promise.all([loggedFoods.refetch(), homeDashboard.refetch()]);
+    } finally {
+      setIsRefreshing(false);
+    }
+  }, [homeDashboard, loggedFoods]);
 
   return (
     <>
       <Stack.Screen options={{ headerShown: false }} />
       <View className="bg-background flex-1">
-        <ScrollView showsVerticalScrollIndicator={false} contentContainerClassName="pb-36">
+        <ScrollView
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={{ paddingTop: insets.top, paddingBottom: 144 }}
+          refreshControl={
+            <RefreshControl
+              refreshing={isRefreshing}
+              onRefresh={handleRefresh}
+              tintColor="#21c45d"
+              colors={['#21c45d']}
+            />
+          }>
           <View className="bg-background/80 px-6 pt-3 pb-2">
             <View className="mb-5 flex-row items-center justify-between">
               <View className="flex-row items-center gap-3">
-                <View className="border-primary h-12 w-12 items-center justify-center rounded-full border-2 bg-slate-200">
-                  <Text className="text-sm font-bold">AM</Text>
+                <View className="border-primary bg-muted h-12 w-12 items-center justify-center rounded-full border-2">
+                  <Text className="text-muted-foreground text-sm font-bold">AM</Text>
                 </View>
                 <View>
                   <Text className="text-muted-foreground text-xs font-medium tracking-wider uppercase">
@@ -332,9 +398,9 @@ export default function DashboardScreen() {
                   </Text>
                 </View>
               </View>
-              <Pressable className="bg-card relative h-10 w-10 items-center justify-center rounded-full border border-slate-100">
-                <Icon as={Bell} className="size-5 text-slate-700" />
-                <View className="absolute top-2 right-2 h-2 w-2 rounded-full bg-red-500" />
+              <Pressable className="border-border bg-card relative h-10 w-10 items-center justify-center rounded-full border">
+                <Icon as={Bell} className="text-foreground size-5" />
+                <View className="bg-destructive absolute top-2 right-2 h-2 w-2 rounded-full" />
               </Pressable>
             </View>
 
@@ -357,7 +423,7 @@ export default function DashboardScreen() {
                     className={
                       day.isoDate === (selectedDayIsoDate ?? latestDayIsoDate)
                         ? 'text-xs font-medium text-white/80'
-                        : 'text-xs font-medium text-slate-400'
+                        : 'text-muted-foreground text-xs font-medium'
                     }>
                     {day.label}
                   </Text>
@@ -365,7 +431,7 @@ export default function DashboardScreen() {
                     className={
                       day.isoDate === (selectedDayIsoDate ?? latestDayIsoDate)
                         ? 'text-lg font-bold text-white'
-                        : 'text-lg font-bold text-slate-700'
+                        : 'text-foreground text-lg font-bold'
                     }>
                     {day.date}
                   </Text>
@@ -381,14 +447,6 @@ export default function DashboardScreen() {
                 </Pressable>
               ))}
             </ScrollView>
-            {!isPremiumUser ? (
-              <View className="mt-2 flex-row items-center justify-center gap-1">
-                <Icon as={Lock} className="size-3.5 text-slate-500" />
-                <Text className="text-muted-foreground text-[10px]">
-                  Upgrade to Premium to view 30-day history
-                </Text>
-              </View>
-            ) : null}
           </View>
 
           {loggedFoodsData.length > 0 ? (
@@ -397,8 +455,8 @@ export default function DashboardScreen() {
                 <View className="flex-row items-center gap-2">
                   <Icon as={TriangleAlert} className="size-4 text-orange-500" />
                   <Text className="text-xs font-semibold text-orange-700">
-                    Complete Logging ({loggedFoodsData.length} item{loggedFoodsData.length === 1 ? '' : 's'}
-                    )
+                    Complete Logging ({loggedFoodsData.length} item
+                    {loggedFoodsData.length === 1 ? '' : 's'})
                   </Text>
                 </View>
                 <Pressable onPress={() => router.push('/dashboard/log-food-search')}>
@@ -411,7 +469,7 @@ export default function DashboardScreen() {
           <View className="px-6 pt-4">
             <View className="relative overflow-hidden rounded-[24px] bg-slate-900 p-5">
               <View className="bg-primary/20 absolute -top-10 -right-10 h-40 w-40 rounded-full" />
-              <View className="absolute -bottom-10 -left-10 h-28 w-28 rounded-full bg-blue-500/10" />
+              <View className="bg-info/10 absolute -bottom-10 -left-10 h-28 w-28 rounded-full" />
               <View className="relative z-10">
                 <CaloriesGauge
                   progress={consumedKcal / goalKcal}
@@ -465,39 +523,30 @@ export default function DashboardScreen() {
               <QuickAction
                 label="Saved"
                 icon={Bookmark}
-                iconWrapClass="bg-orange-50"
-                iconClassName="text-orange-500"
+                iconWrapClass="bg-warning/10"
+                iconClassName="text-warning"
                 onPress={() => router.push('/dashboard/saved-foods')}
               />
               <QuickAction
                 label="Custom"
                 icon={Edit3}
-                iconWrapClass="bg-blue-50"
-                iconClassName="text-blue-500"
+                iconWrapClass="bg-info/10"
+                iconClassName="text-info"
                 onPress={() => router.push('/dashboard/add-custom-food')}
               />
               <QuickAction
                 label="Scan"
                 icon={QrCode}
-                iconWrapClass="bg-purple-50"
-                iconClassName="text-purple-500"
+                iconWrapClass="bg-accent"
+                iconClassName="text-accent-foreground"
                 disabled
               />
             </View>
             <View className="bg-background-subtle border-border mt-5 self-center rounded-full border px-3 py-1.5">
               <View className="flex-row items-center gap-2">
-                <Icon as={Lock} className="size-3.5 text-slate-500" />
-                <Text className="text-[10px] font-medium text-slate-500">
+                <Text className="text-muted-foreground text-[10px] font-medium">
                   Saved Foods: {savedFoodLimitLabel}
                 </Text>
-                {!isPremiumUser ? (
-                  <>
-                    <View className="h-3 w-px bg-slate-300" />
-                    <Pressable onPress={() => router.push('/dashboard/subscription-plan')}>
-                      <Text className="text-primary text-[10px] font-bold">Go Unlimited</Text>
-                    </Pressable>
-                  </>
-                ) : null}
               </View>
             </View>
           </View>
@@ -536,12 +585,12 @@ export default function DashboardScreen() {
                         {items.slice(0, 3).map((item, index) => (
                           <View
                             key={item.id}
-                            className={`flex-row items-center px-3 py-3 ${index < items.length - 1 ? 'border-b border-slate-100' : ''}`}>
+                            className={`flex-row items-center px-3 py-3 ${index < items.length - 1 ? 'border-border border-b' : ''}`}>
                             <View className="bg-background-subtle mr-3 h-10 w-10 items-center justify-center rounded-lg">
                               <Text className="text-xl">{getFoodEmoji(item.foodName)}</Text>
                             </View>
                             <View className="min-w-0 flex-1">
-                              <Text numberOfLines={1} className="text-sm font-bold text-slate-800">
+                              <Text numberOfLines={1} className="text-foreground text-sm font-bold">
                                 {item.foodName}
                               </Text>
                               <View className="mt-0.5 flex-row items-center gap-1">
@@ -550,7 +599,7 @@ export default function DashboardScreen() {
                               </View>
                             </View>
                             <View className="items-end pr-2">
-                              <Text className="text-sm font-bold text-slate-900">
+                              <Text className="text-foreground text-sm font-bold">
                                 {formatNumberGrouped(item.totalKcal)}
                               </Text>
                               <Text className="text-[10px] text-slate-400">kcal</Text>
@@ -567,16 +616,16 @@ export default function DashboardScreen() {
 
           <View className="px-6 pt-7">
             <View className="flex-row gap-4">
-              <View className="flex-1 rounded-2xl bg-sky-50 p-4 shadow-sm">
+              <View className="border-info/20 bg-info/10 flex-1 rounded-2xl border p-4 shadow-sm">
                 <View className="mb-3 flex-row items-center gap-2">
-                  <Icon as={Droplets} className="size-4 text-sky-600" />
-                  <Text className="text-sm font-bold text-sky-600">Hydration</Text>
+                  <Icon as={Droplets} className="text-info size-4" />
+                  <Text className="text-info text-sm font-bold">Hydration</Text>
                 </View>
                 <View className="mb-3 flex-row items-baseline gap-1">
-                  <Text className="text-2xl font-black text-slate-900">
+                  <Text className="text-foreground text-2xl font-black">
                     {formatNumberGrouped(hydrationCurrentMl)}
                   </Text>
-                  <Text className="text-xs text-slate-500">
+                  <Text className="text-muted-foreground text-xs">
                     / {formatNumberGrouped(hydrationTargetMl)}ml
                   </Text>
                 </View>
@@ -586,45 +635,182 @@ export default function DashboardScreen() {
                       key={index}
                       className={
                         index < hydrationFilled
-                          ? 'h-8 w-2 rounded-full bg-sky-500'
-                          : 'h-8 w-2 rounded-full bg-sky-200'
+                          ? 'bg-info h-8 w-2 rounded-full'
+                          : 'bg-info/25 h-8 w-2 rounded-full'
                       }
                     />
                   ))}
                 </View>
-                <Pressable
-                  disabled={hydrationMutation.isPending}
-                  onPress={() => {
-                    void onQuickAddWater();
-                  }}
-                  className="ml-auto h-8 w-8 items-center justify-center rounded-full bg-sky-500">
-                  <Icon as={Plus} className="size-4 text-white" />
-                </Pressable>
+                <View className="items-end">
+                  <Pressable
+                    disabled={hydrationMutation.isPending}
+                    onPress={() => setHydrationModalOpen(true)}
+                    className="bg-info h-8 w-8 items-center justify-center rounded-full">
+                    <Icon as={Plus} className="size-4 text-white" />
+                  </Pressable>
+                </View>
               </View>
 
               <View className="bg-card flex-1 rounded-2xl p-4 shadow-sm">
                 <View className="mb-3 flex-row items-center gap-2">
-                  <Icon as={TrendingDown} className="size-4 text-slate-500" />
-                  <Text className="text-sm font-bold text-slate-500">Weight</Text>
+                  <Icon as={TrendingDown} className="text-muted-foreground size-4" />
+                  <Text className="text-muted-foreground text-sm font-bold">Weight</Text>
                 </View>
                 <View className="mb-2 flex-row items-baseline gap-1">
-                  <Text className="text-2xl font-black text-slate-900">
+                  <Text className="text-foreground text-2xl font-black">
                     {selectedDaySummary?.weightKg ?? homeDashboard.data?.currentWeightKg ?? 0}
                   </Text>
-                  <Text className="text-xs text-slate-500">kg</Text>
+                  <Text className="text-muted-foreground text-xs">kg</Text>
                 </View>
                 <View className="mb-2 flex-row items-center gap-1">
-                  <Icon as={TrendingDown} className="size-3 text-green-500" />
-                  <Text className="text-xs font-medium text-green-600">
+                  <Icon as={TrendingDown} className="text-success size-3" />
+                  <Text className="text-success text-xs font-medium">
                     {homeDashboard.data?.weightDeltaKg ?? 0}kg
                   </Text>
                 </View>
-                <Sparkline values={homeDashboard.data?.weightTrend ?? [0]} width={120} />
+                <View className="flex-row items-end justify-between gap-2">
+                  <Sparkline values={homeDashboard.data?.weightTrend ?? [0]} width={92} />
+                  <Pressable
+                    disabled={addWeightMutation.isPending}
+                    onPress={() => setWeightModalOpen(true)}
+                    className="bg-primary h-8 w-8 items-center justify-center rounded-full">
+                    <Icon as={Plus} className="size-4 text-white" />
+                  </Pressable>
+                </View>
               </View>
             </View>
           </View>
         </ScrollView>
       </View>
+
+      <HydrationLogModal
+        open={hydrationModalOpen}
+        value={hydrationInput}
+        unit={hydrationUnit}
+        error={hydrationError}
+        isSaving={hydrationMutation.isPending}
+        onChangeUnit={(unit) => {
+          setHydrationUnit(unit);
+          setHydrationError(null);
+        }}
+        onChangeValue={(value) => {
+          setHydrationInput(value);
+          setHydrationError(null);
+        }}
+        onClose={() => {
+          setHydrationModalOpen(false);
+          setHydrationError(null);
+        }}
+        onSave={() => {
+          void onSaveCustomHydration();
+        }}
+      />
+
+      <WeightLogModal
+        open={weightModalOpen}
+        value={weightInput}
+        isSaving={addWeightMutation.isPending}
+        onChangeValue={setWeightInput}
+        onClose={() => setWeightModalOpen(false)}
+        onSave={(weightKg) => {
+          void onSaveWeight(weightKg);
+        }}
+      />
     </>
+  );
+}
+
+function HydrationLogModal({
+  open,
+  value,
+  unit,
+  error,
+  isSaving,
+  onChangeValue,
+  onChangeUnit,
+  onClose,
+  onSave,
+}: {
+  open: boolean;
+  value: string;
+  unit: 'ml' | 'liters';
+  error: string | null;
+  isSaving: boolean;
+  onChangeValue: (value: string) => void;
+  onChangeUnit: (unit: 'ml' | 'liters') => void;
+  onClose: () => void;
+  onSave: () => void;
+}) {
+  return (
+    <Modal visible={open} transparent animationType="fade" onRequestClose={onClose}>
+      <Pressable className="flex-1 items-center justify-center bg-black/35 px-5" onPress={onClose}>
+        <Pressable
+          className="bg-card w-full max-w-md rounded-[22px] p-5"
+          onPress={(event) => event.stopPropagation()}>
+          <View className="mb-4 flex-row items-center justify-between">
+            <Text className="text-foreground text-lg font-bold">Add Water</Text>
+            <Pressable
+              className="bg-muted h-9 w-9 items-center justify-center rounded-full"
+              onPress={onClose}>
+              <Icon as={X} className="text-foreground size-4" />
+            </Pressable>
+          </View>
+
+          <View className="mb-4">
+            <Text className="text-foreground mb-2 text-sm font-semibold">Amount</Text>
+            <View className="relative justify-center">
+              <Input
+                value={value}
+                onChangeText={onChangeValue}
+                keyboardType="decimal-pad"
+                placeholder={unit === 'liters' ? '0.5' : '350'}
+                className="bg-input-bg h-12 rounded-xl pr-20"
+              />
+              <Text className="text-muted-foreground absolute right-4 text-sm font-medium">
+                {unit === 'liters' ? 'L' : 'ml'}
+              </Text>
+            </View>
+            {error ? <Text className="text-destructive mt-1 text-xs">{error}</Text> : null}
+          </View>
+
+          <View className="mb-5">
+            <Text className="text-foreground mb-2 text-sm font-semibold">Measurement</Text>
+            <View className="bg-background-subtle flex-row rounded-full p-1">
+              {(['ml', 'liters'] as const).map((nextUnit) => (
+                <Button
+                  key={nextUnit}
+                  variant={unit === nextUnit ? 'default' : 'ghost'}
+                  className="h-10 flex-1 rounded-full"
+                  onPress={() => onChangeUnit(nextUnit)}>
+                  <Text
+                    className={
+                      unit === nextUnit
+                        ? 'text-primary-foreground font-semibold'
+                        : 'text-muted-foreground font-semibold'
+                    }>
+                    {nextUnit === 'liters' ? 'Liters' : 'ml'}
+                  </Text>
+                </Button>
+              ))}
+            </View>
+          </View>
+
+          <View className="flex-row gap-3">
+            <Button variant="outline" className="h-12 flex-1 rounded-full" onPress={onClose}>
+              <Text className="font-semibold">Cancel</Text>
+            </Button>
+            <Button
+              variant="default"
+              className="h-12 flex-1 rounded-full"
+              disabled={isSaving}
+              onPress={onSave}>
+              <Text className="text-primary-foreground font-semibold">
+                {isSaving ? 'Saving...' : 'Save'}
+              </Text>
+            </Button>
+          </View>
+        </Pressable>
+      </Pressable>
+    </Modal>
   );
 }

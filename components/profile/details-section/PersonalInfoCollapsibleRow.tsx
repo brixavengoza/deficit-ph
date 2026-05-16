@@ -33,8 +33,8 @@ export default function PersonalInfoCollapsibleRow() {
   return (
     <BaseCollapsibleRow
       icon={User}
-      iconWrapClass="bg-blue-100"
-      iconClassName="text-blue-600"
+      iconWrapClass="bg-info/15"
+      iconClassName="text-info"
       label="Personal Info"
       open={open}
       onToggle={() => setOpen((prev) => !prev)}>
@@ -49,7 +49,7 @@ export default function PersonalInfoCollapsibleRow() {
                 value={field.value}
                 onChangeText={field.onChange}
                 onBlur={field.onBlur}
-                className="bg-background-subtle h-11 rounded-xl border-transparent"
+                className="bg-input-bg h-11 rounded-xl"
               />
             )}
           />
@@ -66,7 +66,7 @@ export default function PersonalInfoCollapsibleRow() {
                 value={field.value}
                 onChangeText={field.onChange}
                 onBlur={field.onBlur}
-                className="bg-background-subtle h-11 rounded-xl border-transparent"
+                className="bg-input-bg h-11 rounded-xl"
               />
             )}
           />
@@ -85,7 +85,7 @@ export default function PersonalInfoCollapsibleRow() {
                 onBlur={field.onBlur}
                 keyboardType="email-address"
                 autoCapitalize="none"
-                className="bg-background-subtle h-11 rounded-xl border-transparent"
+                className="bg-input-bg h-11 rounded-xl"
               />
             )}
           />

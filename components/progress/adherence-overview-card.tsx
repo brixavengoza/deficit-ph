@@ -25,10 +25,10 @@ function ProgressRow({
       </View>
       <View className="flex-1">
         <View className="mb-1 flex-row items-center justify-between">
-          <Text className="text-sm font-semibold text-slate-900">{label}</Text>
+          <Text className="text-foreground text-sm font-semibold">{label}</Text>
           <Text className={`${colorClass} text-sm font-bold`}>{value}%</Text>
         </View>
-        <View className="h-2 rounded-full bg-slate-100">
+        <View className="bg-muted h-2 rounded-full">
           <View className={`${barClass} h-2 rounded-full`} style={{ width: `${value}%` }} />
         </View>
       </View>
@@ -46,8 +46,8 @@ export function AdherenceOverviewCard({
   weighInConsistency: number;
 }) {
   return (
-    <View className="mb-6 rounded-[22px] border border-slate-100 bg-white p-5 shadow-sm">
-      <Text className="mb-4 text-base font-bold text-slate-900">Adherence Overview</Text>
+    <View className="border-border bg-card mb-6 rounded-[22px] border p-5 shadow-sm">
+      <Text className="text-foreground mb-4 text-base font-bold">Adherence Overview</Text>
 
       <View className="gap-4">
         <ProgressRow
@@ -69,10 +69,10 @@ export function AdherenceOverviewCard({
         <ProgressRow
           label="Weigh-in Consistency"
           value={weighInConsistency}
-          colorClass="text-slate-700"
+          colorClass="text-muted-foreground"
           icon={Scale}
-          chipClass="bg-slate-100"
-          barClass="bg-slate-400"
+          chipClass="bg-muted"
+          barClass="bg-muted-foreground"
         />
       </View>
     </View>

@@ -2,7 +2,8 @@ import { getFoodEmoji } from '@/lib/food-emoji';
 import { Text } from '@/components/ui/text';
 import { useFoodLogsQuery } from '@/hooks/use-trackk-query';
 import React from 'react';
-import { Pressable, SectionList, View } from 'react-native';
+import { Pressable, RefreshControl, SectionList, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 type FoodItem = {
   id: string;
@@ -22,8 +23,10 @@ function formatKcal(value: number) {
 }
 
 export default function DashboardLogScreen() {
+  const insets = useSafeAreaInsets();
   const logsQuery = useFoodLogsQuery();
   const loggedFoods = logsQuery.data ?? [];
+  const [isRefreshing, setIsRefreshing] = React.useState(false);
 
   const sections = React.useMemo<FoodSection[]>(() => {
     if (!loggedFoods.length) return [];
@@ -37,7 +40,8 @@ export default function DashboardLogScreen() {
         month: 'short',
         day: 'numeric',
       }).format(new Date(item.consumedAtIso));
-      const title = key === new Date().toISOString().slice(0, 10) ? `Today, ${dateLabel}` : dateLabel;
+      const title =
+        key === new Date().toISOString().slice(0, 10) ? `Today, ${dateLabel}` : dateLabel;
 
       if (!grouped.has(key)) {
         grouped.set(key, { title, totalKcal: 0, data: [] });
@@ -58,9 +62,20 @@ export default function DashboardLogScreen() {
       .map(([, section]) => section);
   }, [loggedFoods]);
 
+  const handleRefresh = React.useCallback(async () => {
+    setIsRefreshing(true);
+    try {
+      await logsQuery.refetch();
+    } finally {
+      setIsRefreshing(false);
+    }
+  }, [logsQuery]);
+
   return (
-    <View className="bg-surface">
-      <View className="bg-surface border-border flex-row items-center justify-between border-b px-4 pt-2 pb-4">
+    <View className="bg-surface flex-1">
+      <View
+        className="bg-surface border-border flex-row items-center justify-between border-b px-4 pb-4"
+        style={{ paddingTop: insets.top + 8 }}>
         <Text className="text-foreground flex-1 text-center text-lg font-bold tracking-tight">
           Food History
         </Text>
@@ -68,12 +83,21 @@ export default function DashboardLogScreen() {
 
       <SectionList
         sections={sections}
+        style={{ flex: 1 }}
         keyExtractor={(item) => item.id}
         stickySectionHeadersEnabled
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingBottom: 160 }}
+        contentContainerStyle={{ flexGrow: 1, paddingBottom: 160 }}
+        refreshControl={
+          <RefreshControl
+            refreshing={isRefreshing}
+            onRefresh={handleRefresh}
+            tintColor="#21c45d"
+            colors={['#21c45d']}
+          />
+        }
         renderSectionHeader={({ section }) => (
-          <View className="border-border flex-row items-center justify-between bg-gray-100 px-6 py-3">
+          <View className="border-border bg-background-subtle flex-row items-center justify-between border-b px-6 py-3">
             <Text className="text-foreground text-base font-bold">{section.title}</Text>
             <Text className="text-muted-foreground text-sm font-semibold">
               {formatKcal(section.totalKcal)} kcal
@@ -82,11 +106,9 @@ export default function DashboardLogScreen() {
         )}
         renderItem={({ item, index, section }) => (
           <Pressable
-            className="bg-surface px-6 py-4"
-            style={{
-              borderBottomWidth: index === section.data.length - 1 ? 0 : 1,
-              borderBottomColor: '#f1f5f9',
-            }}>
+            className={`bg-surface px-6 py-4 ${
+              index === section.data.length - 1 ? '' : 'border-border border-b'
+            }`}>
             <View className="flex-row items-center justify-between">
               <View className="flex-1 flex-row items-center pr-4">
                 <View className="bg-background-subtle mr-3 h-11 w-11 items-center justify-center rounded-xl">

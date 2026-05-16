@@ -13,14 +13,10 @@
       "resizeMode": "contain",
       "backgroundColor": "#22C55E"
     },
-    "assetBundlePatterns": [
-      "**/*"
-    ],
+    "assetBundlePatterns": ["**/*"],
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.trackk.minimal",
-      "usesAppleSignIn": true,
-      "appleTeamId": "99FQ8GQU66"
+      "bundleIdentifier": "com.trackk.minimal"
     },
     "android": {
       "edgeToEdgeEnabled": true,
@@ -47,9 +43,7 @@
         }
       ],
       "@react-native-community/datetimepicker",
-      "expo-apple-authentication",
-      "expo-sqlite",
-      "expo-web-browser"
+      "expo-sqlite"
     ],
     "experiments": {
       "typedRoutes": true

@@ -7,8 +7,10 @@ import { Text } from '@/components/ui/text';
 import React from 'react';
 import { ScrollView, View } from 'react-native';
 import { useProfileBundleStore } from '@/stores/use-profile-bundle-store';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function DashboardProfileScreen() {
+  const insets = useSafeAreaInsets();
   const ensureLoaded = useProfileBundleStore((state) => state.ensureLoaded);
 
   React.useEffect(() => {
@@ -17,7 +19,9 @@ export default function DashboardProfileScreen() {
 
   return (
     <View className="bg-background flex-1">
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerClassName="pb-32">
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{ paddingTop: insets.top, paddingBottom: 128 }}>
         <ProfileHeaderSection />
         <ProfileStatsRow />
 

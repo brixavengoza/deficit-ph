@@ -27,7 +27,7 @@ export default function BaseCollapsibleRow({
           <View className={`${iconWrapClass} h-8 w-8 items-center justify-center rounded-full`}>
             <Icon as={icon} className={`${iconClassName} size-4`} />
           </View>
-          <Text className="text-sm font-medium text-slate-700">{label}</Text>
+          <Text className="text-foreground text-sm font-medium">{label}</Text>
         </View>
         <Icon as={ChevronDown} className={open ? 'text-primary size-5' : 'size-5 text-slate-400'} />
       </Pressable>

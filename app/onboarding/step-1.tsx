@@ -99,7 +99,7 @@ export default function OnboardingStepOneScreen() {
                           onBlur={onBlur}
                           keyboardType="number-pad"
                           placeholder="20"
-                          className="bg-surface focus:border-primary h-14 rounded-xl border-transparent pl-5"
+                          className="bg-input-bg focus:border-primary h-14 rounded-xl pl-5"
                         />
                       )}
                     />
@@ -122,7 +122,7 @@ export default function OnboardingStepOneScreen() {
                           onBlur={onBlur}
                           placeholder="150"
                           keyboardType="number-pad"
-                          className="bg-surface h-14 rounded-xl border-transparent pl-5"
+                          className="bg-input-bg h-14 rounded-xl pl-5"
                         />
                       )}
                     />
@@ -145,7 +145,7 @@ export default function OnboardingStepOneScreen() {
                           onBlur={onBlur}
                           placeholder="80"
                           keyboardType="decimal-pad"
-                          className="bg-surface h-14 rounded-xl border-transparent pl-5"
+                          className="bg-input-bg h-14 rounded-xl pl-5"
                         />
                       )}
                     />

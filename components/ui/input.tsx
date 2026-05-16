@@ -9,14 +9,14 @@ const inputVariants = cva(
   {
     variants: {
       variant: {
-        default: 'bg-background border-input',
-        step: 'bg-background border-input',
+        default: 'bg-input-bg border-input',
+        step: 'bg-input-bg border-input',
       },
       size: {
         default: 'h-10 rounded-md px-3 text-base leading-5 sm:h-9',
         lg: 'h-12 rounded-xl px-4 text-lg leading-6',
         // For quantity / numeric fields: tuned line-height + no vertical padding to stay optically centered.
-        xlNumeric: 'h-16 rounded-2xl px-5 text-2xl font-bold leading-6',
+        xlNumeric: 'h-16 rounded-2xl px-5 text-2xl leading-6 font-bold',
       },
     },
     defaultVariants: {
