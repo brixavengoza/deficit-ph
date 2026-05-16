@@ -1,5 +1,8 @@
 import { Button } from '@/components/ui/button';
 import { Text } from '@/components/ui/text';
+import { supabase } from '@/lib/supabase';
+import { useProfileBundleStore } from '@/stores/use-profile-bundle-store';
+import { useSavedFoodStore } from '@/stores/use-saved-food-store';
 import { useRouter } from 'expo-router';
 import React from 'react';
 import { Modal, Pressable, View } from 'react-native';
@@ -7,10 +10,20 @@ import { Modal, Pressable, View } from 'react-native';
 export default function LogoutRow() {
   const router = useRouter();
   const [open, setOpen] = React.useState(false);
+  const clearSavedFoods = useSavedFoodStore((state) => state.clearSavedFoods);
+  const resetProfile = useProfileBundleStore((state) => state.reset);
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
     setOpen(false);
-    router.replace('/auth/login');
+    try {
+      await supabase.auth.signOut();
+    } catch (error) {
+      console.error('[LogoutRow.signOut]', error);
+    } finally {
+      clearSavedFoods();
+      resetProfile();
+      router.replace('/welcome');
+    }
   };
 
   return (
@@ -32,7 +45,12 @@ export default function LogoutRow() {
             </Text>
 
             <View className="mt-5 gap-2">
-              <Button variant="destructive" className="h-11 rounded-full" onPress={handleLogout}>
+              <Button
+                variant="destructive"
+                className="h-11 rounded-full"
+                onPress={() => {
+                  void handleLogout();
+                }}>
                 <Text>Log Out</Text>
               </Button>
 

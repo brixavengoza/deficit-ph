@@ -27,7 +27,7 @@ const PRO_FEATURES = [
   },
   {
     icon: Crown,
-    title: 'Unlimited Saved Foods',
+    title: 'Unlimited Custom Foods',
     subtitle: 'Save mo favorite/custom foods mo without cap',
   },
   {
@@ -44,7 +44,7 @@ const BASIC_FEATURES = [
   'Limited History (7 Days)',
   'Basic progress view',
   'Weight + water tracking (basic)',
-  'Saved foods (up to 20 only)',
+  'Custom foods (up to 10 only)',
 ] as const;
 
 const PRICE_COMPARISONS = {
@@ -205,7 +205,7 @@ export default function SubscriptionPlanScreen() {
                 tracking features.
               </Text>
               <Text className="text-primary mt-2 text-xs font-semibold">
-                Saved foods: Free users up to 20, Pro users unlimited.
+                Custom foods: Free users up to 10, Pro users unlimited.
               </Text>
             </View>
           </View>

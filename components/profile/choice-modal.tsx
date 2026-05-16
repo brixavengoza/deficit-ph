@@ -23,7 +23,7 @@ export function ChoiceModal<T extends string>({
     <Modal visible={open} transparent animationType="fade" onRequestClose={onClose}>
       <Pressable className="flex-1 items-center justify-center bg-black/35 px-5" onPress={onClose}>
         <Pressable
-          className="w-full max-w-md rounded-[22px] bg-white p-5"
+          className="bg-card w-full max-w-md rounded-[22px] p-5"
           onPress={(e) => e.stopPropagation()}>
           <Text className="text-foreground mb-4 text-lg font-bold">{title}</Text>
           <View className="gap-2">
@@ -35,7 +35,7 @@ export function ChoiceModal<T extends string>({
                   className={
                     active
                       ? 'border-primary bg-primary/10 rounded-xl border p-4'
-                      : 'rounded-xl border border-transparent bg-slate-50 p-4'
+                      : 'bg-muted rounded-xl border border-transparent p-4'
                   }
                   onPress={() => {
                     onSelect(option);

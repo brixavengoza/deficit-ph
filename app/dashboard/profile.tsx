@@ -6,8 +6,15 @@ import { ProfileStatsRow } from '@/components/profile/profile-stats-row';
 import { Text } from '@/components/ui/text';
 import React from 'react';
 import { ScrollView, View } from 'react-native';
+import { useProfileBundleStore } from '@/stores/use-profile-bundle-store';
 
 export default function DashboardProfileScreen() {
+  const ensureLoaded = useProfileBundleStore((state) => state.ensureLoaded);
+
+  React.useEffect(() => {
+    void ensureLoaded();
+  }, [ensureLoaded]);
+
   return (
     <View className="bg-background flex-1">
       <ScrollView showsVerticalScrollIndicator={false} contentContainerClassName="pb-32">

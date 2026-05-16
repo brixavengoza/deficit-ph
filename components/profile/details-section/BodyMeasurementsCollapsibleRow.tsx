@@ -1,9 +1,4 @@
 import { bodyMeasurementsSchema, BodyMeasurementsValues } from '@/components/schema/profile-schema';
-import {
-  PROFILE_APP_PREFERENCES_MOCK,
-  PROFILE_BODY_MEASUREMENTS_MOCK,
-  Units,
-} from '@/lib/profile-settings-mock';
 import { zodResolver } from '@hookform/resolvers/zod';
 import React from 'react';
 import { Controller, useForm } from 'react-hook-form';
@@ -14,18 +9,28 @@ import { Text } from '@/components/ui/text';
 import { Input } from '@/components/ui/input';
 import FieldError from '../field-error';
 import { Button } from '@/components/ui/button';
+import { useProfileBundleStore } from '@/stores/use-profile-bundle-store';
 
 export default function BodyMeasurementsCollapsibleRow() {
   const [open, setOpen] = React.useState(false);
-  const [units] = React.useState<Units>(PROFILE_APP_PREFERENCES_MOCK.units);
+  const { units, height, weight, goalWeight } = useProfileBundleStore((state) => state.bundle);
+  const saveBodyToDb = useProfileBundleStore((state) => state.saveBodyMeasurements);
   const form = useForm<BodyMeasurementsValues>({
     resolver: zodResolver(bodyMeasurementsSchema),
     mode: 'onChange',
-    defaultValues: PROFILE_BODY_MEASUREMENTS_MOCK,
+    defaultValues: {
+      height: '',
+      weight: '',
+      goalWeight: '',
+    },
   });
 
-  const saveBodyMeasurements = (values: BodyMeasurementsValues) => {
-    console.log('[profile body save]', values);
+  React.useEffect(() => {
+    form.reset({ height, weight, goalWeight });
+  }, [form, goalWeight, height, weight]);
+
+  const saveBodyMeasurements = async (values: BodyMeasurementsValues) => {
+    await saveBodyToDb(values);
     form.reset(values);
   };
 
@@ -103,7 +108,9 @@ export default function BodyMeasurementsCollapsibleRow() {
         <Button
           className="mt-1 h-10 rounded-full"
           disabled={!form.formState.isDirty || !form.formState.isValid}
-          onPress={form.handleSubmit(saveBodyMeasurements)}>
+          onPress={() => {
+            void form.handleSubmit(saveBodyMeasurements)();
+          }}>
           <Text className="text-primary-foreground font-semibold">Save Measurements</Text>
         </Button>
       </View>

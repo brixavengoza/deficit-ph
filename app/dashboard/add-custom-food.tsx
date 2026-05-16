@@ -3,9 +3,9 @@ import { Button } from '@/components/ui/button';
 import { Icon } from '@/components/ui/icon';
 import { Input } from '@/components/ui/input';
 import { Text } from '@/components/ui/text';
-import { formatTimeLabelFromDate } from '@/utils/add-food-utils';
-import { useFoodLogStore } from '@/stores/use-food-log-store';
+import { useInsertFoodLogMutation, useUpsertUserFoodMutation } from '@/hooks/use-trackk-query';
 import { useSavedFoodStore } from '@/stores/use-saved-food-store';
+import { formatTimeLabelFromDate } from '@/utils/add-food-utils';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { router } from 'expo-router';
 import { ArrowLeft, Info } from 'lucide-react-native';
@@ -110,8 +110,9 @@ function NumericField({
 export default function AddCustomFoodScreen() {
   const insets = useSafeAreaInsets();
   const [isSubmitting, setIsSubmitting] = React.useState(false);
-  const addLoggedFood = useFoodLogStore((state) => state.addLoggedFood);
-  const upsertSavedFoodByName = useSavedFoodStore((state) => state.upsertSavedFoodByName);
+  const isPremiumUser = useSavedFoodStore((state) => state.isPremiumUser);
+  const upsertFoodMutation = useUpsertUserFoodMutation();
+  const insertFoodLogMutation = useInsertFoodLogMutation();
 
   const {
     control,
@@ -134,19 +135,23 @@ export default function AddCustomFoodScreen() {
     async (values: AddCustomFoodFormValues) => {
       setIsSubmitting(true);
       try {
-        await new Promise((resolve) => setTimeout(resolve, 300));
-        upsertSavedFoodByName({
+        const savedFood = await upsertFoodMutation.mutateAsync({
           name: values.foodName.trim(),
           kcalPer100g: Number(values.caloriesPer100g),
           proteinPer100g: Number(values.proteinPer100g),
           carbsPer100g: Number(values.carbsPer100g),
           fatsPer100g: Number(values.fatsPer100g),
           servingSizeLabel: values.servingSizeLabel.trim(),
-          source: 'user',
+          isPremiumUser,
         });
-        addLoggedFood({
-          foodName: values.foodName.trim(),
-          kcalPer100g: Number(values.caloriesPer100g),
+
+        await insertFoodLogMutation.mutateAsync({
+          foodId: savedFood.id,
+          foodName: savedFood.name,
+          kcalPer100g: savedFood.kcalPer100g,
+          proteinPer100g: savedFood.proteinPer100g,
+          carbsPer100g: savedFood.carbsPer100g,
+          fatsPer100g: savedFood.fatsPer100g,
           quantity: 100,
           unit: 'grams',
           gramsEquivalent: 100,
@@ -166,7 +171,7 @@ export default function AddCustomFoodScreen() {
         setIsSubmitting(false);
       }
     },
-    [addLoggedFood, setError, upsertSavedFoodByName]
+    [insertFoodLogMutation, isPremiumUser, setError, upsertFoodMutation]
   );
 
   return (

@@ -6,8 +6,12 @@ import { Input } from '@/components/ui/input';
 import { Text } from '@/components/ui/text';
 import { getFoodEmoji } from '@/lib/food-emoji';
 import { formatNumberGrouped } from '@/lib/number-format';
-import { useFoodLogStore } from '@/stores/use-food-log-store';
-import { useSavedFoodStore } from '@/stores/use-saved-food-store';
+import {
+  useCommonFoodsQuery,
+  useFoodLogsQuery,
+  useFoodSearchQuery,
+  useFoodsQuery,
+} from '@/hooks/use-trackk-query';
 import { useRouter } from 'expo-router';
 import { ArrowLeft, ChevronRight, PencilLine, Plus, Search } from 'lucide-react-native';
 import React from 'react';
@@ -32,26 +36,6 @@ type SearchRow =
   | { type: 'food'; id: string; food: SearchFood }
   | { type: 'empty'; id: string };
 
-const RECENT_FOODS: SearchFood[] = [
-  { id: 'r1', name: 'Oatmeal', kcalPer100g: 68 },
-  { id: 'r2', name: 'Banana', kcalPer100g: 89 },
-  { id: 'r3', name: 'Greek Yogurt (Plain)', kcalPer100g: 59 },
-  { id: 'r4', name: 'Rolled Oats', kcalPer100g: 389 },
-  { id: 'r5', name: 'Protein Shake', kcalPer100g: 120 },
-];
-
-const COMMON_FOODS: SearchFood[] = [
-  { id: 'c1', name: 'White Rice (Cooked)', kcalPer100g: 130 },
-  { id: 'c2', name: 'Chicken Breast (Grilled)', kcalPer100g: 165 },
-  { id: 'c3', name: 'Egg (Large, Boiled)', kcalPer100g: 155 },
-  { id: 'c4', name: 'Salmon Fillet', kcalPer100g: 208 },
-  { id: 'c5', name: 'Tuna Sandwich', kcalPer100g: 242 },
-  { id: 'c6', name: 'Caesar Salad', kcalPer100g: 190 },
-  { id: 'c7', name: 'Pasta (Spaghetti)', kcalPer100g: 158 },
-  { id: 'c8', name: 'Beef Stir Fry', kcalPer100g: 180 },
-  { id: 'c9', name: 'Avocado', kcalPer100g: 160 },
-];
-
 function FoodRow({ item, onPress }: { item: SearchFood; onPress: (item: SearchFood) => void }) {
   return (
     <Pressable
@@ -73,14 +57,37 @@ function FoodRow({ item, onPress }: { item: SearchFood; onPress: (item: SearchFo
   );
 }
 
+function useDebouncedValue(value: string, delayMs: number) {
+  const [debouncedValue, setDebouncedValue] = React.useState(value);
+
+  React.useEffect(() => {
+    const id = setTimeout(() => setDebouncedValue(value), delayMs);
+    return () => clearTimeout(id);
+  }, [delayMs, value]);
+
+  return debouncedValue;
+}
+
 export default function LogFoodSearchScreen() {
   const router = useRouter();
   const inputRef = React.useRef<TextInput>(null);
   const navigateTimeoutRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
   const [query, setQuery] = React.useState('');
   const [cartModalOpen, setCartModalOpen] = React.useState(false);
-  const loggedFoods = useFoodLogStore((state) => state.loggedFoods);
-  const savedFoods = useSavedFoodStore((state) => state.savedFoods);
+  const debouncedQuery = useDebouncedValue(query, 250);
+  const foodsQuery = useFoodsQuery();
+  const commonFoodsQuery = useCommonFoodsQuery();
+  const foodSearchQuery = useFoodSearchQuery(debouncedQuery);
+  const logsQuery = useFoodLogsQuery();
+  const savedFoods = foodsQuery.data ?? [];
+  const seedFoods = commonFoodsQuery.data ?? [];
+  const searchResults = foodSearchQuery.data ?? [];
+  const allLoggedFoods = logsQuery.data ?? [];
+  const todayKey = new Date().toISOString().slice(0, 10);
+  const loggedFoods = React.useMemo(
+    () => allLoggedFoods.filter((item) => item.consumedAtIso.slice(0, 10) === todayKey),
+    [allLoggedFoods, todayKey]
+  );
   const loggedFoodsCount = loggedFoods.length;
   const latestLoggedFood = loggedFoods[0];
   const indicatorEmoji = latestLoggedFood ? getFoodEmoji(latestLoggedFood.foodName) : '🍽️';
@@ -95,29 +102,45 @@ export default function LogFoodSearchScreen() {
     };
   }, []);
 
-  const normalizedQuery = query.trim().toLowerCase();
-  const allFoods = React.useMemo(
-    () => [
-      ...savedFoods.map((item) => ({
-        id: item.id,
-        name: item.name,
-        kcalPer100g: item.kcalPer100g,
-        section: 'Saved Foods' as const,
-      })),
-      ...RECENT_FOODS.map((item) => ({ ...item, section: 'Recent Foods' as const })),
-      ...COMMON_FOODS.map((item) => ({ ...item, section: 'Common Foods' as const })),
-    ],
-    [savedFoods]
+  const recentFoods = React.useMemo<SearchFood[]>(() => {
+    const byName = new Map<string, SearchFood>();
+    for (const item of loggedFoods) {
+      const key = item.foodName.trim().toLowerCase();
+      if (byName.has(key)) continue;
+      byName.set(key, { id: item.id, name: item.foodName, kcalPer100g: item.kcalPer100g });
+    }
+    return Array.from(byName.values()).slice(0, 8);
+  }, [loggedFoods]);
+
+  const commonFoods = React.useMemo<SearchFood[]>(
+    () =>
+      seedFoods.map((food) => ({ id: food.id, name: food.name, kcalPer100g: food.kcalPer100g })),
+    [seedFoods]
   );
 
-  const filteredFoods = React.useMemo(() => {
-    if (!normalizedQuery) return [];
-    return allFoods.filter((item) => item.name.toLowerCase().includes(normalizedQuery));
-  }, [allFoods, normalizedQuery]);
+  const normalizedQuery = query.trim().toLowerCase();
+  const debouncedNormalizedQuery = debouncedQuery.trim().toLowerCase();
+  const searchedFoods = React.useMemo<SearchFood[]>(
+    () =>
+      searchResults.map((food) => ({
+        id: food.id,
+        name: food.name,
+        kcalPer100g: food.kcalPer100g,
+      })),
+    [searchResults]
+  );
 
   const rows = React.useMemo<SearchRow[]>(() => {
     if (normalizedQuery) {
-      if (!filteredFoods.length) {
+      if (
+        normalizedQuery.length < 2 ||
+        normalizedQuery !== debouncedNormalizedQuery ||
+        foodSearchQuery.isFetching
+      ) {
+        return [{ type: 'section', id: 'search-header', title: 'Search Results', mt: 8 }];
+      }
+
+      if (!searchedFoods.length) {
         return [
           { type: 'section', id: 'search-header', title: 'Search Results', mt: 8 },
           { type: 'empty', id: 'empty' },
@@ -126,9 +149,9 @@ export default function LogFoodSearchScreen() {
 
       return [
         { type: 'section', id: 'search-header', title: 'Search Results', mt: 8 },
-        ...filteredFoods.map((item) => ({
+        ...searchedFoods.map((item) => ({
           type: 'food' as const,
-          id: `${item.section}-${item.id}`,
+          id: `search-${item.id}`,
           food: item,
         })),
       ];
@@ -152,17 +175,42 @@ export default function LogFoodSearchScreen() {
             })),
           ]
         : []),
-      { type: 'section', id: 'recent-header', title: 'Recent Foods', mt: 8 },
-      ...RECENT_FOODS.map((food) => ({ type: 'food' as const, id: `recent-${food.id}`, food })),
-      {
-        type: 'section',
-        id: 'common-header',
-        title: 'Common Foods',
-        mt: savedFoods.length ? 24 : 24,
-      },
-      ...COMMON_FOODS.map((food) => ({ type: 'food' as const, id: `common-${food.id}`, food })),
+      ...(recentFoods.length
+        ? [
+            { type: 'section' as const, id: 'recent-header', title: 'Recent Foods', mt: 8 },
+            ...recentFoods.map((food) => ({
+              type: 'food' as const,
+              id: `recent-${food.id}`,
+              food,
+            })),
+          ]
+        : []),
+      ...(commonFoods.length
+        ? [
+            {
+              type: 'section' as const,
+              id: 'common-header',
+              title: 'Common Foods',
+              mt: 24,
+            },
+            ...commonFoods.map((food) => ({
+              type: 'food' as const,
+              id: `common-${food.id}`,
+              food,
+            })),
+          ]
+        : []),
     ];
-  }, [filteredFoods, normalizedQuery, router, savedFoods]);
+  }, [
+    commonFoods,
+    debouncedNormalizedQuery,
+    foodSearchQuery.isFetching,
+    normalizedQuery,
+    recentFoods,
+    router,
+    savedFoods,
+    searchedFoods,
+  ]);
 
   const handleSelectFood = React.useCallback(
     (food: SearchFood) => {
@@ -317,7 +365,11 @@ export default function LogFoodSearchScreen() {
         </Button>
       </View>
 
-      <LoggedFoodsCartModal open={cartModalOpen} onClose={() => setCartModalOpen(false)} />
+      <LoggedFoodsCartModal
+        open={cartModalOpen}
+        onClose={() => setCartModalOpen(false)}
+        dayKey={todayKey}
+      />
     </View>
   );
 }

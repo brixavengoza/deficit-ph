@@ -6,6 +6,11 @@ import { Icon } from '@/components/ui/icon';
 import { Input } from '@/components/ui/input';
 import { Text } from '@/components/ui/text';
 import {
+  useFoodLogsQuery,
+  useInsertFoodLogMutation,
+  useUpdateFoodLogMutation,
+} from '@/hooks/use-trackk-query';
+import {
   convertQuantityToGrams,
   formatTimeLabelFromDate,
   formatFoodTitle,
@@ -19,7 +24,6 @@ import {
 } from '@/utils/add-food-utils';
 import { getFoodEmoji } from '@/lib/food-emoji';
 import { formatCompactNumber, formatMeasure, formatNumberGrouped } from '@/lib/number-format';
-import { useFoodLogStore } from '@/stores/use-food-log-store';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { router, useLocalSearchParams } from 'expo-router';
 import { ArrowLeft, Check, Clock3 } from 'lucide-react-native';
@@ -60,9 +64,9 @@ const defaultCurrentTime = formatTimeLabelFromDate(new Date());
 
 export default function AddFoodScreen() {
   const insets = useSafeAreaInsets();
-  const addLoggedFood = useFoodLogStore((state) => state.addLoggedFood);
-  const updateLoggedFood = useFoodLogStore((state) => state.updateLoggedFood);
-  const loggedFoods = useFoodLogStore((state) => state.loggedFoods);
+  const logsQuery = useFoodLogsQuery();
+  const insertFoodLogMutation = useInsertFoodLogMutation();
+  const updateFoodLogMutation = useUpdateFoodLogMutation();
   const params = useLocalSearchParams<{
     entryId?: string;
     foodName?: string;
@@ -77,6 +81,7 @@ export default function AddFoodScreen() {
   );
   const defaultMeal: MealOption = 'Lunch';
   const entryId = Array.isArray(params.entryId) ? params.entryId[0] : params.entryId;
+  const loggedFoods = logsQuery.data ?? [];
   const editingEntry = React.useMemo(
     () => (entryId ? (loggedFoods.find((item) => item.id === entryId) ?? null) : null),
     [entryId, loggedFoods]
@@ -192,11 +197,25 @@ export default function AddFoodScreen() {
         };
 
         if (editingEntry) {
-          updateLoggedFood(editingEntry.id, nextPayload);
+          await updateFoodLogMutation.mutateAsync({
+            id: editingEntry.id,
+            payload: {
+              id: editingEntry.id,
+              foodName,
+              kcalPer100g,
+              proteinPer100g: macroProfile.proteinPer100g,
+              carbsPer100g: macroProfile.carbsPer100g,
+              fatsPer100g: macroProfile.fatsPer100g,
+              ...nextPayload,
+            },
+          });
         } else {
-          addLoggedFood({
+          await insertFoodLogMutation.mutateAsync({
             foodName,
             kcalPer100g,
+            proteinPer100g: macroProfile.proteinPer100g,
+            carbsPer100g: macroProfile.carbsPer100g,
+            fatsPer100g: macroProfile.fatsPer100g,
             ...nextPayload,
           });
         }
@@ -209,7 +228,16 @@ export default function AddFoodScreen() {
         setIsSubmitting(false);
       }
     },
-    [addLoggedFood, editingEntry, foodName, kcalPer100g, nutrition, setError, updateLoggedFood]
+    [
+      editingEntry,
+      foodName,
+      insertFoodLogMutation,
+      kcalPer100g,
+      macroProfile,
+      nutrition,
+      setError,
+      updateFoodLogMutation,
+    ]
   );
 
   const handleOpenTimeDialog = React.useCallback(() => {

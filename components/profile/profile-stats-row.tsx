@@ -1,5 +1,5 @@
 import { Text } from '@/components/ui/text';
-import { PROFILE_APP_PREFERENCES_MOCK, PROFILE_STATS_MOCK } from '@/lib/profile-settings-mock';
+import { useProfileBundleStore } from '@/stores/use-profile-bundle-store';
 import { ScrollView, View } from 'react-native';
 
 function StatTile({
@@ -32,8 +32,7 @@ function StatTile({
 }
 
 export function ProfileStatsRow() {
-  const { units, activityLevel } = PROFILE_APP_PREFERENCES_MOCK;
-  const { weight, calorieGoal, streakDays } = PROFILE_STATS_MOCK;
+  const { units, weight, calorieGoal, streakDays } = useProfileBundleStore((state) => state.bundle);
 
   return (
     <View className="mb-8 flex flex-row gap-2 px-4">

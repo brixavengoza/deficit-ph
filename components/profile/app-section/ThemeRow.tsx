@@ -1,35 +1,44 @@
 import { ChoiceModal } from '@/components/profile/choice-modal';
 import StaticRow from '@/components/profile/static-row';
-import {
-  PROFILE_APP_PREFERENCES_MOCK,
-  THEME_OPTIONS,
-  type ThemeMode,
-} from '@/lib/profile-settings-mock';
+import { THEME_OPTIONS, type ThemeMode } from '@/lib/profile-settings-mock';
 import { MoonStar } from 'lucide-react-native';
 import React from 'react';
+import { Uniwind } from 'uniwind';
+import { useProfileBundleStore } from '@/stores/use-profile-bundle-store';
 
 export default function ThemeRow() {
   const [open, setOpen] = React.useState(false);
-  const [theme, setTheme] = React.useState<ThemeMode>(PROFILE_APP_PREFERENCES_MOCK.theme);
+  const selectedTheme = useProfileBundleStore((state) => state.bundle.theme);
+  const saveTheme = useProfileBundleStore((state) => state.saveTheme);
+
+  const handleThemeSelect = (value: ThemeMode) => {
+    void saveTheme(value);
+    if (value === 'Auto') {
+      Uniwind.setTheme('system');
+      return;
+    }
+
+    Uniwind.setTheme(value.toLowerCase() as 'light' | 'dark');
+  };
 
   return (
     <>
       <StaticRow
         icon={MoonStar}
-        iconWrapClass="bg-slate-100"
-        iconClassName="text-slate-600"
+        iconWrapClass="bg-secondary"
+        iconClassName="text-foreground"
         label="Theme"
-        value={theme}
+        value={selectedTheme}
         onPress={() => setOpen(true)}
       />
 
       <ChoiceModal
         title="Theme"
         open={open}
-        selected={theme}
+        selected={selectedTheme}
         options={THEME_OPTIONS}
         onClose={() => setOpen(false)}
-        onSelect={(value) => setTheme(value)}
+        onSelect={handleThemeSelect}
       />
     </>
   );

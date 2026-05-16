@@ -1,6 +1,9 @@
 import '@/global.css';
 
 import { NAV_THEME } from '@/lib/theme';
+import { queryClient } from '@/lib/query-client';
+import { supabase } from '@/lib/supabase';
+import { QueryClientProvider } from '@tanstack/react-query';
 import { ThemeProvider } from '@react-navigation/native';
 import { PortalHost } from '@rn-primitives/portal';
 import * as SplashScreen from 'expo-splash-screen';
@@ -9,7 +12,8 @@ import { StatusBar } from 'expo-status-bar';
 import * as React from 'react';
 import { View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
-import { useUniwind } from 'uniwind';
+import { Uniwind, useUniwind } from 'uniwind';
+import { useProfileBundleStore } from '@/stores/use-profile-bundle-store';
 
 export {
   // Catch any errors thrown by the Layout component.
@@ -22,6 +26,8 @@ void SplashScreen.preventAutoHideAsync().catch((error) => {
 
 export default function RootLayout() {
   const { theme } = useUniwind();
+  const ensureLoaded = useProfileBundleStore((state) => state.ensureLoaded);
+  const preferredTheme = useProfileBundleStore((state) => state.bundle.theme);
   const [appIsReady, setAppIsReady] = React.useState(false);
   const hasHiddenSplash = React.useRef(false);
 
@@ -37,6 +43,32 @@ export default function RootLayout() {
 
     void prepare();
   }, []);
+
+  React.useEffect(() => {
+    let isMounted = true;
+
+    void supabase.auth
+      .getSession()
+      .then(({ data }) => {
+        if (!isMounted || !data.session) return;
+        void ensureLoaded();
+      })
+      .catch((error) => {
+        console.error('[RootLayout.getSession]', error);
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [ensureLoaded]);
+
+  React.useEffect(() => {
+    if (preferredTheme === 'Auto') {
+      Uniwind.setTheme('system');
+      return;
+    }
+    Uniwind.setTheme(preferredTheme.toLowerCase() as 'light' | 'dark');
+  }, [preferredTheme]);
 
   React.useEffect(() => {
     if (!appIsReady || hasHiddenSplash.current) return;
@@ -56,14 +88,16 @@ export default function RootLayout() {
   }
 
   return (
-    <ThemeProvider value={NAV_THEME[theme ?? 'light']}>
-      <SafeAreaProvider>
-        <View className="flex-1">
-          <StatusBar style={theme === 'dark' ? 'light' : 'dark'} />
-          <Stack screenOptions={{ headerShown: false }} />
-          <PortalHost />
-        </View>
-      </SafeAreaProvider>
-    </ThemeProvider>
+    <QueryClientProvider client={queryClient}>
+      <ThemeProvider value={NAV_THEME[theme ?? 'light']}>
+        <SafeAreaProvider>
+          <View className="flex-1">
+            <StatusBar style={theme === 'dark' ? 'light' : 'dark'} />
+            <Stack screenOptions={{ headerShown: false }} />
+            <PortalHost />
+          </View>
+        </SafeAreaProvider>
+      </ThemeProvider>
+    </QueryClientProvider>
   );
 }

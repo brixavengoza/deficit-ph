@@ -1,7 +1,6 @@
-import { useFoodLogStore } from '@/stores/use-food-log-store';
 import { getFoodEmoji } from '@/lib/food-emoji';
 import { Text } from '@/components/ui/text';
-import { useRouter } from 'expo-router';
+import { useFoodLogsQuery } from '@/hooks/use-trackk-query';
 import React from 'react';
 import { Pressable, SectionList, View } from 'react-native';
 
@@ -18,64 +17,45 @@ type FoodSection = {
   data: FoodItem[];
 };
 
-const SECTIONS: FoodSection[] = [
-  {
-    title: 'Today, Oct 24',
-    totalKcal: 1850,
-    data: [
-      { id: 't1', name: 'Oatmeal with Berries', portion: '1 bowl (250g)', kcal: 320 },
-      { id: 't2', name: 'Grilled Chicken Breast', portion: '150g', kcal: 248 },
-      { id: 't3', name: 'White Rice', portion: '1 cup (cooked)', kcal: 205 },
-      { id: 't4', name: 'Protein Shake', portion: '1 scoop + water', kcal: 120 },
-    ],
-  },
-  {
-    title: 'Yesterday, Oct 23',
-    totalKcal: 2100,
-    data: [
-      { id: 'y1', name: 'Scrambled Eggs', portion: '3 large eggs', kcal: 270 },
-      { id: 'y2', name: 'Whole Wheat Toast', portion: '2 slices', kcal: 180 },
-      { id: 'y3', name: 'Beef Stir Fry', portion: '1 serving (300g)', kcal: 550 },
-    ],
-  },
-  {
-    title: 'Tue, Oct 22',
-    totalKcal: 1940,
-    data: [
-      { id: 'd1', name: 'Greek Yogurt Bowl', portion: '200g yogurt + honey', kcal: 220 },
-      { id: 'd2', name: 'Salmon Fillet', portion: '180g', kcal: 370 },
-    ],
-  },
-  {
-    title: 'Mon, Oct 21',
-    totalKcal: 2050,
-    data: [{ id: 'm1', name: 'Tuna Sandwich', portion: 'Whole wheat bread', kcal: 420 }],
-  },
-];
-
 function formatKcal(value: number) {
   return new Intl.NumberFormat('en-US').format(value);
 }
 
 export default function DashboardLogScreen() {
-  const router = useRouter();
-  const loggedFoods = useFoodLogStore((state) => state.loggedFoods);
+  const logsQuery = useFoodLogsQuery();
+  const loggedFoods = logsQuery.data ?? [];
 
   const sections = React.useMemo<FoodSection[]>(() => {
-    if (!loggedFoods.length) return SECTIONS;
+    if (!loggedFoods.length) return [];
 
-    const recentAddedSection: FoodSection = {
-      title: 'Recent Added',
-      totalKcal: loggedFoods.reduce((sum, item) => sum + item.totalKcal, 0),
-      data: loggedFoods.map((item) => ({
+    const grouped = new Map<string, FoodSection>();
+
+    for (const item of loggedFoods) {
+      const key = item.consumedAtIso.slice(0, 10);
+      const dateLabel = new Intl.DateTimeFormat('en-US', {
+        weekday: 'short',
+        month: 'short',
+        day: 'numeric',
+      }).format(new Date(item.consumedAtIso));
+      const title = key === new Date().toISOString().slice(0, 10) ? `Today, ${dateLabel}` : dateLabel;
+
+      if (!grouped.has(key)) {
+        grouped.set(key, { title, totalKcal: 0, data: [] });
+      }
+
+      const section = grouped.get(key)!;
+      section.totalKcal += item.totalKcal;
+      section.data.push({
         id: item.id,
         name: item.foodName,
         portion: `${item.quantity} ${item.unit} • ${item.meal} • ${item.logTime}`,
         kcal: item.totalKcal,
-      })),
-    };
+      });
+    }
 
-    return [recentAddedSection, ...SECTIONS];
+    return Array.from(grouped.entries())
+      .sort(([a], [b]) => (a < b ? 1 : -1))
+      .map(([, section]) => section);
   }, [loggedFoods]);
 
   return (
@@ -121,6 +101,18 @@ export default function DashboardLogScreen() {
             </View>
           </Pressable>
         )}
+        ListEmptyComponent={
+          <View className="px-6 py-10">
+            <Text className="text-foreground text-base font-semibold">
+              {logsQuery.isLoading ? 'Loading food logs...' : 'No food logs yet'}
+            </Text>
+            <Text className="text-muted-foreground mt-1 text-sm">
+              {logsQuery.isLoading
+                ? 'Fetching from database.'
+                : 'Start logging meals and your history will show up here.'}
+            </Text>
+          </View>
+        }
         ListFooterComponent={<View className="h-8" />}
       />
     </View>

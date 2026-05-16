@@ -1,50 +1,224 @@
 import { Button } from '@/components/ui/button';
-import { Icon } from '@/components/ui/icon';
-import { Input } from '@/components/ui/input';
-import { PasswordInput } from '@/components/ui/password-input';
 import { Text } from '@/components/ui/text';
+import { getOAuthRedirectUri } from '@/lib/auth-redirect';
+import { supabase } from '@/lib/supabase';
+import { getPostAuthRoute } from '@/lib/supabase-data';
 import GoogleIcon from '@/assets/images/google-icon.svg';
-import { zodResolver } from '@hookform/resolvers/zod';
 import { Stack, useRouter } from 'expo-router';
-import { Mail } from 'lucide-react-native';
-import { Controller, useForm } from 'react-hook-form';
-import { KeyboardAvoidingView, Platform, Pressable, ScrollView, View } from 'react-native';
+import * as AppleAuthentication from 'expo-apple-authentication';
+import * as WebBrowser from 'expo-web-browser';
+import React from 'react';
+import { KeyboardAvoidingView, Platform, ScrollView, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { z } from 'zod';
 
-const loginSchema = z.object({
-  email: z.string().email('Please enter a valid email address.'),
-  password: z.string().min(8, 'Password must be at least 8 characters.'),
-});
+WebBrowser.maybeCompleteAuthSession();
 
-type LoginFormValues = z.infer<typeof loginSchema>;
+type OAuthProvider = 'google' | 'apple';
+
+function extractAuthParamsFromUrl(url: string) {
+  const parsedUrl = new URL(url);
+  const hashParams = new URLSearchParams(
+    parsedUrl.hash.startsWith('#') ? parsedUrl.hash.slice(1) : parsedUrl.hash
+  );
+
+  return {
+    code: parsedUrl.searchParams.get('code') ?? hashParams.get('code'),
+    accessToken: parsedUrl.searchParams.get('access_token') ?? hashParams.get('access_token'),
+    refreshToken: parsedUrl.searchParams.get('refresh_token') ?? hashParams.get('refresh_token'),
+  };
+}
+
+function getErrorMessage(error: unknown) {
+  if (error instanceof Error) return error.message;
+  return 'Something went wrong while signing in.';
+}
 
 export default function LoginScreen() {
   const router = useRouter();
+  const [loadingProvider, setLoadingProvider] = React.useState<OAuthProvider | null>(null);
+  const [authError, setAuthError] = React.useState<string | null>(null);
+  const [appleAuthAvailable, setAppleAuthAvailable] = React.useState(false);
 
-  const {
-    control,
-    handleSubmit,
-    formState: { errors },
-  } = useForm<LoginFormValues>({
-    resolver: zodResolver(loginSchema),
-    defaultValues: {
-      email: '',
-      password: '',
-    },
-  });
+  React.useEffect(() => {
+    let isMounted = true;
+    void supabase.auth
+      .getSession()
+      .then(async ({ data }) => {
+        if (!isMounted || !data.session) return;
+        const nextRoute = await getPostAuthRoute();
+        if (!isMounted) return;
+        router.replace(nextRoute);
+      })
+      .catch((error) => {
+        console.error('[LoginScreen.getSession]', error);
+      });
 
-  const onSubmit = (values: LoginFormValues) => {
-    console.log('[login submit]', values);
-    router.replace('/onboarding/step-1');
+    return () => {
+      isMounted = false;
+    };
+  }, [router]);
+
+  React.useEffect(() => {
+    let isMounted = true;
+
+    if (Platform.OS !== 'ios') {
+      setAppleAuthAvailable(false);
+      return () => {
+        isMounted = false;
+      };
+    }
+
+    void AppleAuthentication.isAvailableAsync()
+      .then((available) => {
+        if (isMounted) {
+          setAppleAuthAvailable(available);
+        }
+      })
+      .catch((error) => {
+        console.error('[LoginScreen.isAppleAuthAvailable]', error);
+        if (isMounted) {
+          setAppleAuthAvailable(false);
+        }
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  const onOAuthLogin = async (provider: OAuthProvider) => {
+    setLoadingProvider(provider);
+    setAuthError(null);
+
+    try {
+      const redirectTo = getOAuthRedirectUri();
+      console.log('[LoginScreen.redirectTo]', redirectTo);
+      const { data, error } = await supabase.auth.signInWithOAuth({
+        provider,
+        options: {
+          redirectTo,
+          skipBrowserRedirect: true,
+          queryParams: provider === 'google' ? { prompt: 'consent' } : undefined,
+        },
+      });
+
+      if (error) {
+        throw error;
+      }
+
+      if (!data.url) {
+        throw new Error('Supabase did not return an OAuth URL.');
+      }
+
+      const result = await WebBrowser.openAuthSessionAsync(data.url, redirectTo, {
+        showInRecents: true,
+      });
+
+      if (result.type !== 'success') {
+        throw new Error(
+          result.type === 'cancel'
+            ? 'Sign-in canceled.'
+            : 'Unable to complete sign-in from browser.'
+        );
+      }
+
+      const { code, accessToken, refreshToken } = extractAuthParamsFromUrl(result.url);
+
+      if (code) {
+        const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
+        if (exchangeError) throw exchangeError;
+      } else if (accessToken && refreshToken) {
+        const { error: setSessionError } = await supabase.auth.setSession({
+          access_token: accessToken,
+          refresh_token: refreshToken,
+        });
+        if (setSessionError) throw setSessionError;
+      } else {
+        throw new Error('No session tokens found in OAuth callback.');
+      }
+
+      const nextRoute = await getPostAuthRoute();
+      router.replace(nextRoute);
+    } catch (error) {
+      const message = getErrorMessage(error);
+      setAuthError(message);
+      console.error('[LoginScreen.onOAuthLogin]', error);
+    } finally {
+      setLoadingProvider(null);
+    }
+  };
+
+  const onAppleNativeLogin = async () => {
+    setLoadingProvider('apple');
+    setAuthError(null);
+
+    try {
+      const credential = await AppleAuthentication.signInAsync({
+        requestedScopes: [
+          AppleAuthentication.AppleAuthenticationScope.FULL_NAME,
+          AppleAuthentication.AppleAuthenticationScope.EMAIL,
+        ],
+      });
+
+      if (!credential.identityToken) {
+        throw new Error('No identity token returned by Apple.');
+      }
+
+      const { error } = await supabase.auth.signInWithIdToken({
+        provider: 'apple',
+        token: credential.identityToken,
+      });
+
+      if (error) {
+        throw error;
+      }
+
+      if (credential.fullName) {
+        const nameParts = [
+          credential.fullName.givenName,
+          credential.fullName.middleName,
+          credential.fullName.familyName,
+        ].filter(Boolean);
+
+        if (nameParts.length > 0) {
+          const fullName = nameParts.join(' ');
+          await supabase.auth.updateUser({
+            data: {
+              full_name: fullName,
+              given_name: credential.fullName.givenName,
+              family_name: credential.fullName.familyName,
+            },
+          });
+        }
+      }
+
+      const nextRoute = await getPostAuthRoute();
+      router.replace(nextRoute);
+    } catch (error: unknown) {
+      const code =
+        typeof error === 'object' && error !== null && 'code' in error
+          ? String(error.code)
+          : undefined;
+
+      if (code === 'ERR_REQUEST_CANCELED') {
+        setAuthError('Sign-in canceled.');
+        return;
+      }
+
+      const message = getErrorMessage(error);
+      setAuthError(message);
+      console.error('[LoginScreen.onAppleNativeLogin]', error);
+    } finally {
+      setLoadingProvider(null);
+    }
   };
 
   return (
     <>
       <Stack.Screen options={{ headerShown: false }} />
-      <SafeAreaView edges={['top', 'bottom']} style={{ flex: 1, backgroundColor: '#f8fbfa' }}>
+      <SafeAreaView edges={['top', 'bottom']} className="bg-background flex-1">
         <KeyboardAvoidingView
-          className="bg-background-light flex-1"
+          className="bg-background flex-1"
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
           <ScrollView
             contentContainerClassName="flex-grow justify-center"
@@ -61,88 +235,48 @@ export default function LoginScreen() {
                 </Text>
               </View>
 
-              <View className="w-full gap-4 px-6">
-                <View className="gap-1.5">
-                  <View className="relative justify-center">
-                    <View className="pointer-events-none absolute left-4 z-10">
-                      <Icon as={Mail} className="text-muted-foreground size-5" />
-                    </View>
-                    <Controller
-                      control={control}
-                      name="email"
-                      render={({ field: { value, onChange, onBlur } }) => (
-                        <Input
-                          value={value}
-                          onChangeText={onChange}
-                          onBlur={onBlur}
-                          placeholder="Enter your email"
-                          keyboardType="email-address"
-                          autoCapitalize="none"
-                          className="bg-input-bg h-14 rounded-xl border-transparent pr-4 pl-12"
-                        />
-                      )}
-                    />
-                  </View>
-                  {errors.email?.message ? (
-                    <Text className="text-destructive pl-2 text-xs">{errors.email.message}</Text>
-                  ) : null}
-                </View>
-
-                <View className="gap-1.5">
-                  <Controller
-                    control={control}
-                    name="password"
-                    render={({ field: { value, onChange, onBlur } }) => (
-                      <PasswordInput
-                        value={value}
-                        onChangeText={onChange}
-                        onBlur={onBlur}
-                        placeholder="Enter your password"
-                      />
-                    )}
-                  />
-                  {errors.password?.message ? (
-                    <Text className="text-destructive pl-2 text-xs">{errors.password.message}</Text>
-                  ) : null}
-                  <View className="items-end pt-1">
-                    <Pressable onPress={() => router.push('/auth/forgot-password')}>
-                      <Text className="text-primary text-sm font-semibold">Forgot password?</Text>
-                    </Pressable>
-                  </View>
-                </View>
-
+              <View className="w-full gap-3 px-6">
                 <Button
-                  variant="default"
-                  size="lg"
-                  className="mt-4 h-14 w-full rounded-full"
-                  onPress={handleSubmit(onSubmit)}>
-                  <Text className="text-primary-foreground font-semibold">Log In</Text>
-                </Button>
-              </View>
-
-              <View className="flex-row items-center gap-4 px-6 py-6">
-                <View className="bg-border h-px flex-1" />
-                <Text className="text-muted-foreground text-xs">or</Text>
-                <View className="bg-border h-px flex-1" />
-              </View>
-
-              <View className="px-6">
-                <Button variant="outline" className="h-14 w-full rounded-full">
+                  variant="outline"
+                  disabled={loadingProvider !== null}
+                  className="h-14 w-full rounded-full"
+                  onPress={() => onOAuthLogin('google')}>
                   <GoogleIcon width={20} height={20} />
-                  <Text className="text-foreground font-medium">Continue with Google</Text>
+                  <Text className="text-foreground font-semibold">
+                    {loadingProvider === 'google' ? 'Signing in...' : 'Continue with Google'}
+                  </Text>
                 </Button>
+
+                {appleAuthAvailable ? (
+                  <AppleAuthentication.AppleAuthenticationButton
+                    buttonType={AppleAuthentication.AppleAuthenticationButtonType.SIGN_IN}
+                    buttonStyle={AppleAuthentication.AppleAuthenticationButtonStyle.BLACK}
+                    cornerRadius={999}
+                    style={{ width: '100%', height: 56, opacity: loadingProvider ? 0.6 : 1 }}
+                    onPress={() => {
+                      if (loadingProvider !== null) return;
+                      void onAppleNativeLogin();
+                    }}
+                  />
+                ) : (
+                  <Button
+                    variant="outline"
+                    disabled={loadingProvider !== null}
+                    className="h-14 w-full rounded-full"
+                    onPress={() => onOAuthLogin('apple')}>
+                    <Text className="text-foreground font-semibold">
+                      {loadingProvider === 'apple' ? 'Signing in...' : 'Continue with Apple'}
+                    </Text>
+                  </Button>
+                )}
+
+                {authError ? <Text className="text-destructive text-sm">{authError}</Text> : null}
               </View>
             </View>
 
-            <View className="mt-auto flex items-center pb-2 text-center">
-              <Text className="text-muted-foreground text-sm">
-                Don't have an account?
-                <Text
-                  className="text-primary font-semibold"
-                  onPress={() => router.push('/auth/signup')}>
-                  {' '}
-                  Sign up
-                </Text>
+            <View className="mt-auto flex items-center px-6 pb-4 text-center">
+              <Text className="text-muted-foreground text-center text-sm">
+                Use your Google or Apple account to continue.
               </Text>
             </View>
           </ScrollView>

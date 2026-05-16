@@ -1,13 +1,14 @@
 import { PhotoActionsSheet } from '@/components/profile/photo-actions-sheet';
 import { Icon } from '@/components/ui/icon';
 import { Text } from '@/components/ui/text';
-import { PROFILE_IDENTITY_MOCK } from '@/lib/profile-settings-mock';
-import { Camera, Settings } from 'lucide-react-native';
+import { Camera } from 'lucide-react-native';
 import React from 'react';
 import { Pressable, View } from 'react-native';
+import { useProfileBundleStore } from '@/stores/use-profile-bundle-store';
 export function ProfileHeaderSection() {
   const [photoSheetOpen, setPhotoSheetOpen] = React.useState(false);
-  const { fullName, username, memberSinceYear } = PROFILE_IDENTITY_MOCK;
+  const { fullName, username } = useProfileBundleStore((state) => state.bundle);
+  const memberSinceYear = new Date().getFullYear();
 
   const initials = (fullName || 'JD')
     .split(' ')

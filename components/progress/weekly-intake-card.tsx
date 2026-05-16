@@ -4,23 +4,18 @@ import { Target, TrendingDown, TrendingUp } from 'lucide-react-native';
 import React from 'react';
 import { Pressable, View } from 'react-native';
 
-const WEEKLY_INTAKE: Array<{ day: string; kcal: number; active: boolean; muted: boolean }> = [
-  { day: 'Mon', kcal: 1800, active: false, muted: false },
-  { day: 'Tue', kcal: 1450, active: false, muted: false },
-  { day: 'Wed', kcal: 1650, active: true, muted: false },
-  { day: 'Thur', kcal: 1900, active: true, muted: false },
-  { day: 'Fri', kcal: 2200, active: false, muted: true },
-  { day: 'Sat', kcal: 1750, active: false, muted: false },
-  { day: 'Sun', kcal: 1500, active: false, muted: false },
-];
+type IntakeDay = { label: string; kcal: number };
 
-const GOAL_KCAL = 2000;
-const AVG_KCAL = 1850;
+type WeeklyIntakeCardProps = {
+  days: IntakeDay[];
+  goalKcal: number;
+  avgKcal: number;
+};
 
 type IntakeStatus = 'low' | 'normal' | 'high' | 'veryHigh';
 
-function getIntakeStatus(kcal: number, goal = GOAL_KCAL): IntakeStatus {
-  const ratio = kcal / goal;
+function getIntakeStatus(kcal: number, goal: number): IntakeStatus {
+  const ratio = goal > 0 ? kcal / goal : 0;
   if (ratio < 0.85) return 'low';
   if (ratio <= 1.05) return 'normal';
   if (ratio <= 1.2) return 'high';
@@ -65,22 +60,26 @@ function getStatusStyles(status: IntakeStatus) {
 }
 
 function WeeklyBars({
+  days,
+  goalKcal,
   selectedIndex,
   onSelect,
 }: {
+  days: IntakeDay[];
+  goalKcal: number;
   selectedIndex: number;
   onSelect: (index: number) => void;
 }) {
-  const max = 2400;
-  const selected = WEEKLY_INTAKE[selectedIndex] ?? WEEKLY_INTAKE[0]!;
-  const selectedStatus = getIntakeStatus(selected.kcal);
+  const max = Math.max(goalKcal * 1.2, ...days.map((d) => d.kcal), 1);
+  const selected = days[selectedIndex] ?? days[0]!;
+  const selectedStatus = getIntakeStatus(selected.kcal, goalKcal);
   const selectedStatusStyles = getStatusStyles(selectedStatus);
 
   return (
     <View className="relative h-46">
       <View className="mb-3 flex-row items-center justify-between">
         <Text className="text-sm font-semibold text-slate-700">
-          {selected.day} • {selected.kcal.toLocaleString()} kcal
+          {selected.label} • {selected.kcal.toLocaleString()} kcal
         </Text>
         <Text className={`text-xs font-semibold ${selectedStatusStyles.textClass}`}>
           {selectedStatusStyles.label}
@@ -88,20 +87,20 @@ function WeeklyBars({
       </View>
       <View className="absolute top-[35%] right-0 left-0 border-t border-dashed border-slate-300" />
       <View className="absolute top-[29%] right-0 bg-white pl-1">
-        <Text className="text-[10px] font-bold text-slate-400">Goal: {GOAL_KCAL}</Text>
+        <Text className="text-[10px] font-bold text-slate-400">Goal: {goalKcal}</Text>
       </View>
 
       <View className="h-full flex-row items-end justify-between gap-2 px-1">
-        {WEEKLY_INTAKE.map((item, index) => {
+        {days.map((item, index) => {
           const h = Math.max(18, (item.kcal / max) * 150);
           const isSelected = index === selectedIndex;
-          const status = getIntakeStatus(item.kcal);
+          const status = getIntakeStatus(item.kcal, goalKcal);
           const statusStyles = getStatusStyles(status);
-          const barColor = item.muted ? '#e2e8f0' : isSelected || item.active ? statusStyles.bar : statusStyles.barMuted;
+          const barColor = isSelected ? statusStyles.bar : statusStyles.barMuted;
 
           return (
             <Pressable
-              key={`${item.day}-${item.kcal}`}
+              key={`${item.label}-${item.kcal}-${index}`}
               className="flex-1 items-center gap-2"
               onPress={() => onSelect(index)}>
               <View
@@ -115,11 +114,11 @@ function WeeklyBars({
               />
               <Text
                 className={
-                  isSelected || item.active
+                  isSelected
                     ? `${statusStyles.textClass} text-[11px] font-bold`
                     : 'text-muted-foreground text-[11px] font-medium'
                 }>
-                {item.day}
+                {item.label}
               </Text>
             </Pressable>
           );
@@ -129,10 +128,24 @@ function WeeklyBars({
   );
 }
 
-export function WeeklyIntakeCard() {
-  const [selectedBarIndex, setSelectedBarIndex] = React.useState(3);
-  const avgDeltaPct = ((AVG_KCAL - GOAL_KCAL) / GOAL_KCAL) * 100;
-  const avgStatus = getIntakeStatus(AVG_KCAL);
+export function WeeklyIntakeCard({ days, goalKcal, avgKcal }: WeeklyIntakeCardProps) {
+  const [selectedBarIndex, setSelectedBarIndex] = React.useState(() => Math.max(days.length - 1, 0));
+
+  React.useEffect(() => {
+    setSelectedBarIndex(Math.max(days.length - 1, 0));
+  }, [days.length]);
+
+  if (!days.length) {
+    return (
+      <View className="mb-6 h-78 rounded-[22px] border border-slate-100 bg-white p-5 shadow-sm">
+        <Text className="text-base font-bold text-slate-900">Weekly Intake</Text>
+        <Text className="mt-2 text-sm text-slate-500">No intake data yet.</Text>
+      </View>
+    );
+  }
+
+  const avgDeltaPct = goalKcal > 0 ? ((avgKcal - goalKcal) / goalKcal) * 100 : 0;
+  const avgStatus = getIntakeStatus(avgKcal, goalKcal);
   const avgStatusStyles = getStatusStyles(avgStatus);
   const TrendIcon = avgDeltaPct > 2 ? TrendingUp : avgDeltaPct < -2 ? TrendingDown : Target;
   const deltaText =
@@ -147,7 +160,7 @@ export function WeeklyIntakeCard() {
       <View className="mb-6 flex-row items-center justify-between">
         <View>
           <Text className="text-base font-bold text-slate-900">Weekly Intake</Text>
-          <Text className="text-xs text-slate-500">Average: {AVG_KCAL.toLocaleString()} kcal</Text>
+          <Text className="text-xs text-slate-500">Average: {avgKcal.toLocaleString()} kcal</Text>
         </View>
         <View className={`${avgStatusStyles.badgeClass} flex-row items-center gap-1 rounded-full px-2 py-1`}>
           <Icon as={TrendIcon} className={`${avgStatusStyles.textClass} size-4`} />
@@ -155,7 +168,12 @@ export function WeeklyIntakeCard() {
         </View>
       </View>
 
-      <WeeklyBars selectedIndex={selectedBarIndex} onSelect={setSelectedBarIndex} />
+      <WeeklyBars
+        days={days}
+        goalKcal={goalKcal}
+        selectedIndex={selectedBarIndex}
+        onSelect={setSelectedBarIndex}
+      />
     </View>
   );
 }

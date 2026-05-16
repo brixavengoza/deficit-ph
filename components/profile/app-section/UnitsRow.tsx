@@ -1,12 +1,14 @@
 import { ChoiceModal } from '@/components/profile/choice-modal';
 import StaticRow from '@/components/profile/static-row';
-import { PROFILE_APP_PREFERENCES_MOCK, UNITS_OPTIONS, type Units } from '@/lib/profile-settings-mock';
+import { UNITS_OPTIONS, type Units } from '@/lib/profile-settings-mock';
 import { Scale } from 'lucide-react-native';
 import React from 'react';
+import { useProfileBundleStore } from '@/stores/use-profile-bundle-store';
 
 export default function UnitsRow() {
   const [open, setOpen] = React.useState(false);
-  const [units, setUnits] = React.useState<Units>(PROFILE_APP_PREFERENCES_MOCK.units);
+  const units = useProfileBundleStore((state) => state.bundle.units);
+  const saveUnits = useProfileBundleStore((state) => state.saveUnits);
 
   return (
     <>
@@ -25,7 +27,9 @@ export default function UnitsRow() {
         selected={units}
         options={UNITS_OPTIONS}
         onClose={() => setOpen(false)}
-        onSelect={(value) => setUnits(value)}
+        onSelect={(value) => {
+          void saveUnits(value as Units);
+        }}
       />
     </>
   );

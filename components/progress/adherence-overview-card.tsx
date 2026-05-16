@@ -36,7 +36,15 @@ function ProgressRow({
   );
 }
 
-export function AdherenceOverviewCard() {
+export function AdherenceOverviewCard({
+  calorieHitRate,
+  hydrationHitRate,
+  weighInConsistency,
+}: {
+  calorieHitRate: number;
+  hydrationHitRate: number;
+  weighInConsistency: number;
+}) {
   return (
     <View className="mb-6 rounded-[22px] border border-slate-100 bg-white p-5 shadow-sm">
       <Text className="mb-4 text-base font-bold text-slate-900">Adherence Overview</Text>
@@ -44,7 +52,7 @@ export function AdherenceOverviewCard() {
       <View className="gap-4">
         <ProgressRow
           label="Calorie Goal Hit Rate"
-          value={78}
+          value={calorieHitRate}
           colorClass="text-primary"
           icon={Flame}
           chipClass="bg-primary/10"
@@ -52,7 +60,7 @@ export function AdherenceOverviewCard() {
         />
         <ProgressRow
           label="Hydration Target Hit Rate"
-          value={64}
+          value={hydrationHitRate}
           colorClass="text-info"
           icon={Droplets}
           chipClass="bg-info/10"
@@ -60,7 +68,7 @@ export function AdherenceOverviewCard() {
         />
         <ProgressRow
           label="Weigh-in Consistency"
-          value={71}
+          value={weighInConsistency}
           colorClass="text-slate-700"
           icon={Scale}
           chipClass="bg-slate-100"
@@ -70,4 +78,3 @@ export function AdherenceOverviewCard() {
     </View>
   );
 }
-

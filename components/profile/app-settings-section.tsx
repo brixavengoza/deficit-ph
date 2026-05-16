@@ -11,7 +11,7 @@ export function AppSettingsSection() {
         <Text className="text-muted-foreground text-xs font-bold tracking-wider uppercase">App</Text>
       </View>
 
-      <View className="divide-y divide-slate-100">
+      <View className="divide-y divide-border">
         <NotificationsRow />
         <UnitsRow />
         <ThemeRow />

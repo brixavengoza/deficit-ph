@@ -4,6 +4,7 @@ import { Input } from '@/components/ui/input';
 import { Text } from '@/components/ui/text';
 import { getFoodEmoji } from '@/lib/food-emoji';
 import { formatNumberGrouped } from '@/lib/number-format';
+import { useFoodsQuery } from '@/hooks/use-trackk-query';
 import { useSavedFoodStore } from '@/stores/use-saved-food-store';
 import { router } from 'expo-router';
 import { ArrowLeft, Search } from 'lucide-react-native';
@@ -33,7 +34,7 @@ function SavedFoodRow({
         <Text className="text-xl">{getFoodEmoji(item.name)}</Text>
       </View>
 
-      <View className="flex-1 min-w-0">
+      <View className="min-w-0 flex-1">
         <Text numberOfLines={1} className="text-foreground text-base font-medium">
           {item.name}
         </Text>
@@ -47,13 +48,18 @@ function SavedFoodRow({
 
 export default function SavedFoodsScreen() {
   const [query, setQuery] = React.useState('');
-  const savedFoods = useSavedFoodStore((state) => state.savedFoods);
+  const foodsQuery = useFoodsQuery();
+  const savedFoods = foodsQuery.data ?? [];
+  const userSavedFoods = React.useMemo(
+    () => savedFoods.filter((food) => food.source === 'user'),
+    [savedFoods]
+  );
   const isPremiumUser = useSavedFoodStore((state) => state.isPremiumUser);
   const savedFoodsLimit = useSavedFoodStore((state) => state.savedFoodsLimit);
 
   const normalizedQuery = query.trim().toLowerCase();
   const rows = React.useMemo(() => {
-    const mapped = savedFoods.map<SavedFoodListItem>((item) => ({
+    const mapped = userSavedFoods.map<SavedFoodListItem>((item) => ({
       id: item.id,
       name: item.name,
       kcalPer100g: item.kcalPer100g,
@@ -61,7 +67,7 @@ export default function SavedFoodsScreen() {
 
     if (!normalizedQuery) return mapped;
     return mapped.filter((item) => item.name.toLowerCase().includes(normalizedQuery));
-  }, [normalizedQuery, savedFoods]);
+  }, [normalizedQuery, userSavedFoods]);
 
   const handleSelectFood = React.useCallback((food: SavedFoodListItem) => {
     router.push({
@@ -107,10 +113,10 @@ export default function SavedFoodsScreen() {
 
         <View className="mt-2 flex-row items-center justify-between px-1">
           <Text className="text-muted-foreground text-xs">
-            {savedFoods.length} saved food{savedFoods.length === 1 ? '' : 's'}
+            {userSavedFoods.length} saved food{userSavedFoods.length === 1 ? '' : 's'}
           </Text>
           <Text className="text-muted-foreground text-xs">
-            {isPremiumUser ? 'Unlimited (Pro)' : `${savedFoodsLimit ?? 20} max (Free)`}
+            {isPremiumUser ? 'Unlimited (Pro)' : `${savedFoodsLimit ?? 10} max (Free)`}
           </Text>
         </View>
       </View>
@@ -125,12 +131,18 @@ export default function SavedFoodsScreen() {
         ListEmptyComponent={
           <View className="px-4 py-10">
             <Text className="text-foreground text-base font-semibold">
-              {normalizedQuery ? 'No saved foods found' : 'No saved foods yet'}
+              {foodsQuery.isLoading
+                ? 'Loading saved foods...'
+                : normalizedQuery
+                  ? 'No saved foods found'
+                  : 'No saved foods yet'}
             </Text>
             <Text className="text-muted-foreground mt-1 text-sm">
-              {normalizedQuery
-                ? 'Try another keyword.'
-                : 'Create a custom food and it will appear here.'}
+              {foodsQuery.isLoading
+                ? 'Fetching from database.'
+                : normalizedQuery
+                  ? 'Try another keyword.'
+                  : 'Create a custom food and it will appear here.'}
             </Text>
           </View>
         }

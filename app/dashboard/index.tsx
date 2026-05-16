@@ -3,8 +3,8 @@ import { Icon } from '@/components/ui/icon';
 import { Text } from '@/components/ui/text';
 import { getFoodEmoji } from '@/lib/food-emoji';
 import { formatCompactNumber, formatNumberGrouped } from '@/lib/number-format';
+import { useAddHydrationMutation, useFoodLogsQuery, useFoodsQuery, useHomeDashboardQuery } from '@/hooks/use-trackk-query';
 import { FREE_SAVED_FOODS_LIMIT, useSavedFoodStore } from '@/stores/use-saved-food-store';
-import { useFoodLogStore } from '@/stores/use-food-log-store';
 import { router, Stack } from 'expo-router';
 import {
   Bell,
@@ -23,8 +23,6 @@ import {
   Pressable,
   ScrollView,
   View,
-  type NativeScrollEvent,
-  type NativeSyntheticEvent,
 } from 'react-native';
 import Svg, { Circle, Path, Polyline } from 'react-native-svg';
 
@@ -35,52 +33,6 @@ type DayPill = {
   date: number;
   pending?: boolean;
 };
-
-type HomeDayData = {
-  calories: {
-    goal: number;
-    consumed: number;
-    remaining: number;
-  };
-  macros: Array<{
-    label: 'Protein' | 'Carbs' | 'Fat';
-    value: number;
-    target: number;
-    color: string;
-  }>;
-  hydration: {
-    currentMl: number;
-    targetMl: number;
-  };
-  weight: {
-    currentKg: number;
-    deltaKg: number;
-    trend: number[];
-  };
-};
-
-const DASHBOARD_MOCK = {
-  userName: 'Alex Morgan',
-  calories: {
-    goal: 2000,
-    consumed: 1200,
-    remaining: 800,
-  },
-  macros: [
-    { label: 'Protein', value: 85, target: 140, color: '#60a5fa' },
-    { label: 'Carbs', value: 120, target: 260, color: '#fb923c' },
-    { label: 'Fat', value: 35, target: 80, color: '#facc15' },
-  ] as const,
-  hydration: {
-    currentMl: 1250,
-    targetMl: 2500,
-  },
-  weight: {
-    currentKg: 72.4,
-    deltaKg: -0.5,
-    trend: [73.2, 73.0, 72.9, 72.8, 72.6, 72.4],
-  },
-} as const;
 
 function formatShortDayLabel(date: Date) {
   return new Intl.DateTimeFormat('en-US', { weekday: 'short' }).format(date);
@@ -106,33 +58,6 @@ function buildDayStrip(dayCount: number, hasPendingLogs: boolean): DayPill[] {
       pending: index === dayCount - 1 ? hasPendingLogs : false,
     };
   });
-}
-
-function createMockHomeDayData(isoDate: string): HomeDayData {
-  const seed = isoDate.split('-').reduce((acc, part) => acc + Number(part), 0);
-  const goal = 2000;
-  const consumed = 950 + (seed % 900);
-  const remaining = Math.max(0, goal - consumed);
-  const protein = 55 + (seed % 45);
-  const carbs = 90 + ((seed * 3) % 90);
-  const fat = 25 + ((seed * 5) % 25);
-  const hydrationCurrent = 900 + ((seed * 37) % 1800);
-  const baseWeight = 72.4 + ((seed % 8) - 4) * 0.1;
-  const trend = Array.from({ length: 6 }).map((_, i) =>
-    Number((baseWeight + (5 - i) * 0.08).toFixed(1))
-  );
-  const deltaKg = Number((trend[trend.length - 1]! - trend[trend.length - 2]!).toFixed(1));
-
-  return {
-    calories: { goal, consumed, remaining },
-    macros: [
-      { label: 'Protein', value: protein, target: 140, color: '#60a5fa' },
-      { label: 'Carbs', value: carbs, target: 260, color: '#fb923c' },
-      { label: 'Fat', value: fat, target: 80, color: '#facc15' },
-    ],
-    hydration: { currentMl: hydrationCurrent, targetMl: 2500 },
-    weight: { currentKg: Number(trend[trend.length - 1]!.toFixed(1)), deltaKg, trend },
-  };
 }
 
 function CaloriesGauge({
@@ -273,7 +198,13 @@ function QuickAction({
 
 type GroupedMeals = Record<
   'Breakfast' | 'Lunch' | 'Dinner' | 'Snack',
-  ReturnType<typeof useFoodLogStore.getState>['loggedFoods']
+  Array<{
+    id: string;
+    meal: 'Breakfast' | 'Lunch' | 'Dinner' | 'Snack';
+    foodName: string;
+    logTime: string;
+    totalKcal: number;
+  }>
 >;
 
 const getGreeting = () => {
@@ -284,33 +215,40 @@ const getGreeting = () => {
 };
 
 export default function DashboardScreen() {
-  const loggedFoods = useFoodLogStore((state) => state.loggedFoods);
-  const savedFoods = useSavedFoodStore((state) => state.savedFoods);
+  const loggedFoods = useFoodLogsQuery();
+  const savedFoods = useFoodsQuery();
   const isPremiumUser = useSavedFoodStore((state) => state.isPremiumUser);
+  const homeDashboard = useHomeDashboardQuery(isPremiumUser ? 30 : 7);
+  const hydrationMutation = useAddHydrationMutation();
   const dateStripRef = React.useRef<ScrollView>(null);
   const dayHistoryCount = isPremiumUser ? 30 : 7;
+  const [hydrationTodayMl, setHydrationTodayMl] = React.useState<number | null>(null);
+  const loggedFoodsData = loggedFoods.data ?? [];
 
   const dayStrip = React.useMemo(
-    () => buildDayStrip(dayHistoryCount, loggedFoods.length > 0),
-    [dayHistoryCount, loggedFoods.length]
+    () => buildDayStrip(dayHistoryCount, loggedFoodsData.length > 0),
+    [dayHistoryCount, loggedFoodsData.length]
   );
   const [selectedDayIsoDate, setSelectedDayIsoDate] = React.useState<string | null>(null);
   const [isDayDataLoading, setIsDayDataLoading] = React.useState(false);
-  const mockDayDataCache = React.useMemo(
-    () =>
-      Object.fromEntries(
-        dayStrip.map((day) => [day.isoDate, createMockHomeDayData(day.isoDate)])
-      ) as Record<string, HomeDayData>,
-    [dayStrip]
-  );
   const latestDayIsoDate = dayStrip[dayStrip.length - 1]?.isoDate ?? getIsoDateKey(new Date());
 
   React.useEffect(() => {
     setSelectedDayIsoDate((prev) => prev ?? latestDayIsoDate);
   }, [latestDayIsoDate]);
 
-  const selectedDayData =
-    mockDayDataCache[selectedDayIsoDate ?? latestDayIsoDate] ?? DASHBOARD_MOCK;
+  React.useEffect(() => {
+    const today = homeDashboard.data?.days[homeDashboard.data.days.length - 1];
+    if (!today) return;
+    setHydrationTodayMl(today.hydrationMl);
+  }, [homeDashboard.data]);
+  const selectedDaySummary = React.useMemo(() => {
+    if (!homeDashboard.data) return null;
+    return (
+      homeDashboard.data.days.find((day) => day.localDay === (selectedDayIsoDate ?? latestDayIsoDate)) ??
+      null
+    );
+  }, [homeDashboard.data, latestDayIsoDate, selectedDayIsoDate]);
 
   const handleSelectDay = React.useCallback((day: DayPill) => {
     setIsDayDataLoading(true);
@@ -319,28 +257,60 @@ export default function DashboardScreen() {
   }, []);
   const groupedMeals = React.useMemo<GroupedMeals>(() => {
     return {
-      Breakfast: loggedFoods.filter((f) => f.meal === 'Breakfast'),
-      Lunch: loggedFoods.filter((f) => f.meal === 'Lunch'),
-      Dinner: loggedFoods.filter((f) => f.meal === 'Dinner'),
-      Snack: loggedFoods.filter((f) => f.meal === 'Snack'),
+      Breakfast: loggedFoodsData.filter((f) => f.meal === 'Breakfast'),
+      Lunch: loggedFoodsData.filter((f) => f.meal === 'Lunch'),
+      Dinner: loggedFoodsData.filter((f) => f.meal === 'Dinner'),
+      Snack: loggedFoodsData.filter((f) => f.meal === 'Snack'),
     };
-  }, [loggedFoods]);
-
-  const totalPendingKcal = React.useMemo(
-    () => loggedFoods.reduce((sum, item) => sum + item.totalKcal, 0),
-    [loggedFoods]
-  );
+  }, [loggedFoodsData]);
 
   const savedFoodLimitLabel = isPremiumUser
     ? 'Unlimited'
-    : `${savedFoods.length}/${FREE_SAVED_FOODS_LIMIT}`;
+    : `${savedFoods.data?.length ?? 0}/${FREE_SAVED_FOODS_LIMIT}`;
 
-  const macroProgress = selectedDayData.macros.map((macro) => ({
+  const goalKcal = homeDashboard.data?.goalKcal ?? 2000;
+  const consumedKcal = selectedDaySummary?.totalKcal ?? 0;
+  const remainingKcal = Math.max(0, goalKcal - consumedKcal);
+  const macroProgress = [
+    {
+      label: 'Protein' as const,
+      value: selectedDaySummary?.proteinG ?? 0,
+      target: homeDashboard.data?.proteinTargetG ?? 120,
+      color: '#60a5fa',
+    },
+    {
+      label: 'Carbs' as const,
+      value: selectedDaySummary?.carbsG ?? 0,
+      target: homeDashboard.data?.carbsTargetG ?? 220,
+      color: '#fb923c',
+    },
+    {
+      label: 'Fat' as const,
+      value: selectedDaySummary?.fatG ?? 0,
+      target: homeDashboard.data?.fatTargetG ?? 70,
+      color: '#facc15',
+    },
+  ].map((macro) => ({
     ...macro,
     progress: macro.target > 0 ? macro.value / macro.target : 0,
   }));
-  const hydrationRatio = selectedDayData.hydration.currentMl / selectedDayData.hydration.targetMl;
+  const hydrationCurrentMl =
+    selectedDayIsoDate === latestDayIsoDate && hydrationTodayMl != null
+      ? hydrationTodayMl
+      : selectedDaySummary?.hydrationMl ?? 0;
+  const hydrationTargetMl = homeDashboard.data?.hydrationTargetMl ?? 2500;
+  const hydrationRatio = hydrationCurrentMl / hydrationTargetMl;
   const hydrationFilled = Math.max(1, Math.round(hydrationRatio * 5));
+
+  const onQuickAddWater = React.useCallback(async () => {
+    if (hydrationMutation.isPending) return;
+    try {
+      await hydrationMutation.mutateAsync(250);
+      setHydrationTodayMl((previous) => (previous ?? 0) + 250);
+    } catch (error) {
+      console.error('[DashboardScreen.addHydrationLog]', error);
+    }
+  }, [hydrationMutation]);
 
   return (
     <>
@@ -357,7 +327,9 @@ export default function DashboardScreen() {
                   <Text className="text-muted-foreground text-xs font-medium tracking-wider uppercase">
                     {getGreeting()}
                   </Text>
-                  <Text className="text-lg font-bold">{DASHBOARD_MOCK.userName}</Text>
+                  <Text className="text-lg font-bold">
+                    {homeDashboard.data?.userName ?? 'Trackk User'}
+                  </Text>
                 </View>
               </View>
               <Pressable className="bg-card relative h-10 w-10 items-center justify-center rounded-full border border-slate-100">
@@ -419,13 +391,13 @@ export default function DashboardScreen() {
             ) : null}
           </View>
 
-          {loggedFoods.length > 0 ? (
+          {loggedFoodsData.length > 0 ? (
             <View className="px-6 pt-2 pb-1">
               <View className="flex-row items-center justify-between rounded-xl border border-orange-100 bg-orange-50 px-3 py-3">
                 <View className="flex-row items-center gap-2">
                   <Icon as={TriangleAlert} className="size-4 text-orange-500" />
                   <Text className="text-xs font-semibold text-orange-700">
-                    Complete Logging ({loggedFoods.length} item{loggedFoods.length === 1 ? '' : 's'}
+                    Complete Logging ({loggedFoodsData.length} item{loggedFoodsData.length === 1 ? '' : 's'}
                     )
                   </Text>
                 </View>
@@ -442,10 +414,10 @@ export default function DashboardScreen() {
               <View className="absolute -bottom-10 -left-10 h-28 w-28 rounded-full bg-blue-500/10" />
               <View className="relative z-10">
                 <CaloriesGauge
-                  progress={selectedDayData.calories.consumed / selectedDayData.calories.goal}
-                  goal={selectedDayData.calories.goal}
-                  consumed={selectedDayData.calories.consumed}
-                  remaining={selectedDayData.calories.remaining}
+                  progress={consumedKcal / goalKcal}
+                  goal={goalKcal}
+                  consumed={consumedKcal}
+                  remaining={remainingKcal}
                 />
                 {isDayDataLoading ? (
                   <Text className="mt-2 text-center text-[10px] font-medium text-white/60">
@@ -538,7 +510,7 @@ export default function DashboardScreen() {
               </Pressable>
             </View>
 
-            {loggedFoods.length === 0 ? (
+            {loggedFoodsData.length === 0 ? (
               <View className="bg-card border-border rounded-xl border p-4">
                 <Text className="text-foreground text-sm font-semibold">No meals logged yet</Text>
                 <Text className="text-muted-foreground mt-1 text-xs">
@@ -602,10 +574,10 @@ export default function DashboardScreen() {
                 </View>
                 <View className="mb-3 flex-row items-baseline gap-1">
                   <Text className="text-2xl font-black text-slate-900">
-                    {formatNumberGrouped(selectedDayData.hydration.currentMl)}
+                    {formatNumberGrouped(hydrationCurrentMl)}
                   </Text>
                   <Text className="text-xs text-slate-500">
-                    / {formatNumberGrouped(selectedDayData.hydration.targetMl)}ml
+                    / {formatNumberGrouped(hydrationTargetMl)}ml
                   </Text>
                 </View>
                 <View className="mb-3 flex-row justify-between px-1">
@@ -620,7 +592,12 @@ export default function DashboardScreen() {
                     />
                   ))}
                 </View>
-                <Pressable className="ml-auto h-8 w-8 items-center justify-center rounded-full bg-sky-500">
+                <Pressable
+                  disabled={hydrationMutation.isPending}
+                  onPress={() => {
+                    void onQuickAddWater();
+                  }}
+                  className="ml-auto h-8 w-8 items-center justify-center rounded-full bg-sky-500">
                   <Icon as={Plus} className="size-4 text-white" />
                 </Pressable>
               </View>
@@ -632,17 +609,17 @@ export default function DashboardScreen() {
                 </View>
                 <View className="mb-2 flex-row items-baseline gap-1">
                   <Text className="text-2xl font-black text-slate-900">
-                    {selectedDayData.weight.currentKg}
+                    {selectedDaySummary?.weightKg ?? homeDashboard.data?.currentWeightKg ?? 0}
                   </Text>
                   <Text className="text-xs text-slate-500">kg</Text>
                 </View>
                 <View className="mb-2 flex-row items-center gap-1">
                   <Icon as={TrendingDown} className="size-3 text-green-500" />
                   <Text className="text-xs font-medium text-green-600">
-                    {selectedDayData.weight.deltaKg}kg
+                    {homeDashboard.data?.weightDeltaKg ?? 0}kg
                   </Text>
                 </View>
-                <Sparkline values={selectedDayData.weight.trend} width={120} />
+                <Sparkline values={homeDashboard.data?.weightTrend ?? [0]} width={120} />
               </View>
             </View>
           </View>

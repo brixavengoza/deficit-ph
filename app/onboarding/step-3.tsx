@@ -1,10 +1,11 @@
 import { Button } from '@/components/ui/button';
 import { Text } from '@/components/ui/text';
 import { stepThreeSchema, type OnboardingFormValues } from '@/lib/onboarding-form';
+import { completeOnboarding } from '@/lib/supabase-data';
 import { useRouter } from 'expo-router';
 import { CircleCheckBig, Dumbbell, Scale, TrendingDown } from 'lucide-react-native';
 import { useFormContext } from 'react-hook-form';
-import { useMemo, type ComponentType } from 'react';
+import React, { useMemo, type ComponentType } from 'react';
 import { View } from 'react-native';
 
 type Goal = 'lose' | 'maintain' | 'gain';
@@ -36,6 +37,8 @@ const GOAL_ADJUSTMENT: Record<Goal, number> = {
 export default function OnboardingStepThreeScreen() {
   const router = useRouter();
   const { watch, setValue, getValues } = useFormContext<OnboardingFormValues>();
+  const [isSubmitting, setIsSubmitting] = React.useState(false);
+  const [submitError, setSubmitError] = React.useState<string | null>(null);
   const goal = watch('goal');
   const sex = watch('sex');
   const age = watch('age');
@@ -71,10 +74,33 @@ export default function OnboardingStepThreeScreen() {
     };
   }, [activityLevel, age, goal, heightCm, sex, weightKg]);
 
-  const onNext = () => {
+  const onNext = async () => {
     if (!canProceed) return;
-    console.log('[onboarding step 3]', getValues());
-    router.replace('/dashboard');
+
+    if (!calorieGoal) {
+      setSubmitError('Unable to compute your calorie goal. Please check your inputs.');
+      return;
+    }
+
+    setIsSubmitting(true);
+    setSubmitError(null);
+
+    try {
+      const values = getValues();
+      await completeOnboarding({
+        ...values,
+        dailyCalories: calorieGoal.dailyCalories,
+        protein: calorieGoal.protein,
+        carbs: calorieGoal.carbs,
+        fat: calorieGoal.fat,
+      });
+      router.replace('/dashboard');
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to save onboarding.';
+      setSubmitError(message);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -162,6 +188,12 @@ export default function OnboardingStepThreeScreen() {
             </View>
           </View>
         ) : null}
+
+        {submitError ? (
+          <View className="mx-2 mt-4 rounded-xl bg-red-100 px-3 py-2">
+            <Text className="text-sm text-red-700">{submitError}</Text>
+          </View>
+        ) : null}
       </View>
 
       <View className="from-background-light via-background-light absolute right-0 bottom-0 left-0 bg-gradient-to-t to-transparent p-4 pt-12">
@@ -169,9 +201,13 @@ export default function OnboardingStepThreeScreen() {
           variant="default"
           size="lg"
           className="h-14 w-full rounded-full"
-          disabled={!canProceed}
-          onPress={onNext}>
-          <Text className="text-primary-foreground text-lg font-bold">Let's Go!</Text>
+          disabled={!canProceed || isSubmitting}
+          onPress={() => {
+            void onNext();
+          }}>
+          <Text className="text-primary-foreground text-lg font-bold">
+            {isSubmitting ? 'Saving...' : "Let's Go!"}
+          </Text>
         </Button>
       </View>
     </View>

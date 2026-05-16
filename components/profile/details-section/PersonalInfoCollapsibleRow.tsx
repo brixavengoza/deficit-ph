@@ -2,7 +2,6 @@ import React from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { personalInfoSchema, PersonalInfoValues } from '@/components/schema/profile-schema';
-import { PROFILE_PERSONAL_INFO_MOCK } from '@/lib/profile-settings-mock';
 import BaseCollapsibleRow from '../collapsible-row';
 import { User } from 'lucide-react-native';
 import { Text } from '@/components/ui/text';
@@ -10,17 +9,24 @@ import { Input } from '@/components/ui/input';
 import FieldError from '../field-error';
 import { Button } from '@/components/ui/button';
 import { View } from 'react-native';
+import { useProfileBundleStore } from '@/stores/use-profile-bundle-store';
 
 export default function PersonalInfoCollapsibleRow() {
   const [open, setOpen] = React.useState(false);
+  const { fullName, username, email } = useProfileBundleStore((state) => state.bundle);
+  const savePersonalInfoToDb = useProfileBundleStore((state) => state.savePersonalInfo);
   const form = useForm<PersonalInfoValues>({
     resolver: zodResolver(personalInfoSchema),
     mode: 'onChange',
-    defaultValues: PROFILE_PERSONAL_INFO_MOCK,
+    defaultValues: { fullName: '', username: '', email: '' },
   });
 
-  const savePersonalInfo = (values: PersonalInfoValues) => {
-    console.log('[profile personal save]', values);
+  React.useEffect(() => {
+    form.reset({ fullName, username, email });
+  }, [email, form, fullName, username]);
+
+  const savePersonalInfo = async (values: PersonalInfoValues) => {
+    await savePersonalInfoToDb(values);
     form.reset(values);
   };
 
@@ -89,7 +95,9 @@ export default function PersonalInfoCollapsibleRow() {
         <Button
           className="mt-1 h-10 rounded-full"
           disabled={!form.formState.isDirty || !form.formState.isValid}
-          onPress={form.handleSubmit(savePersonalInfo)}>
+          onPress={() => {
+            void form.handleSubmit(savePersonalInfo)();
+          }}>
           <Text className="text-primary-foreground font-semibold">Save Personal Info</Text>
         </Button>
       </View>

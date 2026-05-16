@@ -1,11 +1,11 @@
 import { Button } from '@/components/ui/button';
 import { Icon } from '@/components/ui/icon';
 import { Text } from '@/components/ui/text';
+import { useDeleteFoodLogMutation, useFoodLogsQuery } from '@/hooks/use-trackk-query';
 import { getFoodEmoji } from '@/lib/food-emoji';
 import { formatNumberGrouped } from '@/lib/number-format';
-import { useFoodLogStore } from '@/stores/use-food-log-store';
 import { router } from 'expo-router';
-import { Pencil, Trash2, X } from 'lucide-react-native';
+import { Pencil, Trash2 } from 'lucide-react-native';
 import React from 'react';
 import { Pressable, ScrollView, View, useWindowDimensions } from 'react-native';
 import RBSheet from 'react-native-raw-bottom-sheet';
@@ -14,15 +14,20 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 type LoggedFoodsCartModalProps = {
   open: boolean;
   onClose: () => void;
+  dayKey?: string;
 };
 
-export function LoggedFoodsCartModal({ open, onClose }: LoggedFoodsCartModalProps) {
+export function LoggedFoodsCartModal({ open, onClose, dayKey }: LoggedFoodsCartModalProps) {
   const sheetRef = React.useRef<{ open: () => void; close: () => void } | null>(null);
   const insets = useSafeAreaInsets();
   const { height: windowHeight } = useWindowDimensions();
-  const loggedFoods = useFoodLogStore((state) => state.loggedFoods);
-  const removeLoggedFood = useFoodLogStore((state) => state.removeLoggedFood);
-  const clearLoggedFoods = useFoodLogStore((state) => state.clearLoggedFoods);
+  const logsQuery = useFoodLogsQuery();
+  const deleteLogMutation = useDeleteFoodLogMutation();
+  const targetDayKey = dayKey ?? new Date().toISOString().slice(0, 10);
+  const loggedFoods = React.useMemo(
+    () => (logsQuery.data ?? []).filter((item) => item.consumedAtIso.slice(0, 10) === targetDayKey),
+    [logsQuery.data, targetDayKey]
+  );
   const [isSavingToDb, setIsSavingToDb] = React.useState(false);
 
   const totalItems = loggedFoods.length;
@@ -48,17 +53,8 @@ export function LoggedFoodsCartModal({ open, onClose }: LoggedFoodsCartModalProp
   }, [insets.bottom, loggedFoods.length, windowHeight]);
 
   const handleSaveToDb = React.useCallback(async () => {
-    setIsSavingToDb(true);
-    try {
-      await new Promise((resolve) => setTimeout(resolve, 500));
-      console.log('[food-log] save to db (placeholder)', loggedFoods);
-      onClose();
-    } catch (error) {
-      console.error('[LoggedFoodsCartModal.handleSaveToDb]', error);
-    } finally {
-      setIsSavingToDb(false);
-    }
-  }, [loggedFoods, onClose]);
+    onClose();
+  }, [onClose]);
 
   const handleEditItem = React.useCallback(
     (entryId: string) => {
@@ -71,10 +67,17 @@ export function LoggedFoodsCartModal({ open, onClose }: LoggedFoodsCartModalProp
     [onClose]
   );
 
-  const handleClearAll = () => {
-    clearLoggedFoods();
-    onClose();
-  };
+  const handleClearAll = React.useCallback(async () => {
+    setIsSavingToDb(true);
+    try {
+      await Promise.all(loggedFoods.map((entry) => deleteLogMutation.mutateAsync(entry.id)));
+      onClose();
+    } catch (error) {
+      console.error('[LoggedFoodsCartModal.handleClearAll]', error);
+    } finally {
+      setIsSavingToDb(false);
+    }
+  }, [deleteLogMutation, loggedFoods, onClose]);
 
   React.useEffect(() => {
     if (totalItems === 0) {
@@ -150,7 +153,13 @@ export function LoggedFoodsCartModal({ open, onClose }: LoggedFoodsCartModalProp
                 accessibilityLabel={`Remove ${item.foodName}`}
                 onPress={(event) => {
                   event.stopPropagation();
-                  removeLoggedFood(item.id);
+                  void (async () => {
+                    try {
+                      await deleteLogMutation.mutateAsync(item.id);
+                    } catch (error) {
+                      console.error('[LoggedFoodsCartModal.removeLoggedFood]', error);
+                    }
+                  })();
                 }}
                 className="h-8 w-8 items-center justify-center rounded-full bg-red-50 dark:bg-red-900/20">
                 <View>
@@ -169,7 +178,9 @@ export function LoggedFoodsCartModal({ open, onClose }: LoggedFoodsCartModalProp
           variant="outline"
           className="h-11 flex-1"
           disabled={!loggedFoods.length}
-          onPress={handleClearAll}>
+          onPress={() => {
+            void handleClearAll();
+          }}>
           <Icon as={Trash2} className="text-foreground size-4" />
           <Text>Clear all</Text>
         </Button>
@@ -177,9 +188,9 @@ export function LoggedFoodsCartModal({ open, onClose }: LoggedFoodsCartModalProp
         <Button
           variant="default"
           className="h-11 flex-1"
-          disabled={!loggedFoods.length || isSavingToDb}
+          disabled={!loggedFoods.length || isSavingToDb || deleteLogMutation.isPending}
           onPress={handleSaveToDb}>
-          <Text>{isSavingToDb ? 'Saving...' : 'Save'}</Text>
+          <Text>{isSavingToDb ? 'Saving...' : 'Done'}</Text>
         </Button>
       </View>
     </View>
