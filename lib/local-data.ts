@@ -57,6 +57,7 @@ export type ProfileBundle = {
   fullName: string;
   username: string;
   email: string;
+  profilePhotoUri: string;
   age: string;
   height: string;
   weight: string;
@@ -76,6 +77,9 @@ export type SavedFoodModel = {
   proteinPer100g: number;
   carbsPer100g: number;
   fatsPer100g: number;
+  fiberPer100g: number;
+  sugarPer100g: number;
+  sodiumMgPer100g: number;
   servingSizeLabel?: string;
   source: 'user' | 'seed';
   createdAtIso: string;
@@ -95,6 +99,9 @@ export type LoggedFoodModel = {
   proteinGrams: number;
   carbsGrams: number;
   fatsGrams: number;
+  fiberGrams: number;
+  sugarGrams: number;
+  sodiumMg: number;
   consumedAtIso: string;
   createdAtIso: string;
 };
@@ -120,6 +127,9 @@ type FoodLogWriteInput = {
   proteinPer100g: number;
   carbsPer100g: number;
   fatsPer100g: number;
+  fiberPer100g?: number;
+  sugarPer100g?: number;
+  sodiumMgPer100g?: number;
   quantity: number;
   unit: 'grams' | 'oz' | 'servings';
   gramsEquivalent: number;
@@ -129,12 +139,16 @@ type FoodLogWriteInput = {
   proteinGrams: number;
   carbsGrams: number;
   fatsGrams: number;
+  fiberGrams?: number;
+  sugarGrams?: number;
+  sodiumMg?: number;
 };
 
 type ProfileRow = {
   full_name: string | null;
   username: string | null;
   email: string | null;
+  profile_photo_uri: string | null;
   age: number | null;
   height_cm: number | null;
   start_weight_kg: number | null;
@@ -163,6 +177,9 @@ type FoodRow = {
   protein_per_100g: number;
   carbs_per_100g: number;
   fat_per_100g: number;
+  fiber_per_100g: number | null;
+  sugar_per_100g: number | null;
+  sodium_mg_per_100g: number | null;
   serving_size_label: string | null;
   source: 'user' | 'seed';
   created_at: string;
@@ -176,6 +193,9 @@ type FoodLogRow = {
   protein_per_100g_snapshot: number;
   carbs_per_100g_snapshot: number;
   fat_per_100g_snapshot: number;
+  fiber_per_100g_snapshot: number | null;
+  sugar_per_100g_snapshot: number | null;
+  sodium_mg_per_100g_snapshot: number | null;
   quantity: number;
   unit: string;
   grams_equivalent: number;
@@ -185,6 +205,9 @@ type FoodLogRow = {
   protein_g: number;
   carbs_g: number;
   fat_g: number;
+  fiber_g: number | null;
+  sugar_g: number | null;
+  sodium_mg: number | null;
   created_at: string;
 };
 
@@ -238,6 +261,7 @@ async function openAndPrepareDb() {
       full_name TEXT,
       username TEXT,
       email TEXT,
+      profile_photo_uri TEXT,
       age INTEGER,
       height_cm REAL,
       start_weight_kg REAL,
@@ -273,6 +297,9 @@ async function openAndPrepareDb() {
       protein_per_100g REAL NOT NULL DEFAULT 0,
       carbs_per_100g REAL NOT NULL DEFAULT 0,
       fat_per_100g REAL NOT NULL DEFAULT 0,
+      fiber_per_100g REAL NOT NULL DEFAULT 0,
+      sugar_per_100g REAL NOT NULL DEFAULT 0,
+      sodium_mg_per_100g REAL NOT NULL DEFAULT 0,
       serving_size_label TEXT,
       source TEXT NOT NULL CHECK (source IN ('user', 'seed')),
       created_at TEXT NOT NULL DEFAULT (datetime('now')),
@@ -292,6 +319,9 @@ async function openAndPrepareDb() {
       protein_per_100g_snapshot REAL NOT NULL DEFAULT 0,
       carbs_per_100g_snapshot REAL NOT NULL DEFAULT 0,
       fat_per_100g_snapshot REAL NOT NULL DEFAULT 0,
+      fiber_per_100g_snapshot REAL NOT NULL DEFAULT 0,
+      sugar_per_100g_snapshot REAL NOT NULL DEFAULT 0,
+      sodium_mg_per_100g_snapshot REAL NOT NULL DEFAULT 0,
       quantity REAL NOT NULL DEFAULT 0,
       unit TEXT NOT NULL DEFAULT 'grams',
       grams_equivalent REAL NOT NULL DEFAULT 0,
@@ -301,6 +331,9 @@ async function openAndPrepareDb() {
       protein_g REAL NOT NULL DEFAULT 0,
       carbs_g REAL NOT NULL DEFAULT 0,
       fat_g REAL NOT NULL DEFAULT 0,
+      fiber_g REAL NOT NULL DEFAULT 0,
+      sugar_g REAL NOT NULL DEFAULT 0,
+      sodium_mg REAL NOT NULL DEFAULT 0,
       created_at TEXT NOT NULL DEFAULT (datetime('now')),
       updated_at TEXT NOT NULL DEFAULT (datetime('now')),
       deleted_at TEXT
@@ -334,9 +367,38 @@ async function openAndPrepareDb() {
   await db.runAsync('INSERT OR IGNORE INTO profile (id) VALUES (1)');
   await db.runAsync('INSERT OR IGNORE INTO user_preferences (id) VALUES (1)');
   await db.runAsync('INSERT OR IGNORE INTO user_goals (id) VALUES (1)');
+  await ensureProfileColumns(db);
+  await ensureNutritionColumns(db);
   await seedLocalFoods(db);
 
   return db;
+}
+
+async function ensureColumn(
+  db: SQLite.SQLiteDatabase,
+  tableName: string,
+  columnName: string,
+  definition: string
+) {
+  const columns = await db.getAllAsync<{ name: string }>(`PRAGMA table_info(${tableName})`);
+  if (columns.some((column) => column.name === columnName)) return;
+  await db.execAsync(`ALTER TABLE ${tableName} ADD COLUMN ${columnName} ${definition}`);
+}
+
+async function ensureNutritionColumns(db: SQLite.SQLiteDatabase) {
+  await ensureColumn(db, 'foods', 'fiber_per_100g', 'REAL NOT NULL DEFAULT 0');
+  await ensureColumn(db, 'foods', 'sugar_per_100g', 'REAL NOT NULL DEFAULT 0');
+  await ensureColumn(db, 'foods', 'sodium_mg_per_100g', 'REAL NOT NULL DEFAULT 0');
+  await ensureColumn(db, 'food_logs', 'fiber_per_100g_snapshot', 'REAL NOT NULL DEFAULT 0');
+  await ensureColumn(db, 'food_logs', 'sugar_per_100g_snapshot', 'REAL NOT NULL DEFAULT 0');
+  await ensureColumn(db, 'food_logs', 'sodium_mg_per_100g_snapshot', 'REAL NOT NULL DEFAULT 0');
+  await ensureColumn(db, 'food_logs', 'fiber_g', 'REAL NOT NULL DEFAULT 0');
+  await ensureColumn(db, 'food_logs', 'sugar_g', 'REAL NOT NULL DEFAULT 0');
+  await ensureColumn(db, 'food_logs', 'sodium_mg', 'REAL NOT NULL DEFAULT 0');
+}
+
+async function ensureProfileColumns(db: SQLite.SQLiteDatabase) {
+  await ensureColumn(db, 'profile', 'profile_photo_uri', 'TEXT');
 }
 
 async function seedLocalFoods(db: SQLite.SQLiteDatabase) {
@@ -357,11 +419,14 @@ async function seedLocalFoods(db: SQLite.SQLiteDatabase) {
           protein_per_100g,
           carbs_per_100g,
           fat_per_100g,
+          fiber_per_100g,
+          sugar_per_100g,
+          sodium_mg_per_100g,
           serving_size_label,
           source,
           created_at,
           updated_at
-        ) VALUES (?, NULL, ?, ?, ?, ?, ?, ?, 'seed', ?, ?)`,
+        ) VALUES (?, NULL, ?, ?, ?, ?, ?, 0, 0, 0, ?, 'seed', ?, ?)`,
         [
           seedFoodId(food.name),
           food.name,
@@ -451,6 +516,7 @@ export async function loadProfileBundle(): Promise<ProfileBundle> {
     fullName: profile?.full_name ?? '',
     username: profile?.username ?? '',
     email: profile?.email ?? '',
+    profilePhotoUri: profile?.profile_photo_uri ?? '',
     age: profile?.age != null ? String(profile.age) : '',
     height: profile?.height_cm != null ? String(profile.height_cm) : '',
     weight:
@@ -489,6 +555,14 @@ export async function updatePersonalInfo(values: {
       new Date().toISOString(),
     ]
   );
+}
+
+export async function updateProfilePhoto(profilePhotoUri: string) {
+  const db = await getDb();
+  await db.runAsync('UPDATE profile SET profile_photo_uri = ?, updated_at = ? WHERE id = 1', [
+    emptyToNull(profilePhotoUri),
+    new Date().toISOString(),
+  ]);
 }
 
 export async function updateBodyMeasurements(values: {
@@ -558,6 +632,9 @@ function mapFoodRow(row: FoodRow): SavedFoodModel {
     proteinPer100g: toNumber(row.protein_per_100g),
     carbsPer100g: toNumber(row.carbs_per_100g),
     fatsPer100g: toNumber(row.fat_per_100g),
+    fiberPer100g: toNumber(row.fiber_per_100g),
+    sugarPer100g: toNumber(row.sugar_per_100g),
+    sodiumMgPer100g: toNumber(row.sodium_mg_per_100g),
     servingSizeLabel: row.serving_size_label ?? undefined,
     source: row.source,
     createdAtIso: row.created_at,
@@ -620,6 +697,9 @@ export async function upsertUserFoodByName(input: {
   proteinPer100g: number;
   carbsPer100g: number;
   fatsPer100g: number;
+  fiberPer100g?: number;
+  sugarPer100g?: number;
+  sodiumMgPer100g?: number;
   servingSizeLabel?: string;
 }): Promise<SavedFoodModel> {
   const db = await getDb();
@@ -644,6 +724,9 @@ export async function upsertUserFoodByName(input: {
            protein_per_100g = ?,
            carbs_per_100g = ?,
            fat_per_100g = ?,
+           fiber_per_100g = ?,
+           sugar_per_100g = ?,
+           sodium_mg_per_100g = ?,
            serving_size_label = ?,
            deleted_at = NULL,
            updated_at = ?
@@ -654,6 +737,9 @@ export async function upsertUserFoodByName(input: {
         input.proteinPer100g,
         input.carbsPer100g,
         input.fatsPer100g,
+        input.fiberPer100g ?? 0,
+        input.sugarPer100g ?? 0,
+        input.sodiumMgPer100g ?? 0,
         emptyToNull(input.servingSizeLabel ?? ''),
         now,
         existing.id,
@@ -676,11 +762,14 @@ export async function upsertUserFoodByName(input: {
       protein_per_100g,
       carbs_per_100g,
       fat_per_100g,
+      fiber_per_100g,
+      sugar_per_100g,
+      sodium_mg_per_100g,
       serving_size_label,
       source,
       created_at,
       updated_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'user', ?, ?)`,
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'user', ?, ?)`,
     [
       id,
       LOCAL_USER_ID,
@@ -689,6 +778,9 @@ export async function upsertUserFoodByName(input: {
       input.proteinPer100g,
       input.carbsPer100g,
       input.fatsPer100g,
+      input.fiberPer100g ?? 0,
+      input.sugarPer100g ?? 0,
+      input.sodiumMgPer100g ?? 0,
       emptyToNull(input.servingSizeLabel ?? ''),
       now,
       now,
@@ -715,6 +807,9 @@ function mapFoodLogRow(row: FoodLogRow): LoggedFoodModel {
     proteinGrams: toNumber(row.protein_g),
     carbsGrams: toNumber(row.carbs_g),
     fatsGrams: toNumber(row.fat_g),
+    fiberGrams: toNumber(row.fiber_g),
+    sugarGrams: toNumber(row.sugar_g),
+    sodiumMg: toNumber(row.sodium_mg),
     consumedAtIso: row.consumed_at,
     createdAtIso: row.created_at,
   };
@@ -750,6 +845,9 @@ export async function insertFoodLog(input: FoodLogWriteInput): Promise<LoggedFoo
       protein_per_100g_snapshot,
       carbs_per_100g_snapshot,
       fat_per_100g_snapshot,
+      fiber_per_100g_snapshot,
+      sugar_per_100g_snapshot,
+      sodium_mg_per_100g_snapshot,
       quantity,
       unit,
       grams_equivalent,
@@ -759,9 +857,12 @@ export async function insertFoodLog(input: FoodLogWriteInput): Promise<LoggedFoo
       protein_g,
       carbs_g,
       fat_g,
+      fiber_g,
+      sugar_g,
+      sodium_mg,
       created_at,
       updated_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [
       id,
       input.foodId ?? null,
@@ -770,6 +871,9 @@ export async function insertFoodLog(input: FoodLogWriteInput): Promise<LoggedFoo
       input.proteinPer100g,
       input.carbsPer100g,
       input.fatsPer100g,
+      input.fiberPer100g ?? 0,
+      input.sugarPer100g ?? 0,
+      input.sodiumMgPer100g ?? 0,
       input.quantity,
       input.unit,
       input.gramsEquivalent,
@@ -779,6 +883,9 @@ export async function insertFoodLog(input: FoodLogWriteInput): Promise<LoggedFoo
       input.proteinGrams,
       input.carbsGrams,
       input.fatsGrams,
+      input.fiberGrams ?? 0,
+      input.sugarGrams ?? 0,
+      input.sodiumMg ?? 0,
       now,
       now,
     ]
@@ -802,6 +909,9 @@ export async function updateFoodLog(
          protein_per_100g_snapshot = ?,
          carbs_per_100g_snapshot = ?,
          fat_per_100g_snapshot = ?,
+         fiber_per_100g_snapshot = ?,
+         sugar_per_100g_snapshot = ?,
+         sodium_mg_per_100g_snapshot = ?,
          quantity = ?,
          unit = ?,
          grams_equivalent = ?,
@@ -811,6 +921,9 @@ export async function updateFoodLog(
          protein_g = ?,
          carbs_g = ?,
          fat_g = ?,
+         fiber_g = ?,
+         sugar_g = ?,
+         sodium_mg = ?,
          updated_at = ?
      WHERE id = ?
        AND deleted_at IS NULL`,
@@ -821,6 +934,9 @@ export async function updateFoodLog(
       input.proteinPer100g,
       input.carbsPer100g,
       input.fatsPer100g,
+      input.fiberPer100g ?? 0,
+      input.sugarPer100g ?? 0,
+      input.sodiumMgPer100g ?? 0,
       input.quantity,
       input.unit,
       input.gramsEquivalent,
@@ -830,6 +946,9 @@ export async function updateFoodLog(
       input.proteinGrams,
       input.carbsGrams,
       input.fatsGrams,
+      input.fiberGrams ?? 0,
+      input.sugarGrams ?? 0,
+      input.sodiumMg ?? 0,
       new Date().toISOString(),
       id,
     ]

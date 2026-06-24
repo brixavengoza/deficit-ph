@@ -7,6 +7,7 @@
     "android": "expo start -c --android",
     "ios": "expo start -c --ios",
     "web": "expo start -c --web",
+    "test:nutrition-parser": "node scripts/test-nutrition-label-parser.mjs",
     "clean": "rm -rf .expo node_modules"
   },
   "dependencies": {
@@ -43,8 +44,10 @@
     "clsx": "^2.1.1",
     "date-fns": "^4.1.0",
     "expo": "~54.0.34",
+    "expo-camera": "~17.0.10",
     "expo-constants": "~18.0.12",
     "expo-haptics": "~15.0.8",
+    "expo-image-picker": "~17.0.11",
     "expo-linking": "~8.0.12",
     "expo-router": "~6.0.19",
     "expo-splash-screen": "~31.0.12",

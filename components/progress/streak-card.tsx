@@ -10,6 +10,8 @@ type StreakCardProps = {
 
 export function StreakCard({ currentStreak, days }: StreakCardProps) {
   const today = new Date();
+  const scrollViewRef = React.useRef<ScrollView>(null);
+  const streakUnit = currentStreak === 1 ? 'Day' : 'Days';
 
   return (
     <View className="mb-6 overflow-hidden rounded-[22px] bg-orange-500 p-6">
@@ -23,7 +25,9 @@ export function StreakCard({ currentStreak, days }: StreakCardProps) {
               Current Streak
             </Text>
             <View className="mt-1 flex-row items-center gap-2">
-              <Text className="text-4xl font-bold tracking-tight text-white">{currentStreak} Days</Text>
+              <Text className="text-4xl font-bold tracking-tight text-white">
+                {currentStreak} {streakUnit}
+              </Text>
               <Text className="text-3xl">🔥</Text>
             </View>
             <Text className="mt-2 text-sm leading-snug font-medium text-orange-50">
@@ -42,13 +46,19 @@ export function StreakCard({ currentStreak, days }: StreakCardProps) {
 
         <View className="overflow-hidden rounded-xl bg-white/10 py-3">
           <View className="mb-2 flex-row items-center justify-between px-3">
-            <Text className="text-xs font-semibold text-orange-100">{format(today, 'EEE, MMM d')}</Text>
+            <Text className="text-xs font-semibold text-orange-100">
+              {format(today, 'EEE, MMM d')}
+            </Text>
             <Text className="text-[10px] font-medium text-orange-100/90">recent 21 days</Text>
           </View>
 
           <ScrollView
+            ref={scrollViewRef}
             horizontal
             showsHorizontalScrollIndicator={false}
+            onContentSizeChange={() => {
+              scrollViewRef.current?.scrollToEnd({ animated: false });
+            }}
             contentContainerStyle={{ paddingRight: 8 }}
             className="overflow-hidden">
             <View className="flex-row items-end gap-4 px-3">
@@ -59,7 +69,9 @@ export function StreakCard({ currentStreak, days }: StreakCardProps) {
                 return (
                   <Pressable key={day.localDay} className="items-center">
                     <View className={`mb-1 h-8 w-3 rounded-full ${barFillColor}`} />
-                    <Text className={'text-[11px] font-medium text-orange-100'}>{format(date, 'd')}</Text>
+                    <Text className={'text-[11px] font-medium text-orange-100'}>
+                      {format(date, 'd')}
+                    </Text>
                   </Pressable>
                 );
               })}

@@ -539,7 +539,7 @@ export default function DashboardScreen() {
                 icon={QrCode}
                 iconWrapClass="bg-accent"
                 iconClassName="text-accent-foreground"
-                disabled
+                onPress={() => router.push('/dashboard/scan-label')}
               />
             </View>
             <View className="bg-background-subtle border-border mt-5 self-center rounded-full border px-3 py-1.5">

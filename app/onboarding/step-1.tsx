@@ -22,13 +22,13 @@ export default function OnboardingStepOneScreen() {
 
   return (
     <KeyboardAvoidingView
-      className="bg-background-light flex-1"
+      className="bg-background flex-1"
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
       <ScrollView
         contentContainerClassName="flex-grow"
         keyboardShouldPersistTaps="handled"
         keyboardDismissMode="on-drag">
-        <View className="bg-background-light flex-1">
+        <View className="bg-background flex-1">
           <View className="px-6 pt-4 pb-2">
             <Text className="text-foreground mt-2 text-3xl font-bold tracking-tight">
               Tell us about yourself
@@ -160,7 +160,7 @@ export default function OnboardingStepOneScreen() {
         </View>
       </ScrollView>
 
-      <View className="from-background-light via-background-light absolute right-0 bottom-0 left-0 bg-gradient-to-t to-transparent px-6">
+      <View className="bg-background absolute right-0 bottom-0 left-0 px-6 pt-3 pb-4">
         <Button
           variant="default"
           size="lg"

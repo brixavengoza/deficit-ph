@@ -104,7 +104,7 @@ export default function OnboardingStepThreeScreen() {
   };
 
   return (
-    <View className="bg-background-light flex-1">
+    <View className="bg-background flex-1">
       <View className="px-6 pt-4 pb-2">
         <Text className="text-foreground mt-2 text-3xl font-bold tracking-tight">
           What is your main goal?
@@ -132,7 +132,7 @@ export default function OnboardingStepThreeScreen() {
                     shouldTouch: true,
                   })
                 }>
-                <View className="bg-background-light mr-4 size-12 items-center justify-center rounded-full">
+                <View className="bg-background-subtle mr-4 size-12 items-center justify-center rounded-full">
                   <GoalIcon className="text-primary size-5" />
                 </View>
 
@@ -196,7 +196,7 @@ export default function OnboardingStepThreeScreen() {
         ) : null}
       </View>
 
-      <View className="from-background-light via-background-light absolute right-0 bottom-0 left-0 bg-gradient-to-t to-transparent p-4 pt-12">
+      <View className="bg-background absolute right-0 bottom-0 left-0 p-4 pt-3">
         <Button
           variant="default"
           size="lg"

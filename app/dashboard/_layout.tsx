@@ -56,6 +56,7 @@ export default function DashboardLayout() {
   const isLogSearch = pathname.startsWith('/dashboard/log-food-search');
   const isAddFood = pathname.startsWith('/dashboard/add-food');
   const isAddCustomFood = pathname.startsWith('/dashboard/add-custom-food');
+  const isScanLabel = pathname.startsWith('/dashboard/scan-label');
   const isSavedFoods = pathname.startsWith('/dashboard/saved-foods');
   const isProgress = pathname.startsWith('/dashboard/progress');
   const isProfile = pathname.startsWith('/dashboard/profile');
@@ -74,12 +75,18 @@ export default function DashboardLayout() {
             <Stack.Screen name="privacy-policy" options={{ gestureEnabled: true }} />
             <Stack.Screen name="log-food-search" options={{ gestureEnabled: true }} />
             <Stack.Screen name="saved-foods" options={{ gestureEnabled: true }} />
+            <Stack.Screen name="scan-label" options={{ gestureEnabled: true }} />
             <Stack.Screen name="add-food" options={{ gestureEnabled: true }} />
             <Stack.Screen name="add-custom-food" options={{ gestureEnabled: true }} />
           </Stack>
         </View>
 
-        {isLogSearch || isSavedFoods || isAddFood || isAddCustomFood || isPrivacyPolicy ? null : (
+        {isLogSearch ||
+        isSavedFoods ||
+        isAddFood ||
+        isAddCustomFood ||
+        isScanLabel ||
+        isPrivacyPolicy ? null : (
           <View
             pointerEvents="box-none"
             style={{ position: 'absolute', left: 0, right: 0, bottom: 0 }}>

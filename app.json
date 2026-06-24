@@ -16,7 +16,11 @@
     "assetBundlePatterns": ["**/*"],
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.trackk.minimal"
+      "bundleIdentifier": "com.trackk.minimal",
+      "infoPlist": {
+        "NSCameraUsageDescription": "Deficit PH uses the camera to scan nutrition labels and take profile photos.",
+        "NSPhotoLibraryUsageDescription": "Deficit PH uses your photo library so you can upload nutrition label images and choose profile photos."
+      }
     },
     "android": {
       "edgeToEdgeEnabled": true,

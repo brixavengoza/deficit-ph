@@ -5,7 +5,7 @@ const STEPS = ['Basic Info', 'Activity Level', 'Goal'] as const;
 
 function OnboardingStepsIndicator({ currentStep }: { currentStep: 1 | 2 | 3 }) {
   return (
-    <View className="bg-background-light px-6 pb-3 pt-4">
+    <View className="bg-background px-6 pt-4 pb-3">
       <View className="flex-row items-center justify-between">
         {STEPS.map((label, idx) => {
           const step = (idx + 1) as 1 | 2 | 3;
@@ -17,8 +17,8 @@ function OnboardingStepsIndicator({ currentStep }: { currentStep: 1 | 2 | 3 }) {
               <Text
                 className={
                   active || complete
-                    ? 'text-primary text-xs font-semibold uppercase tracking-wide'
-                    : 'text-muted-foreground text-xs font-semibold uppercase tracking-wide'
+                    ? 'text-primary text-xs font-semibold tracking-wide uppercase'
+                    : 'text-muted-foreground text-xs font-semibold tracking-wide uppercase'
                 }>
                 {label}
               </Text>
@@ -28,9 +28,27 @@ function OnboardingStepsIndicator({ currentStep }: { currentStep: 1 | 2 | 3 }) {
       </View>
 
       <View className="mt-3 flex-row items-center gap-2">
-        <View className={currentStep >= 1 ? 'bg-primary h-1.5 flex-1 rounded-full' : 'bg-primary/20 h-1.5 flex-1 rounded-full'} />
-        <View className={currentStep >= 2 ? 'bg-primary h-1.5 flex-1 rounded-full' : 'bg-primary/20 h-1.5 flex-1 rounded-full'} />
-        <View className={currentStep >= 3 ? 'bg-primary h-1.5 flex-1 rounded-full' : 'bg-primary/20 h-1.5 flex-1 rounded-full'} />
+        <View
+          className={
+            currentStep >= 1
+              ? 'bg-primary h-1.5 flex-1 rounded-full'
+              : 'bg-primary/20 h-1.5 flex-1 rounded-full'
+          }
+        />
+        <View
+          className={
+            currentStep >= 2
+              ? 'bg-primary h-1.5 flex-1 rounded-full'
+              : 'bg-primary/20 h-1.5 flex-1 rounded-full'
+          }
+        />
+        <View
+          className={
+            currentStep >= 3
+              ? 'bg-primary h-1.5 flex-1 rounded-full'
+              : 'bg-primary/20 h-1.5 flex-1 rounded-full'
+          }
+        />
       </View>
     </View>
   );

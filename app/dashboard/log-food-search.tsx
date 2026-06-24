@@ -13,7 +13,7 @@ import {
   useFoodsQuery,
 } from '@/hooks/use-trackk-query';
 import { useRouter } from 'expo-router';
-import { ArrowLeft, ChevronRight, PencilLine, Plus, Search } from 'lucide-react-native';
+import { ArrowLeft, ChevronRight, PencilLine, Plus, ScanLine, Search } from 'lucide-react-native';
 import React from 'react';
 import { Pressable, TextInput, View } from 'react-native';
 import Animated, { FadeIn, ZoomIn } from 'react-native-reanimated';
@@ -341,10 +341,16 @@ export default function LogFoodSearchScreen() {
       />
 
       <View pointerEvents="box-none" className="absolute right-0 bottom-6 left-0 px-6">
-        <Button onPress={() => router.push('/dashboard/add-custom-food')}>
-          <Icon as={PencilLine} className="text-primary-foreground mr-2 size-4" />
-          <Text>Add Custom Food</Text>
-        </Button>
+        <View className="gap-2">
+          <Button variant="outline" onPress={() => router.push('/dashboard/scan-label')}>
+            <Icon as={ScanLine} className="text-foreground mr-2 size-4" />
+            <Text>Scan Nutrition Label</Text>
+          </Button>
+          <Button onPress={() => router.push('/dashboard/add-custom-food')}>
+            <Icon as={PencilLine} className="text-primary-foreground mr-2 size-4" />
+            <Text>Add Custom Food</Text>
+          </Button>
+        </View>
       </View>
 
       <LoggedFoodsCartModal

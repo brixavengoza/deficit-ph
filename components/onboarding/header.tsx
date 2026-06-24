@@ -5,7 +5,7 @@ const STEPS = ['Basic Info', 'Activity Level', 'Goal'] as const;
 
 function OnboardingHeader({ currentStep }: { currentStep: 1 | 2 | 3 }) {
   return (
-    <View className="bg-background-light pt-4 pb-3">
+    <View className="bg-background pt-4 pb-3">
       <View className="flex-row items-center justify-between px-4">
         {STEPS.map((label, idx) => {
           const step = (idx + 1) as 1 | 2 | 3;

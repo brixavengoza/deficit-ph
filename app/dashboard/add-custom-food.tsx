@@ -6,7 +6,7 @@ import { Text } from '@/components/ui/text';
 import { useInsertFoodLogMutation, useUpsertUserFoodMutation } from '@/hooks/use-trackk-query';
 import { formatTimeLabelFromDate } from '@/utils/add-food-utils';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { ArrowLeft, Info } from 'lucide-react-native';
 import React from 'react';
 import { KeyboardAvoidingView, Platform, ScrollView, View } from 'react-native';
@@ -59,11 +59,46 @@ const addCustomFoodSchema = z.object({
       (value) => Number(value) <= MAX_CUSTOM_FOOD_NUMERIC_INPUT,
       `Must be ${MAX_CUSTOM_FOOD_NUMERIC_INPUT}g or lower`
     ),
+  fiberPer100g: z
+    .string()
+    .trim()
+    .refine((value) => value.length === 0 || !Number.isNaN(Number(value)), 'Enter a valid number')
+    .refine((value) => value.length === 0 || Number(value) >= 0, 'Must be 0 or higher')
+    .refine(
+      (value) => value.length === 0 || Number(value) <= MAX_CUSTOM_FOOD_NUMERIC_INPUT,
+      `Must be ${MAX_CUSTOM_FOOD_NUMERIC_INPUT}g or lower`
+    ),
+  sugarPer100g: z
+    .string()
+    .trim()
+    .refine((value) => value.length === 0 || !Number.isNaN(Number(value)), 'Enter a valid number')
+    .refine((value) => value.length === 0 || Number(value) >= 0, 'Must be 0 or higher')
+    .refine(
+      (value) => value.length === 0 || Number(value) <= MAX_CUSTOM_FOOD_NUMERIC_INPUT,
+      `Must be ${MAX_CUSTOM_FOOD_NUMERIC_INPUT}g or lower`
+    ),
+  sodiumMgPer100g: z
+    .string()
+    .trim()
+    .refine((value) => value.length === 0 || !Number.isNaN(Number(value)), 'Enter a valid number')
+    .refine((value) => value.length === 0 || Number(value) >= 0, 'Must be 0 or higher')
+    .refine((value) => value.length === 0 || Number(value) <= 100000, 'Must be 100,000mg or lower'),
 });
 
 type AddCustomFoodFormValues = z.infer<typeof addCustomFoodSchema>;
 
-type NumericFieldName = 'caloriesPer100g' | 'proteinPer100g' | 'carbsPer100g' | 'fatsPer100g';
+type NumericFieldName =
+  | 'caloriesPer100g'
+  | 'proteinPer100g'
+  | 'carbsPer100g'
+  | 'fatsPer100g'
+  | 'fiberPer100g'
+  | 'sugarPer100g'
+  | 'sodiumMgPer100g';
+
+function firstParam(value?: string | string[]) {
+  return Array.isArray(value) ? value[0] : value;
+}
 
 function NumericField({
   control,
@@ -106,6 +141,7 @@ function NumericField({
 
 export default function AddCustomFoodScreen() {
   const insets = useSafeAreaInsets();
+  const params = useLocalSearchParams<Partial<Record<keyof AddCustomFoodFormValues, string>>>();
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const upsertFoodMutation = useUpsertUserFoodMutation();
   const insertFoodLogMutation = useInsertFoodLogMutation();
@@ -118,12 +154,15 @@ export default function AddCustomFoodScreen() {
   } = useForm<AddCustomFoodFormValues>({
     resolver: zodResolver(addCustomFoodSchema),
     defaultValues: {
-      foodName: '',
-      servingSizeLabel: '',
-      caloriesPer100g: '',
-      proteinPer100g: '',
-      carbsPer100g: '',
-      fatsPer100g: '',
+      foodName: firstParam(params.foodName) ?? '',
+      servingSizeLabel: firstParam(params.servingSizeLabel) ?? '',
+      caloriesPer100g: firstParam(params.caloriesPer100g) ?? '',
+      proteinPer100g: firstParam(params.proteinPer100g) ?? '',
+      carbsPer100g: firstParam(params.carbsPer100g) ?? '',
+      fatsPer100g: firstParam(params.fatsPer100g) ?? '',
+      fiberPer100g: firstParam(params.fiberPer100g) ?? '',
+      sugarPer100g: firstParam(params.sugarPer100g) ?? '',
+      sodiumMgPer100g: firstParam(params.sodiumMgPer100g) ?? '',
     },
   });
 
@@ -137,6 +176,9 @@ export default function AddCustomFoodScreen() {
           proteinPer100g: Number(values.proteinPer100g),
           carbsPer100g: Number(values.carbsPer100g),
           fatsPer100g: Number(values.fatsPer100g),
+          fiberPer100g: Number(values.fiberPer100g || 0),
+          sugarPer100g: Number(values.sugarPer100g || 0),
+          sodiumMgPer100g: Number(values.sodiumMgPer100g || 0),
           servingSizeLabel: values.servingSizeLabel.trim(),
         });
 
@@ -147,6 +189,9 @@ export default function AddCustomFoodScreen() {
           proteinPer100g: savedFood.proteinPer100g,
           carbsPer100g: savedFood.carbsPer100g,
           fatsPer100g: savedFood.fatsPer100g,
+          fiberPer100g: savedFood.fiberPer100g,
+          sugarPer100g: savedFood.sugarPer100g,
+          sodiumMgPer100g: savedFood.sodiumMgPer100g,
           quantity: 100,
           unit: 'grams',
           gramsEquivalent: 100,
@@ -156,6 +201,9 @@ export default function AddCustomFoodScreen() {
           proteinGrams: Number(values.proteinPer100g),
           carbsGrams: Number(values.carbsPer100g),
           fatsGrams: Number(values.fatsPer100g),
+          fiberGrams: Number(values.fiberPer100g || 0),
+          sugarGrams: Number(values.sugarPer100g || 0),
+          sodiumMg: Number(values.sodiumMgPer100g || 0),
         });
         router.back();
       } catch (error) {
@@ -272,6 +320,27 @@ export default function AddCustomFoodScreen() {
                 name="fatsPer100g"
                 label="Fat (g)"
                 maxValue={MAX_CUSTOM_FOOD_NUMERIC_INPUT}
+              />
+              <NumericField
+                control={control}
+                errors={errors}
+                name="fiberPer100g"
+                label="Fiber (g)"
+                maxValue={MAX_CUSTOM_FOOD_NUMERIC_INPUT}
+              />
+              <NumericField
+                control={control}
+                errors={errors}
+                name="sugarPer100g"
+                label="Sugar (g)"
+                maxValue={MAX_CUSTOM_FOOD_NUMERIC_INPUT}
+              />
+              <NumericField
+                control={control}
+                errors={errors}
+                name="sodiumMgPer100g"
+                label="Sodium (mg)"
+                maxValue={100000}
               />
             </View>
           </View>

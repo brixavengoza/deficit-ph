@@ -71,6 +71,12 @@ export default function AddFoodScreen() {
     entryId?: string;
     foodName?: string;
     kcalPer100g?: string;
+    proteinPer100g?: string;
+    carbsPer100g?: string;
+    fatsPer100g?: string;
+    fiberPer100g?: string;
+    sugarPer100g?: string;
+    sodiumMgPer100g?: string;
   }>();
 
   const [isSubmitting, setIsSubmitting] = React.useState(false);
@@ -95,10 +101,43 @@ export default function AddFoodScreen() {
     () => editingEntry?.kcalPer100g ?? parseKcalPer100g(params.kcalPer100g),
     [editingEntry?.kcalPer100g, params.kcalPer100g]
   );
-  const macroProfile = React.useMemo(
-    () => resolveMacroProfile(foodName, kcalPer100g),
-    [foodName, kcalPer100g]
-  );
+  const macroProfile = React.useMemo(() => {
+    const resolved = resolveMacroProfile(foodName, kcalPer100g);
+    const scannedProtein = Number(params.proteinPer100g);
+    const scannedCarbs = Number(params.carbsPer100g);
+    const scannedFats = Number(params.fatsPer100g);
+    const scannedFiber = Number(params.fiberPer100g);
+    const scannedSugar = Number(params.sugarPer100g);
+    const scannedSodium = Number(params.sodiumMgPer100g);
+
+    return {
+      proteinPer100g:
+        Number.isFinite(scannedProtein) && scannedProtein >= 0
+          ? scannedProtein
+          : resolved.proteinPer100g,
+      carbsPer100g:
+        Number.isFinite(scannedCarbs) && scannedCarbs >= 0 ? scannedCarbs : resolved.carbsPer100g,
+      fatsPer100g:
+        Number.isFinite(scannedFats) && scannedFats >= 0 ? scannedFats : resolved.fatsPer100g,
+      fiberPer100g:
+        Number.isFinite(scannedFiber) && scannedFiber >= 0 ? scannedFiber : resolved.fiberPer100g,
+      sugarPer100g:
+        Number.isFinite(scannedSugar) && scannedSugar >= 0 ? scannedSugar : resolved.sugarPer100g,
+      sodiumMgPer100g:
+        Number.isFinite(scannedSodium) && scannedSodium >= 0
+          ? scannedSodium
+          : resolved.sodiumMgPer100g,
+    };
+  }, [
+    foodName,
+    kcalPer100g,
+    params.carbsPer100g,
+    params.fatsPer100g,
+    params.fiberPer100g,
+    params.proteinPer100g,
+    params.sodiumMgPer100g,
+    params.sugarPer100g,
+  ]);
   const defaultQuantityFromSelectedFood = React.useMemo(
     () => String(Math.max(1, Math.round(kcalPer100g))),
     [kcalPer100g]
@@ -143,6 +182,9 @@ export default function AddFoodScreen() {
         proteinGrams: 0,
         carbsGrams: 0,
         fatsGrams: 0,
+        fiberGrams: 0,
+        sugarGrams: 0,
+        sodiumMg: 0,
         proteinPct: 0,
         carbsPct: 0,
         fatsPct: 0,
@@ -155,6 +197,9 @@ export default function AddFoodScreen() {
     const proteinGrams = roundTo(macroProfile.proteinPer100g * scale, 0);
     const carbsGrams = roundTo(macroProfile.carbsPer100g * scale, 0);
     const fatsGrams = roundTo(macroProfile.fatsPer100g * scale, 0);
+    const fiberGrams = roundTo((macroProfile.fiberPer100g ?? 0) * scale, 1);
+    const sugarGrams = roundTo((macroProfile.sugarPer100g ?? 0) * scale, 1);
+    const sodiumMg = roundTo((macroProfile.sodiumMgPer100g ?? 0) * scale, 0);
 
     const totalMacroGrams = proteinGrams + carbsGrams + fatsGrams || 1;
 
@@ -163,6 +208,9 @@ export default function AddFoodScreen() {
       proteinGrams,
       carbsGrams,
       fatsGrams,
+      fiberGrams,
+      sugarGrams,
+      sodiumMg,
       proteinPct: (proteinGrams / totalMacroGrams) * 100,
       carbsPct: (carbsGrams / totalMacroGrams) * 100,
       fatsPct: (fatsGrams / totalMacroGrams) * 100,
@@ -194,6 +242,9 @@ export default function AddFoodScreen() {
           proteinGrams: nutrition.proteinGrams,
           carbsGrams: nutrition.carbsGrams,
           fatsGrams: nutrition.fatsGrams,
+          fiberGrams: nutrition.fiberGrams,
+          sugarGrams: nutrition.sugarGrams,
+          sodiumMg: nutrition.sodiumMg,
         };
 
         if (editingEntry) {
@@ -206,6 +257,9 @@ export default function AddFoodScreen() {
               proteinPer100g: macroProfile.proteinPer100g,
               carbsPer100g: macroProfile.carbsPer100g,
               fatsPer100g: macroProfile.fatsPer100g,
+              fiberPer100g: macroProfile.fiberPer100g,
+              sugarPer100g: macroProfile.sugarPer100g,
+              sodiumMgPer100g: macroProfile.sodiumMgPer100g,
               ...nextPayload,
             },
           });
@@ -216,6 +270,9 @@ export default function AddFoodScreen() {
             proteinPer100g: macroProfile.proteinPer100g,
             carbsPer100g: macroProfile.carbsPer100g,
             fatsPer100g: macroProfile.fatsPer100g,
+            fiberPer100g: macroProfile.fiberPer100g,
+            sugarPer100g: macroProfile.sugarPer100g,
+            sodiumMgPer100g: macroProfile.sodiumMgPer100g,
             ...nextPayload,
           });
         }
@@ -323,6 +380,27 @@ export default function AddFoodScreen() {
                   <Text className="text-shadow-muted-foreground text-xs">Fats</Text>
                   <Text className="border-primary/60 bg-card text-foreground mt-1 rounded-full border px-3 text-base font-bold">
                     {formatMeasure(nutrition.fatsGrams, 'g')}
+                  </Text>
+                </View>
+              </View>
+
+              <View className="mt-3 flex-row gap-2">
+                <View className="bg-card/50 flex-1 items-center rounded-xl py-2">
+                  <Text className="text-muted-foreground text-[10px] font-semibold">Fiber</Text>
+                  <Text className="text-foreground text-sm font-bold">
+                    {formatMeasure(nutrition.fiberGrams, 'g')}
+                  </Text>
+                </View>
+                <View className="bg-card/50 flex-1 items-center rounded-xl py-2">
+                  <Text className="text-muted-foreground text-[10px] font-semibold">Sugar</Text>
+                  <Text className="text-foreground text-sm font-bold">
+                    {formatMeasure(nutrition.sugarGrams, 'g')}
+                  </Text>
+                </View>
+                <View className="bg-card/50 flex-1 items-center rounded-xl py-2">
+                  <Text className="text-muted-foreground text-[10px] font-semibold">Sodium</Text>
+                  <Text className="text-foreground text-sm font-bold">
+                    {formatNumberGrouped(nutrition.sodiumMg)}mg
                   </Text>
                 </View>
               </View>

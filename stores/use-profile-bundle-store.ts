@@ -4,6 +4,7 @@ import {
   updateBodyMeasurements,
   updateNotifications,
   updatePersonalInfo,
+  updateProfilePhoto,
   updateTheme,
   updateUnits,
   type ProfileBundle,
@@ -14,6 +15,7 @@ const DEFAULT_BUNDLE: ProfileBundle = {
   fullName: '',
   username: '',
   email: '',
+  profilePhotoUri: '',
   age: '',
   height: '',
   weight: '',
@@ -39,6 +41,7 @@ type ProfileBundleState = {
     username: string;
     email: string;
   }) => Promise<void>;
+  saveProfilePhoto: (profilePhotoUri: string) => Promise<void>;
   saveBodyMeasurements: (values: {
     height: string;
     weight: string;
@@ -87,6 +90,23 @@ export const useProfileBundleStore = create<ProfileBundleState>((set, get) => ({
     } catch (error) {
       set({
         error: error instanceof Error ? error.message : 'Failed to save personal info.',
+        isSaving: false,
+      });
+      throw error;
+    }
+  },
+
+  saveProfilePhoto: async (profilePhotoUri) => {
+    set({ isSaving: true, error: null });
+    try {
+      await updateProfilePhoto(profilePhotoUri);
+      set((state) => ({
+        bundle: { ...state.bundle, profilePhotoUri },
+        isSaving: false,
+      }));
+    } catch (error) {
+      set({
+        error: error instanceof Error ? error.message : 'Failed to save profile photo.',
         isSaving: false,
       });
       throw error;

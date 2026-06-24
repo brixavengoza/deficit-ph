@@ -33,7 +33,7 @@ export default function OnboardingStepTwoScreen() {
   };
 
   return (
-    <View className="bg-background-light flex-1 justify-center">
+    <View className="bg-background flex-1 justify-center">
       <View className="px-6 pt-4 pb-2">
         <Text className="text-foreground mt-2 text-3xl font-bold tracking-tight">
           How active are you?
@@ -63,7 +63,7 @@ export default function OnboardingStepTwoScreen() {
                   shouldTouch: true,
                 })
               }>
-              <View className="bg-background-light mr-4 size-12 items-center justify-center rounded-full">
+              <View className="bg-background-subtle mr-4 size-12 items-center justify-center rounded-full">
                 <Text className="text-3xl">{item.emoji}</Text>
               </View>
 
@@ -85,7 +85,7 @@ export default function OnboardingStepTwoScreen() {
         })}
       </View>
 
-      <View className="bg-background-light absolute right-0 bottom-0 left-0 p-6">
+      <View className="bg-background absolute right-0 bottom-0 left-0 p-6">
         <Button
           variant="default"
           size="lg"

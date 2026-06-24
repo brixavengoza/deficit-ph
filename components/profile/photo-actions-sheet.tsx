@@ -1,14 +1,15 @@
 import { Button } from '@/components/ui/button';
 import { Icon } from '@/components/ui/icon';
 import { Text } from '@/components/ui/text';
-import { Camera, Image, X } from 'lucide-react-native';
+import { Camera, Image } from 'lucide-react-native';
 import React from 'react';
-import { Pressable, View } from 'react-native';
+import { View } from 'react-native';
 import ActionSheet, { type ActionSheetRef } from 'react-native-actions-sheet';
 import { useUniwind } from 'uniwind';
 
 type PhotoActionsSheetProps = {
   open: boolean;
+  isWorking?: boolean;
   onClose: () => void;
   onChoosePhoto: () => void;
   onTakePhoto: () => void;
@@ -16,6 +17,7 @@ type PhotoActionsSheetProps = {
 
 export function PhotoActionsSheet({
   open,
+  isWorking = false,
   onClose,
   onChoosePhoto,
   onTakePhoto,
@@ -54,6 +56,7 @@ export function PhotoActionsSheet({
           <Button
             variant="outline"
             className="h-12 w-full justify-start rounded-full px-4"
+            disabled={isWorking}
             onPress={onChoosePhoto}>
             <Icon as={Image} className="text-foreground size-4" />
             <Text className="text-foreground font-semibold">Choose Photo</Text>
@@ -61,6 +64,7 @@ export function PhotoActionsSheet({
           <Button
             variant="outline"
             className="h-12 w-full justify-start rounded-full px-4"
+            disabled={isWorking}
             onPress={onTakePhoto}>
             <Icon as={Camera} className="text-foreground size-4" />
             <Text className="text-foreground font-semibold">Take Photo</Text>

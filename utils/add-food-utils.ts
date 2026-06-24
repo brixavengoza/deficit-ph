@@ -10,6 +10,9 @@ export type FoodMacroProfile = {
   proteinPer100g: number;
   carbsPer100g: number;
   fatsPer100g: number;
+  fiberPer100g?: number;
+  sugarPer100g?: number;
+  sodiumMgPer100g?: number;
 };
 
 const FOOD_MACRO_PROFILES: Record<string, FoodMacroProfile> = {
@@ -63,6 +66,9 @@ export function resolveMacroProfile(foodName: string, kcalPer100g: number): Food
     proteinPer100g: roundTo(proteinCalories / 4, 1),
     carbsPer100g: roundTo(carbCalories / 4, 1),
     fatsPer100g: roundTo(fatCalories / 9, 1),
+    fiberPer100g: 0,
+    sugarPer100g: 0,
+    sodiumMgPer100g: 0,
   };
 }
 

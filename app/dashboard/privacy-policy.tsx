@@ -81,7 +81,9 @@ export default function PrivacyPolicyScreen() {
     <View className="bg-background flex-1">
       <View className="bg-primary/10 absolute inset-x-0 top-0 h-36" />
 
-      <View className="border-border bg-background/90 border-b px-4 py-3">
+      <View
+        className="border-border bg-background/90 border-b px-4 pb-3"
+        style={{ paddingTop: insets.top + 12 }}>
         <View className="relative flex-row items-center justify-between">
           <Pressable
             onPress={() => router.back()}
