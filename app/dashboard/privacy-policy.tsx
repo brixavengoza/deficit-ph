@@ -35,9 +35,9 @@ function SectionCard({
   children: React.ReactNode;
 }) {
   return (
-    <View className="border-border bg-card rounded-xl border p-5">
+    <View className="bg-card rounded-md p-5">
       <View className="mb-4 flex-row items-center gap-3">
-        <View className={`h-10 w-10 items-center justify-center rounded-xl ${iconWrapClassName}`}>
+        <View className={`h-10 w-10 items-center justify-center rounded-md ${iconWrapClassName}`}>
           <Icon as={icon} className={`size-5 ${iconClassName}`} />
         </View>
         <View className="flex-1">
@@ -81,13 +81,11 @@ export default function PrivacyPolicyScreen() {
     <View className="bg-background flex-1">
       <View className="bg-primary/10 absolute inset-x-0 top-0 h-36" />
 
-      <View
-        className="border-border bg-background/90 border-b px-4 pb-3"
-        style={{ paddingTop: insets.top + 12 }}>
+      <View className="bg-background/90 px-4 pb-3" style={{ paddingTop: insets.top + 12 }}>
         <View className="relative flex-row items-center justify-between">
           <Pressable
             onPress={() => router.back()}
-            className="border-border bg-card h-10 w-10 items-center justify-center rounded-full border">
+            className="bg-card h-10 w-10 items-center justify-center rounded-full">
             <Icon as={ArrowLeft} className="text-foreground size-5" />
           </Pressable>
 
@@ -97,7 +95,7 @@ export default function PrivacyPolicyScreen() {
 
           <Pressable
             onPress={handleShare}
-            className="border-border bg-card h-10 w-10 items-center justify-center rounded-full border">
+            className="bg-card h-10 w-10 items-center justify-center rounded-full">
             <Icon as={Share2} className="text-foreground size-5" />
           </Pressable>
         </View>
@@ -107,7 +105,7 @@ export default function PrivacyPolicyScreen() {
         showsVerticalScrollIndicator={false}
         contentContainerClassName="gap-4 px-4 pt-4"
         contentContainerStyle={{ paddingBottom: Math.max(24, insets.bottom + 20) }}>
-        <View className="border-primary/20 bg-card rounded-lg border p-5 shadow-sm">
+        <View className="bg-card rounded-lg p-5">
           <View className="mb-3 flex-row items-start gap-3">
             <View className="flex-1">
               <Text className="text-primary text-xs font-semibold tracking-[1.5px] uppercase">
@@ -117,7 +115,7 @@ export default function PrivacyPolicyScreen() {
                 We protect your health and account data.
               </Text>
             </View>
-            <View className="bg-primary/10 h-12 w-12 items-center justify-center rounded-2xl">
+            <View className="bg-primary/10 h-12 w-12 items-center justify-center rounded-md">
               <Icon as={ShieldCheck} className="text-primary size-6" />
             </View>
           </View>
@@ -199,7 +197,7 @@ export default function PrivacyPolicyScreen() {
               (such as crash diagnostics or app quality tooling), under security and confidentiality
               obligations. Your food logs and progress are stored locally on this device.
             </Text>
-            <View className="border-primary/20 bg-primary/10 rounded-lg border p-4">
+            <View className="bg-primary/10 rounded-md p-4">
               <Text className="text-foreground text-sm leading-5">
                 Health-related entries are used to provide the service experience and are not sold
                 to third parties for advertising.
@@ -222,7 +220,7 @@ export default function PrivacyPolicyScreen() {
           title="4. Your Privacy Choices"
           subtitle="Manage your data and account">
           <View className="gap-3">
-            <Pressable className="bg-background-subtle flex-row items-center justify-between rounded-xl px-4 py-3">
+            <Pressable className="bg-background-subtle flex-row items-center justify-between rounded-md px-4 py-3">
               <View className="flex-row items-center gap-3">
                 <Icon as={FileText} className="text-primary size-4" />
                 <Text className="text-foreground text-sm font-medium">
@@ -232,7 +230,7 @@ export default function PrivacyPolicyScreen() {
               <Icon as={ChevronRight} className="size-4 text-slate-400" />
             </Pressable>
 
-            <Pressable className="bg-background-subtle flex-row items-center justify-between rounded-xl px-4 py-3">
+            <Pressable className="bg-background-subtle flex-row items-center justify-between rounded-md px-4 py-3">
               <View className="flex-row items-center gap-3">
                 <Icon as={Download} className="text-primary size-4" />
                 <Text className="text-foreground text-sm font-medium">
@@ -244,9 +242,9 @@ export default function PrivacyPolicyScreen() {
           </View>
         </SectionCard>
 
-        <View className="border-primary/20 bg-card rounded-lg border p-5">
+        <View className="bg-card rounded-md p-5">
           <View className="flex-row items-start gap-3">
-            <View className="bg-primary h-11 w-11 items-center justify-center rounded-2xl">
+            <View className="bg-primary h-11 w-11 items-center justify-center rounded-md">
               <Icon as={Mail} className="size-5 text-white" />
             </View>
             <View className="flex-1">
@@ -265,7 +263,7 @@ export default function PrivacyPolicyScreen() {
 
           <Pressable
             onPress={handleEmailPress}
-            className="bg-primary mt-4 flex-row items-center justify-center gap-2 rounded-full px-4 py-3">
+            className="bg-primary mt-4 flex-row items-center justify-center gap-2 rounded-md px-4 py-3">
             <Icon as={Send} className="size-4 text-white" />
             <Text className="text-sm font-semibold text-white">privacy@deficitph.com</Text>
           </Pressable>

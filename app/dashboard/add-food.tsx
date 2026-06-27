@@ -14,7 +14,6 @@ import {
   convertQuantityToGrams,
   formatTimeLabelFromDate,
   formatFoodTitle,
-  getMacroBarWidth,
   normalizeTimeInput,
   parseKcalPer100g,
   parseTimeLabelToDate,
@@ -28,13 +27,18 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { router, useLocalSearchParams } from 'expo-router';
 import { ArrowLeft, Check, Clock3 } from 'lucide-react-native';
 import React from 'react';
-import { KeyboardAvoidingView, Platform, Pressable, ScrollView, View } from 'react-native';
+import {
+  Pressable,
+  ScrollView,
+  useColorScheme,
+  View,
+} from 'react-native';
 import { Controller, useForm } from 'react-hook-form';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { z } from 'zod';
 
 const MEAL_OPTIONS = ['Breakfast', 'Lunch', 'Dinner', 'Snack'] as const;
-const UNIT_OPTIONS = ['grams', 'oz', 'servings'] as const;
+const UNIT_OPTIONS = ['grams', 'ml', 'oz', 'servings'] as const;
 const MAX_FOOD_QUANTITY_INPUT = 5000;
 
 type MealOption = (typeof MEAL_OPTIONS)[number];
@@ -59,11 +63,17 @@ const addFoodSchema = z.object({
 
 type AddFoodFormValues = z.infer<typeof addFoodSchema>;
 
-// use date-fns to get the current time
-const defaultCurrentTime = formatTimeLabelFromDate(new Date());
+function getDefaultMeal(date = new Date()): MealOption {
+  const hour = date.getHours();
+  if (hour < 10) return 'Breakfast';
+  if (hour < 15) return 'Lunch';
+  if (hour < 21) return 'Dinner';
+  return 'Snack';
+}
 
 export default function AddFoodScreen() {
   const insets = useSafeAreaInsets();
+  const isDarkMode = useColorScheme() === 'dark';
   const logsQuery = useFoodLogsQuery();
   const insertFoodLogMutation = useInsertFoodLogMutation();
   const updateFoodLogMutation = useUpdateFoodLogMutation();
@@ -82,10 +92,11 @@ export default function AddFoodScreen() {
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const [isUnitDialogOpen, setIsUnitDialogOpen] = React.useState(false);
   const [isTimeDialogOpen, setIsTimeDialogOpen] = React.useState(false);
+  const defaultCurrentTime = React.useMemo(() => formatTimeLabelFromDate(new Date()), []);
+  const defaultMeal = React.useMemo(() => getDefaultMeal(), []);
   const [timePickerDate, setTimePickerDate] = React.useState(() =>
     parseTimeLabelToDate(defaultCurrentTime)
   );
-  const defaultMeal: MealOption = 'Lunch';
   const entryId = Array.isArray(params.entryId) ? params.entryId[0] : params.entryId;
   const loggedFoods = logsQuery.data ?? [];
   const editingEntry = React.useMemo(
@@ -138,10 +149,7 @@ export default function AddFoodScreen() {
     params.sodiumMgPer100g,
     params.sugarPer100g,
   ]);
-  const defaultQuantityFromSelectedFood = React.useMemo(
-    () => String(Math.max(1, Math.round(kcalPer100g))),
-    [kcalPer100g]
-  );
+  const defaultQuantity = '100';
 
   const {
     control,
@@ -154,7 +162,7 @@ export default function AddFoodScreen() {
   } = useForm<AddFoodFormValues>({
     resolver: zodResolver(addFoodSchema),
     defaultValues: {
-      quantity: editingEntry ? String(editingEntry.quantity) : defaultQuantityFromSelectedFood,
+      quantity: editingEntry ? String(editingEntry.quantity) : defaultQuantity,
       unit: editingEntry ? editingEntry.unit : UNIT_OPTIONS[0],
       meal: editingEntry ? editingEntry.meal : defaultMeal,
       logTime: editingEntry ? editingEntry.logTime : defaultCurrentTime,
@@ -163,12 +171,12 @@ export default function AddFoodScreen() {
 
   React.useEffect(() => {
     reset({
-      quantity: editingEntry ? String(editingEntry.quantity) : defaultQuantityFromSelectedFood,
+      quantity: editingEntry ? String(editingEntry.quantity) : defaultQuantity,
       unit: editingEntry ? editingEntry.unit : UNIT_OPTIONS[0],
       meal: editingEntry ? editingEntry.meal : defaultMeal,
       logTime: editingEntry ? editingEntry.logTime : defaultCurrentTime,
     });
-  }, [defaultCurrentTime, defaultMeal, defaultQuantityFromSelectedFood, editingEntry, reset]);
+  }, [defaultCurrentTime, defaultMeal, editingEntry, reset]);
 
   const quantityRaw = watch('quantity');
   const unit = watch('unit');
@@ -216,6 +224,12 @@ export default function AddFoodScreen() {
       fatsPct: (fatsGrams / totalMacroGrams) * 100,
     };
   }, [kcalPer100g, macroProfile, quantityRaw, unit]);
+
+  const summaryPanelClass = isDarkMode ? 'bg-surface-dark' : 'bg-primary/10';
+  const summaryValueClass = isDarkMode ? 'text-white' : 'text-foreground';
+  const summaryMutedClass = isDarkMode ? 'text-white/60' : 'text-muted-foreground';
+  const summaryChipClass = isDarkMode ? 'bg-white/10' : 'bg-card/70';
+  const summaryTrackClass = isDarkMode ? 'bg-white/10' : 'bg-primary/15';
 
   const handleSelectMeal = React.useCallback(
     (nextMeal: MealOption) => {
@@ -276,7 +290,11 @@ export default function AddFoodScreen() {
             ...nextPayload,
           });
         }
-        router.back();
+        if (editingEntry) {
+          router.back();
+        } else {
+          router.replace('/dashboard');
+        }
       } catch (error) {
         const message = error instanceof Error ? error.message : 'Failed to log food';
         setError('root', { message });
@@ -319,11 +337,8 @@ export default function AddFoodScreen() {
   }, []);
 
   return (
-    <KeyboardAvoidingView
-      className="bg-color-surface-light flex-1"
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      style={{ flex: 1 }}>
-      <View className="bg-color-surface flex-1">
+    <View className="bg-background flex-1">
+      <View className="bg-background flex-1">
         <ScrollView
           showsVerticalScrollIndicator={false}
           contentContainerStyle={{ paddingTop: insets.top, paddingBottom: 128 }}
@@ -339,7 +354,7 @@ export default function AddFoodScreen() {
             <Text className="text-foreground text-center text-[28px] font-extrabold tracking-tight">
               {foodName}
             </Text>
-            <View className="bg-primary/10 mt-2 flex-row items-center gap-2 rounded-full px-4 py-2">
+            <View className="bg-primary/10 mt-2 flex-row items-center gap-2 rounded-md px-4 py-2">
               <Text className="text-xl">{getFoodEmoji(foodName)}</Text>
               <Text className="text-primary text-sm font-semibold">
                 {formatNumberGrouped(kcalPer100g)} kcal per {formatMeasure(100, 'g')}
@@ -348,58 +363,83 @@ export default function AddFoodScreen() {
           </View>
 
           <View className="px-4 pb-5">
-            <View className="border-primary/20 bg-primary/10 rounded-xl border p-5">
+            <View className={`${summaryPanelClass} rounded-lg p-5`}>
               <View className="mb-2 items-center">
-                <Text className="text-muted-foreground mb-2 text-xs font-semibold tracking-[1.6px] uppercase">
+                <Text className="text-primary mb-2 text-xs font-extrabold tracking-[1.6px] uppercase">
                   Total Calories
                 </Text>
                 <View className="mt-1 flex-row items-end gap-1">
-                  <Text className="text-foreground text-5xl leading-none font-extrabold tracking-tight">
+                  <Text
+                    className={`${summaryValueClass} text-5xl leading-none font-black tracking-tight`}>
                     {formatCompactNumber(nutrition.totalKcal)}
                   </Text>
-                  <Text className="text-primary mb-1 text-lg font-bold">kcal</Text>
+                  <Text className="text-primary mb-1 text-lg font-black">kcal</Text>
                 </View>
               </View>
 
-              <View className="border-primary/10 divide-primary/10 bg-card/50 flex-row divide-x rounded-2xl py-3">
-                <View className="flex-1 items-center px-2">
-                  <Text className="text-shadow-muted-foreground text-xs">Protein</Text>
-                  <Text className="border-primary/60 bg-card text-foreground mt-1 rounded-full border px-3 text-base font-bold">
+              <View className="mt-4 flex-row gap-2">
+                <View className={`${summaryChipClass} flex-1 rounded-md px-3 py-3`}>
+                  <Text className={`${summaryMutedClass} text-[10px] font-bold uppercase`}>
+                    Protein
+                  </Text>
+                  <Text className={`${summaryValueClass} mt-1 text-base font-black`}>
                     {formatMeasure(nutrition.proteinGrams, 'g')}
                   </Text>
+                  <View className={`${summaryTrackClass} mt-2 h-1.5 overflow-hidden rounded-full`}>
+                    <View
+                      className="bg-primary h-full rounded-full"
+                      style={{ width: `${nutrition.proteinPct}%` }}
+                    />
+                  </View>
                 </View>
 
-                <View className="flex-1 items-center px-2">
-                  <Text className="text-shadow-muted-foreground text-xs">Carbs</Text>
-                  <Text className="border-primary/60 bg-card text-foreground mt-1 rounded-full border px-3 text-base font-bold">
+                <View className={`${summaryChipClass} flex-1 rounded-md px-3 py-3`}>
+                  <Text className={`${summaryMutedClass} text-[10px] font-bold uppercase`}>
+                    Carbs
+                  </Text>
+                  <Text className={`${summaryValueClass} mt-1 text-base font-black`}>
                     {formatMeasure(nutrition.carbsGrams, 'g')}
                   </Text>
+                  <View className={`${summaryTrackClass} mt-2 h-1.5 overflow-hidden rounded-full`}>
+                    <View
+                      className="bg-info h-full rounded-full"
+                      style={{ width: `${nutrition.carbsPct}%` }}
+                    />
+                  </View>
                 </View>
 
-                <View className="flex-1 items-center px-2">
-                  <Text className="text-shadow-muted-foreground text-xs">Fats</Text>
-                  <Text className="border-primary/60 bg-card text-foreground mt-1 rounded-full border px-3 text-base font-bold">
+                <View className={`${summaryChipClass} flex-1 rounded-md px-3 py-3`}>
+                  <Text className={`${summaryMutedClass} text-[10px] font-bold uppercase`}>
+                    Fat
+                  </Text>
+                  <Text className={`${summaryValueClass} mt-1 text-base font-black`}>
                     {formatMeasure(nutrition.fatsGrams, 'g')}
                   </Text>
+                  <View className={`${summaryTrackClass} mt-2 h-1.5 overflow-hidden rounded-full`}>
+                    <View
+                      className="bg-warning h-full rounded-full"
+                      style={{ width: `${nutrition.fatsPct}%` }}
+                    />
+                  </View>
                 </View>
               </View>
 
               <View className="mt-3 flex-row gap-2">
-                <View className="bg-card/50 flex-1 items-center rounded-xl py-2">
-                  <Text className="text-muted-foreground text-[10px] font-semibold">Fiber</Text>
-                  <Text className="text-foreground text-sm font-bold">
+                <View className={`${summaryChipClass} flex-1 items-center rounded-md py-2`}>
+                  <Text className={`${summaryMutedClass} text-[10px] font-bold`}>Fiber</Text>
+                  <Text className={`${summaryValueClass} text-sm font-black`}>
                     {formatMeasure(nutrition.fiberGrams, 'g')}
                   </Text>
                 </View>
-                <View className="bg-card/50 flex-1 items-center rounded-xl py-2">
-                  <Text className="text-muted-foreground text-[10px] font-semibold">Sugar</Text>
-                  <Text className="text-foreground text-sm font-bold">
+                <View className={`${summaryChipClass} flex-1 items-center rounded-md py-2`}>
+                  <Text className={`${summaryMutedClass} text-[10px] font-bold`}>Sugar</Text>
+                  <Text className={`${summaryValueClass} text-sm font-black`}>
                     {formatMeasure(nutrition.sugarGrams, 'g')}
                   </Text>
                 </View>
-                <View className="bg-card/50 flex-1 items-center rounded-xl py-2">
-                  <Text className="text-muted-foreground text-[10px] font-semibold">Sodium</Text>
-                  <Text className="text-foreground text-sm font-bold">
+                <View className={`${summaryChipClass} flex-1 items-center rounded-md py-2`}>
+                  <Text className={`${summaryMutedClass} text-[10px] font-bold`}>Sodium</Text>
+                  <Text className={`${summaryValueClass} text-sm font-black`}>
                     {formatNumberGrouped(nutrition.sodiumMg)}mg
                   </Text>
                 </View>
@@ -436,14 +476,11 @@ export default function AddFoodScreen() {
 
                 <Pressable
                   onPress={() => setIsUnitDialogOpen(true)}
-                  className="bg-background-subtle h-16 w-32 items-center justify-center rounded-2xl px-3">
+                  className="bg-primary/10 h-16 w-32 items-center justify-center rounded-md px-3">
                   <Text className="text-foreground text-center text-lg font-semibold">{unit}</Text>
-                  <Text className="text-muted-foreground text-[10px]">Tap to change</Text>
+                  <Text className="text-primary text-[10px] font-bold">Change</Text>
                 </Pressable>
               </View>
-              <Text className="text-muted-foreground mt-1 pl-1 text-xs">
-                Opens a measure picker dialog.
-              </Text>
             </View>
 
             <View>
@@ -452,16 +489,14 @@ export default function AddFoodScreen() {
                 control={control}
                 name="meal"
                 render={({ field: { value } }) => (
-                  <View className="bg-background-subtle flex-row rounded-full p-1">
+                  <View className="bg-background-subtle flex-row rounded-md p-1">
                     {MEAL_OPTIONS.map((option) => {
                       const active = value === option;
                       return (
                         <Pressable
                           key={option}
                           onPress={() => handleSelectMeal(option)}
-                          className={`flex-1 rounded-full px-2 py-3 ${
-                            active ? 'bg-primary shadow-sm shadow-black/10' : ''
-                          }`}>
+                          className={`flex-1 rounded-md px-2 py-3 ${active ? 'bg-primary' : ''}`}>
                           <Text
                             className={
                               active
@@ -487,27 +522,24 @@ export default function AddFoodScreen() {
                 render={({ field: { value } }) => (
                   <Pressable
                     onPress={handleOpenTimeDialog}
-                    className="bg-background-subtle h-16 flex-row items-center justify-between rounded-2xl px-4">
+                    className="bg-background-subtle h-16 flex-row items-center justify-between rounded-md px-4">
                     <View className="flex-row items-center gap-3">
-                      <View className="bg-background h-9 w-9 items-center justify-center rounded-xl">
+                      <View className="bg-background h-9 w-9 items-center justify-center rounded-md">
                         <Icon as={Clock3} className="text-primary size-4" />
                       </View>
                       <Text className="text-foreground text-base font-medium">{value}</Text>
                     </View>
-                    <Text className="bg-primary/10 text-primary rounded-lg px-3 py-1 text-xs font-semibold">
+                    <Text className="bg-primary/10 text-primary rounded-md px-3 py-1 text-xs font-semibold">
                       Edit
                     </Text>
                   </Pressable>
                 )}
               />
-              <Text className="text-muted-foreground mt-1 pl-1 text-xs">
-                Tap to set a specific time (e.g. 12:30 PM)
-              </Text>
               <FieldError message={errors.logTime?.message} />
             </View>
 
             {errors.root?.message ? (
-              <View className="bg-destructive/10 rounded-xl px-3 py-2">
+              <View className="bg-destructive/10 rounded-md px-3 py-2">
                 <Text className="text-destructive text-sm">{errors.root.message}</Text>
               </View>
             ) : null}
@@ -518,11 +550,11 @@ export default function AddFoodScreen() {
           pointerEvents="box-none"
           className="absolute inset-x-0 bottom-0 px-4 pt-4"
           style={{ paddingBottom: Math.max(insets.bottom, 12) }}>
-          <View className="bg-background/90 rounded-xl">
+          <View className="bg-background/90 rounded-md">
             <Button
               onPress={handleSubmit(handleLogFood)}
               disabled={isSubmitting}
-              className="h-14 rounded-full">
+              className="h-14 rounded-md">
               <Icon as={Check} className="size-5 text-white" />
               <Text>
                 {isSubmitting
@@ -551,6 +583,6 @@ export default function AddFoodScreen() {
         onClose={handleCloseTimeDialog}
         onConfirm={handleConfirmTimeDialog}
       />
-    </KeyboardAvoidingView>
+    </View>
   );
 }

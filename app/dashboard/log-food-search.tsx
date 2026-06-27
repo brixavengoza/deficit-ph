@@ -1,4 +1,3 @@
-import { LoggedFoodsCartModal } from '@/components/log/LoggedFoodsCartModal';
 import { FlashList } from '@shopify/flash-list';
 import { Button } from '@/components/ui/button';
 import { Icon } from '@/components/ui/icon';
@@ -8,15 +7,14 @@ import { getFoodEmoji } from '@/lib/food-emoji';
 import { formatNumberGrouped } from '@/lib/number-format';
 import {
   useCommonFoodsQuery,
-  useFoodLogsQuery,
+  useFoodLogsForDayQuery,
   useFoodSearchQuery,
   useFoodsQuery,
 } from '@/hooks/use-trackk-query';
 import { useRouter } from 'expo-router';
 import { ArrowLeft, ChevronRight, PencilLine, Plus, ScanLine, Search } from 'lucide-react-native';
 import React from 'react';
-import { Pressable, TextInput, View } from 'react-native';
-import Animated, { FadeIn, ZoomIn } from 'react-native-reanimated';
+import { Keyboard, KeyboardAvoidingView, Platform, Pressable, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 type SearchFood = {
@@ -35,7 +33,7 @@ type SearchRow =
       onPressAction?: () => void;
     }
   | { type: 'food'; id: string; food: SearchFood }
-  | { type: 'empty'; id: string };
+  | { type: 'empty'; id: string; query: string };
 
 function FoodRow({ item, onPress }: { item: SearchFood; onPress: (item: SearchFood) => void }) {
   return (
@@ -43,16 +41,19 @@ function FoodRow({ item, onPress }: { item: SearchFood; onPress: (item: SearchFo
       onPress={() => onPress(item)}
       android_ripple={{ color: 'rgba(15, 23, 42, 0.06)' }}
       style={({ pressed }) => [{ opacity: pressed ? 0.75 : 1 }]}
-      className="border-border bg-surface flex-row items-center justify-between border-b px-4 py-3">
-      <View className="bg-background-subtle mr-3 h-11 w-11 items-center justify-center rounded-xl">
+      className="bg-card flex-row items-center justify-between px-4 py-3">
+      <View className="bg-primary/10 mr-3 h-10 w-10 items-center justify-center rounded-md">
         <Text className="text-xl">{getFoodEmoji(item.name)}</Text>
       </View>
 
       <View className="flex-1">
-        <Text className="text-foreground text-base font-medium">{item.name}</Text>
+        <Text className="text-foreground text-base font-bold">{item.name}</Text>
         <Text className="text-muted-foreground mt-0.5 text-sm">
           {formatNumberGrouped(item.kcalPer100g)} kcal / 100g
         </Text>
+      </View>
+      <View className="bg-background-subtle ml-3 h-9 w-9 items-center justify-center rounded-md">
+        <Icon as={Plus} className="text-primary size-4" />
       </View>
     </Pressable>
   );
@@ -69,30 +70,53 @@ function useDebouncedValue(value: string, delayMs: number) {
   return debouncedValue;
 }
 
+function getLocalDayKey(date = new Date()) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+function useKeyboardHeight() {
+  const [keyboardHeight, setKeyboardHeight] = React.useState(0);
+
+  React.useEffect(() => {
+    const showEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
+    const hideEvent = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
+    const showSubscription = Keyboard.addListener(showEvent, (event) => {
+      setKeyboardHeight(event.endCoordinates.height);
+    });
+    const hideSubscription = Keyboard.addListener(hideEvent, () => {
+      setKeyboardHeight(0);
+    });
+
+    return () => {
+      showSubscription.remove();
+      hideSubscription.remove();
+    };
+  }, []);
+
+  return keyboardHeight;
+}
+
 export default function LogFoodSearchScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const inputRef = React.useRef<TextInput>(null);
   const navigateTimeoutRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
   const [query, setQuery] = React.useState('');
-  const [cartModalOpen, setCartModalOpen] = React.useState(false);
+  const keyboardHeight = useKeyboardHeight();
   const debouncedQuery = useDebouncedValue(query, 250);
   const foodsQuery = useFoodsQuery();
   const commonFoodsQuery = useCommonFoodsQuery();
   const foodSearchQuery = useFoodSearchQuery(debouncedQuery);
-  const logsQuery = useFoodLogsQuery();
+  const todayKey = getLocalDayKey();
+  const logsQuery = useFoodLogsForDayQuery(todayKey);
   const savedFoods = foodsQuery.data ?? [];
   const seedFoods = commonFoodsQuery.data ?? [];
   const searchResults = foodSearchQuery.data ?? [];
-  const allLoggedFoods = logsQuery.data ?? [];
-  const todayKey = new Date().toISOString().slice(0, 10);
-  const loggedFoods = React.useMemo(
-    () => allLoggedFoods.filter((item) => item.consumedAtIso.slice(0, 10) === todayKey),
-    [allLoggedFoods, todayKey]
-  );
-  const loggedFoodsCount = loggedFoods.length;
-  const latestLoggedFood = loggedFoods[0];
-  const indicatorEmoji = latestLoggedFood ? getFoodEmoji(latestLoggedFood.foodName) : '🍽️';
+  const loggedFoods = logsQuery.data ?? [];
+  const listBottomPadding = keyboardHeight > 0 ? 20 : 12;
 
   React.useEffect(() => {
     const id = setTimeout(() => {
@@ -139,18 +163,18 @@ export default function LogFoodSearchScreen() {
         normalizedQuery !== debouncedNormalizedQuery ||
         foodSearchQuery.isFetching
       ) {
-        return [{ type: 'section', id: 'search-header', title: 'Search Results', mt: 8 }];
+        return [{ type: 'section', id: 'search-header', title: 'Matching Foods', mt: 8 }];
       }
 
       if (!searchedFoods.length) {
         return [
-          { type: 'section', id: 'search-header', title: 'Search Results', mt: 8 },
-          { type: 'empty', id: 'empty' },
+          { type: 'section', id: 'search-header', title: 'Matching Foods', mt: 8 },
+          { type: 'empty', id: 'empty', query: query.trim() },
         ];
       }
 
       return [
-        { type: 'section', id: 'search-header', title: 'Search Results', mt: 8 },
+        { type: 'section', id: 'search-header', title: 'Matching Foods', mt: 8 },
         ...searchedFoods.map((item) => ({
           type: 'food' as const,
           id: `search-${item.id}`,
@@ -165,7 +189,7 @@ export default function LogFoodSearchScreen() {
             {
               type: 'section' as const,
               id: 'saved-header',
-              title: 'Saved Foods',
+              title: 'Saved',
               mt: 8,
               actionLabel: 'See all',
               onPressAction: () => router.push('/dashboard/saved-foods'),
@@ -179,7 +203,7 @@ export default function LogFoodSearchScreen() {
         : []),
       ...(recentFoods.length
         ? [
-            { type: 'section' as const, id: 'recent-header', title: 'Recent Foods', mt: 8 },
+            { type: 'section' as const, id: 'recent-header', title: 'Recent', mt: 8 },
             ...recentFoods.map((food) => ({
               type: 'food' as const,
               id: `recent-${food.id}`,
@@ -208,6 +232,7 @@ export default function LogFoodSearchScreen() {
     debouncedNormalizedQuery,
     foodSearchQuery.isFetching,
     normalizedQuery,
+    query,
     recentFoods,
     router,
     savedFoods,
@@ -255,11 +280,22 @@ export default function LogFoodSearchScreen() {
 
     if (item.type === 'empty') {
       return (
-        <View className="px-4 py-8">
-          <Text className="text-foreground text-base font-semibold">No foods found</Text>
+        <View className="bg-primary/10 mx-4 my-3 rounded-md p-4">
+          <Text className="text-foreground text-base font-bold">No foods found</Text>
           <Text className="text-muted-foreground mt-1 text-sm">
-            Try another keyword like `rice`, `oats`, or `chicken`.
+            Create it once, then log it right away.
           </Text>
+          <Button
+            className="mt-4 h-11 rounded-md"
+            onPress={() =>
+              router.push({
+                pathname: '/dashboard/add-custom-food',
+                params: { foodName: item.query },
+              })
+            }>
+            <Icon as={PencilLine} className="text-primary-foreground size-4" />
+            <Text className="text-primary-foreground">Create & Log Food</Text>
+          </Button>
         </View>
       );
     }
@@ -268,96 +304,84 @@ export default function LogFoodSearchScreen() {
   };
 
   return (
-    <View className="bg-surface flex-1">
-      <View
-        className="bg-surface flex-row items-center px-4"
-        style={{ paddingTop: insets.top + 8 }}>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Go back"
-          className="h-10 w-14 items-center justify-center rounded-full"
-          onPress={() => router.back()}>
-          <Icon as={ArrowLeft} className="text-foreground size-5" />
-        </Pressable>
+    <KeyboardAvoidingView
+      className="bg-background flex-1"
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+      <View className="flex-1">
+        <View
+          className="bg-background flex-row items-center px-4"
+          style={{ paddingTop: insets.top + 8 }}>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Go back"
+            className="h-10 w-14 items-center justify-center rounded-md"
+            onPress={() => router.back()}>
+            <Icon as={ArrowLeft} className="text-foreground size-5" />
+          </Pressable>
 
-        <View className="flex-1 items-center justify-center">
-          <Text className="text-foreground text-center text-lg font-bold tracking-tight">
-            Log Food
-          </Text>
-        </View>
-
-        <View className="w-14 items-center justify-center overflow-visible">
-          {loggedFoodsCount > 0 ? (
-            <Animated.View
-              key={`cart-indicator-${loggedFoodsCount}`}
-              entering={FadeIn.duration(180)}
-              className="overflow-visible">
-              <Pressable
-                onPress={() => setCartModalOpen(true)}
-                className="bg-primary/10 border-primary/20 relative h-10 w-10 items-center justify-center rounded-full border">
-                <Text className="text-lg">{indicatorEmoji}</Text>
-                <View className="bg-primary absolute -top-1 -right-1 min-w-5 items-center justify-center rounded-full py-0.5">
-                  <Animated.View entering={ZoomIn.springify().damping(15).stiffness(280)}>
-                    <Text className="text-[10px] font-bold text-white">{loggedFoodsCount}</Text>
-                  </Animated.View>
-                </View>
-              </Pressable>
-            </Animated.View>
-          ) : (
-            <View className="h-10 w-10" />
-          )}
-        </View>
-      </View>
-
-      <View className="bg-surface px-4 pt-2 pb-2">
-        <View className="bg-input-bg border-input flex-row items-center overflow-hidden rounded-full border">
-          <View className="px-4 pr-2">
-            <Icon as={Search} className="text-muted-foreground size-5" />
+          <View className="flex-1 items-center justify-center">
+            <Text className="text-foreground text-center text-lg font-bold tracking-tight">
+              What did you eat?
+            </Text>
           </View>
 
-          <Input
-            ref={inputRef}
-            autoFocus
-            value={query}
-            onChangeText={setQuery}
-            placeholder="Search for food (e.g., Chicken Breast)"
-            placeholderTextColor="#94a3b8"
-            autoCapitalize="none"
-            className="h-12 flex-1 border-0 bg-transparent px-0 font-medium"
-            returnKeyType="search"
-          />
+          <View className="h-10 w-14" />
         </View>
-      </View>
 
-      <FlashList
-        data={rows}
-        keyExtractor={(item) => item.id}
-        renderItem={renderRow}
-        getItemType={(item) => item.type}
-        keyboardShouldPersistTaps="handled"
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingBottom: 112 }}
-        ListFooterComponent={<View className="h-6" />}
-      />
+        <View className="bg-background px-4 pt-2 pb-2">
+          <View className="bg-input-bg flex-row items-center overflow-hidden rounded-md">
+            <View className="px-4 pr-2">
+              <Icon as={Search} className="text-muted-foreground size-5" />
+            </View>
 
-      <View pointerEvents="box-none" className="absolute right-0 bottom-6 left-0 px-6">
-        <View className="gap-2">
-          <Button variant="outline" onPress={() => router.push('/dashboard/scan-label')}>
-            <Icon as={ScanLine} className="text-foreground mr-2 size-4" />
-            <Text>Scan Nutrition Label</Text>
-          </Button>
-          <Button onPress={() => router.push('/dashboard/add-custom-food')}>
-            <Icon as={PencilLine} className="text-primary-foreground mr-2 size-4" />
-            <Text>Add Custom Food</Text>
-          </Button>
+            <Input
+              ref={inputRef}
+              autoFocus
+              value={query}
+              onChangeText={setQuery}
+              placeholder="Search food"
+              placeholderTextColor="#94a3b8"
+              autoCapitalize="none"
+              className="h-12 flex-1 border-0 bg-transparent px-0 font-medium"
+              returnKeyType="search"
+            />
+          </View>
+
+          <View className="mt-3 flex-row gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-10 flex-1 rounded-md"
+              onPress={() => router.push('/dashboard/scan-label')}>
+              <Icon as={ScanLine} className="text-foreground size-4" />
+              <Text>Scan Label</Text>
+            </Button>
+            <Button
+              size="sm"
+              className="h-10 flex-1 rounded-md"
+              onPress={() =>
+                router.push({
+                  pathname: '/dashboard/add-custom-food',
+                  params: query.trim() ? { foodName: query.trim() } : undefined,
+                })
+              }>
+              <Icon as={PencilLine} className="text-primary-foreground size-4" />
+              <Text>Create Food</Text>
+            </Button>
+          </View>
         </View>
-      </View>
 
-      <LoggedFoodsCartModal
-        open={cartModalOpen}
-        onClose={() => setCartModalOpen(false)}
-        dayKey={todayKey}
-      />
-    </View>
+        <FlashList
+          data={rows}
+          keyExtractor={(item) => item.id}
+          renderItem={renderRow}
+          getItemType={(item) => item.type}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={{ paddingBottom: listBottomPadding }}
+          ListFooterComponent={<View className="h-6" />}
+        />
+      </View>
+    </KeyboardAvoidingView>
   );
 }

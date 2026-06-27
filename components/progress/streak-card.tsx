@@ -14,7 +14,7 @@ export function StreakCard({ currentStreak, days }: StreakCardProps) {
   const streakUnit = currentStreak === 1 ? 'Day' : 'Days';
 
   return (
-    <View className="mb-6 overflow-hidden rounded-[22px] bg-orange-500 p-6">
+    <View className="mb-6 overflow-hidden rounded-lg bg-orange-500 p-6">
       <View className="absolute -top-6 -right-6 h-32 w-32 rounded-full bg-white/10" />
       <View className="absolute -bottom-6 -left-6 h-24 w-24 rounded-full bg-orange-300/20" />
 
@@ -44,7 +44,7 @@ export function StreakCard({ currentStreak, days }: StreakCardProps) {
           </View>
         </View>
 
-        <View className="overflow-hidden rounded-xl bg-white/10 py-3">
+        <View className="overflow-hidden rounded-md bg-white/10 py-3">
           <View className="mb-2 flex-row items-center justify-between px-3">
             <Text className="text-xs font-semibold text-orange-100">
               {format(today, 'EEE, MMM d')}

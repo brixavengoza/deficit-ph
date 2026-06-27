@@ -2,6 +2,7 @@ import * as SQLite from 'expo-sqlite';
 
 import { SEED_FOODS } from '@/lib/local-seed-foods';
 import { formatTimeLabelFromDate, parseTimeLabelToDate } from '@/utils/add-food-utils';
+import { calculateCalorieTargets } from '@/utils/calorie-targets';
 
 type AppUnits = 'Metric' | 'Imperial';
 type AppTheme = 'Auto' | 'Light' | 'Dark';
@@ -91,7 +92,7 @@ export type LoggedFoodModel = {
   foodName: string;
   kcalPer100g: number;
   quantity: number;
-  unit: 'grams' | 'oz' | 'servings';
+  unit: 'grams' | 'ml' | 'oz' | 'servings';
   gramsEquivalent: number;
   meal: AppMeal;
   logTime: string;
@@ -131,7 +132,7 @@ type FoodLogWriteInput = {
   sugarPer100g?: number;
   sodiumMgPer100g?: number;
   quantity: number;
-  unit: 'grams' | 'oz' | 'servings';
+  unit: 'grams' | 'ml' | 'oz' | 'servings';
   gramsEquivalent: number;
   meal: AppMeal;
   logTime: string;
@@ -149,6 +150,7 @@ type ProfileRow = {
   username: string | null;
   email: string | null;
   profile_photo_uri: string | null;
+  sex: 'male' | 'female' | null;
   age: number | null;
   height_cm: number | null;
   start_weight_kg: number | null;
@@ -163,6 +165,7 @@ type PreferencesRow = {
 };
 
 type GoalsRow = {
+  goal: AppGoal | null;
   goal_weight_kg: number | null;
   daily_calorie_goal: number | null;
   protein_target_g: number | null;
@@ -262,6 +265,7 @@ async function openAndPrepareDb() {
       username TEXT,
       email TEXT,
       profile_photo_uri TEXT,
+      sex TEXT,
       age INTEGER,
       height_cm REAL,
       start_weight_kg REAL,
@@ -399,6 +403,7 @@ async function ensureNutritionColumns(db: SQLite.SQLiteDatabase) {
 
 async function ensureProfileColumns(db: SQLite.SQLiteDatabase) {
   await ensureColumn(db, 'profile', 'profile_photo_uri', 'TEXT');
+  await ensureColumn(db, 'profile', 'sex', 'TEXT');
 }
 
 async function seedLocalFoods(db: SQLite.SQLiteDatabase) {
@@ -451,6 +456,57 @@ export async function getInitialAppRoute(): Promise<'/onboarding/step-1' | '/das
   return profile?.onboarding_completed_at ? '/dashboard' : '/onboarding/step-1';
 }
 
+async function getLatestWeightKg(db: SQLite.SQLiteDatabase) {
+  const latestWeight = await db.getFirstAsync<{ weight_kg: number }>(
+    'SELECT weight_kg FROM weight_logs WHERE deleted_at IS NULL ORDER BY logged_at DESC LIMIT 1'
+  );
+  return latestWeight?.weight_kg ?? null;
+}
+
+async function refreshCalorieTargets(
+  db: SQLite.SQLiteDatabase,
+  overrides: Partial<{
+    activityLevel: DbActivity;
+    heightCm: number;
+    weightKg: number;
+  }> = {}
+) {
+  const [profile, preferences, goals, latestWeight] = await Promise.all([
+    db.getFirstAsync<ProfileRow>('SELECT * FROM profile WHERE id = 1'),
+    db.getFirstAsync<PreferencesRow>('SELECT * FROM user_preferences WHERE id = 1'),
+    db.getFirstAsync<GoalsRow>('SELECT * FROM user_goals WHERE id = 1'),
+    getLatestWeightKg(db),
+  ]);
+
+  const targets = calculateCalorieTargets({
+    activityLevel: overrides.activityLevel ?? preferences?.activity_level ?? 'moderate',
+    age: profile?.age,
+    goal: goals?.goal ?? 'lose',
+    heightCm: overrides.heightCm ?? profile?.height_cm,
+    sex: profile?.sex,
+    weightKg: overrides.weightKg ?? latestWeight ?? profile?.start_weight_kg,
+  });
+
+  if (!targets) return;
+
+  await db.runAsync(
+    `UPDATE user_goals
+     SET daily_calorie_goal = ?,
+         protein_target_g = ?,
+         carbs_target_g = ?,
+         fat_target_g = ?,
+         updated_at = ?
+     WHERE id = 1`,
+    [
+      targets.dailyCalories,
+      targets.protein,
+      targets.carbs,
+      targets.fat,
+      new Date().toISOString(),
+    ]
+  );
+}
+
 export async function completeOnboarding(input: OnboardingSubmitInput) {
   const db = await getDb();
   const now = new Date().toISOString();
@@ -460,12 +516,13 @@ export async function completeOnboarding(input: OnboardingSubmitInput) {
     await txn.runAsync(
       `UPDATE profile
        SET age = ?,
+           sex = ?,
            height_cm = ?,
            start_weight_kg = ?,
            onboarding_completed_at = ?,
            updated_at = ?
        WHERE id = 1`,
-      [toNumber(input.age), toNumber(input.heightCm), weightKg, now, now]
+      [toNumber(input.age), input.sex, toNumber(input.heightCm), weightKg, now, now]
     );
     await txn.runAsync(
       'UPDATE user_preferences SET activity_level = ?, updated_at = ? WHERE id = 1',
@@ -483,7 +540,7 @@ export async function completeOnboarding(input: OnboardingSubmitInput) {
        WHERE id = 1`,
       [
         input.goal,
-        weightKg,
+        null,
         Math.round(input.dailyCalories),
         input.protein,
         input.carbs,
@@ -590,6 +647,11 @@ export async function updateBodyMeasurements(values: {
       );
     }
   });
+
+  await refreshCalorieTargets(db, {
+    heightCm: toNumber(values.height),
+    weightKg,
+  });
 }
 
 export async function updateUnits(units: AppUnits) {
@@ -622,6 +684,7 @@ export async function updateActivityLevel(level: AppActivity) {
     ACTIVITY_TO_DB[level],
     new Date().toISOString(),
   ]);
+  await refreshCalorieTargets(db, { activityLevel: ACTIVITY_TO_DB[level] });
 }
 
 function mapFoodRow(row: FoodRow): SavedFoodModel {
@@ -793,7 +856,8 @@ export async function upsertUserFoodByName(input: {
 }
 
 function mapFoodLogRow(row: FoodLogRow): LoggedFoodModel {
-  const unit = row.unit === 'oz' || row.unit === 'servings' ? row.unit : 'grams';
+  const unit =
+    row.unit === 'ml' || row.unit === 'oz' || row.unit === 'servings' ? row.unit : 'grams';
   return {
     id: row.id,
     foodName: row.food_name_snapshot,
@@ -823,6 +887,23 @@ export async function fetchFoodLogs(): Promise<LoggedFoodModel[]> {
      WHERE deleted_at IS NULL
      ORDER BY consumed_at DESC
      LIMIT 300`
+  );
+  return rows.map(mapFoodLogRow);
+}
+
+export async function fetchFoodLogsForDay(localDay: string): Promise<LoggedFoodModel[]> {
+  const db = await getDb();
+  const start = new Date(`${localDay}T00:00:00`);
+  const end = new Date(start);
+  end.setDate(start.getDate() + 1);
+  const rows = await db.getAllAsync<FoodLogRow>(
+    `SELECT *
+     FROM food_logs
+     WHERE deleted_at IS NULL
+       AND consumed_at >= ?
+       AND consumed_at < ?
+     ORDER BY consumed_at DESC`,
+    [start.toISOString(), end.toISOString()]
   );
   return rows.map(mapFoodLogRow);
 }
@@ -991,12 +1072,16 @@ export async function addHydrationLog(volumeMl: number, source = 'quick-add') {
 export async function getTodayHydrationMl(): Promise<number> {
   const db = await getDb();
   const localDay = localDateKey(new Date());
+  const start = new Date(`${localDay}T00:00:00`);
+  const end = new Date(start);
+  end.setDate(start.getDate() + 1);
   const row = await db.getFirstAsync<{ total_volume_ml: number }>(
     `SELECT COALESCE(SUM(volume_ml), 0) AS total_volume_ml
      FROM hydration_logs
      WHERE deleted_at IS NULL
-       AND substr(logged_at, 1, 10) = ?`,
-    [localDay]
+       AND logged_at >= ?
+       AND logged_at < ?`,
+    [start.toISOString(), end.toISOString()]
   );
   return row?.total_volume_ml ?? 0;
 }
@@ -1089,53 +1174,97 @@ function computeCurrentStreak(keys: string[], completionMap: Map<string, boolean
 async function getCurrentStreakFromLogs() {
   const keys = buildDateKeys(21);
   const db = await getDb();
-  const rows = await db.getAllAsync<{ local_day: string; event_count: number }>(
-    `SELECT substr(consumed_at, 1, 10) AS local_day, COUNT(*) AS event_count
+  const start = new Date(`${keys[0]}T00:00:00`);
+  const rows = await db.getAllAsync<{ consumed_at: string }>(
+    `SELECT consumed_at
      FROM food_logs
      WHERE deleted_at IS NULL
-       AND substr(consumed_at, 1, 10) >= ?
-     GROUP BY local_day`,
-    [keys[0]]
+       AND consumed_at >= ?`,
+    [start.toISOString()]
   );
   const map = new Map<string, boolean>(keys.map((key) => [key, false]));
-  for (const row of rows) map.set(row.local_day, toNumber(row.event_count) > 0);
+  for (const row of rows) map.set(localDateKey(new Date(row.consumed_at)), true);
   return computeCurrentStreak(keys, map);
 }
 
 async function getDailyNutrition(startKey: string) {
   const db = await getDb();
-  return db.getAllAsync<{
-    local_day: string;
+  const start = new Date(`${startKey}T00:00:00`);
+  const rows = await db.getAllAsync<{
+    consumed_at: string;
     total_kcal: number;
-    total_protein_g: number;
-    total_carbs_g: number;
-    total_fat_g: number;
+    protein_g: number;
+    carbs_g: number;
+    fat_g: number;
   }>(
-    `SELECT substr(consumed_at, 1, 10) AS local_day,
-            COALESCE(SUM(total_kcal), 0) AS total_kcal,
-            COALESCE(SUM(protein_g), 0) AS total_protein_g,
-            COALESCE(SUM(carbs_g), 0) AS total_carbs_g,
-            COALESCE(SUM(fat_g), 0) AS total_fat_g
+    `SELECT consumed_at,
+            total_kcal,
+            protein_g,
+            carbs_g,
+            fat_g
      FROM food_logs
      WHERE deleted_at IS NULL
-       AND substr(consumed_at, 1, 10) >= ?
-     GROUP BY local_day
-     ORDER BY local_day ASC`,
-    [startKey]
+       AND consumed_at >= ?
+     ORDER BY consumed_at ASC`,
+    [start.toISOString()]
+  );
+
+  const totals = new Map<
+    string,
+    {
+      local_day: string;
+      total_kcal: number;
+      total_protein_g: number;
+      total_carbs_g: number;
+      total_fat_g: number;
+    }
+  >();
+
+  for (const row of rows) {
+    const localDay = localDateKey(new Date(row.consumed_at));
+    const current = totals.get(localDay) ?? {
+      local_day: localDay,
+      total_kcal: 0,
+      total_protein_g: 0,
+      total_carbs_g: 0,
+      total_fat_g: 0,
+    };
+
+    current.total_kcal += toNumber(row.total_kcal);
+    current.total_protein_g += toNumber(row.protein_g);
+    current.total_carbs_g += toNumber(row.carbs_g);
+    current.total_fat_g += toNumber(row.fat_g);
+    totals.set(localDay, current);
+  }
+
+  return Array.from(totals.values()).sort((a, b) =>
+    a.local_day < b.local_day ? -1 : a.local_day > b.local_day ? 1 : 0
   );
 }
 
 async function getDailyHydration(startKey: string) {
   const db = await getDb();
-  return db.getAllAsync<HydrationRow>(
-    `SELECT substr(logged_at, 1, 10) AS local_day,
-            COALESCE(SUM(volume_ml), 0) AS total_volume_ml
+  const start = new Date(`${startKey}T00:00:00`);
+  const rows = await db.getAllAsync<{ logged_at: string; volume_ml: number }>(
+    `SELECT logged_at,
+            volume_ml
      FROM hydration_logs
      WHERE deleted_at IS NULL
-       AND substr(logged_at, 1, 10) >= ?
-     GROUP BY local_day
-     ORDER BY local_day ASC`,
-    [startKey]
+       AND logged_at >= ?
+     ORDER BY logged_at ASC`,
+    [start.toISOString()]
+  );
+
+  const totals = new Map<string, HydrationRow>();
+  for (const row of rows) {
+    const localDay = localDateKey(new Date(row.logged_at));
+    const current = totals.get(localDay) ?? { local_day: localDay, total_volume_ml: 0 };
+    current.total_volume_ml += toNumber(row.volume_ml);
+    totals.set(localDay, current);
+  }
+
+  return Array.from(totals.values()).sort((a, b) =>
+    a.local_day < b.local_day ? -1 : a.local_day > b.local_day ? 1 : 0
   );
 }
 

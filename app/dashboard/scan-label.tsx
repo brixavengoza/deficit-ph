@@ -27,6 +27,14 @@ function valueParam(value: number) {
   return Number.isFinite(value) ? String(value) : '0';
 }
 
+function scanFallbackMessage(error: unknown, fallback: string) {
+  const message = error instanceof Error ? error.message : fallback;
+  if (message.includes('available on iOS') || message.includes('custom dev build')) {
+    return 'Scan Label is optional and is not available on this build. You can still create and log the food manually.';
+  }
+  return message;
+}
+
 export default function ScanLabelScreen() {
   const insets = useSafeAreaInsets();
   const [cameraPermission, requestCameraPermission] = useCameraPermissions();
@@ -47,9 +55,7 @@ export default function ScanLabelScreen() {
       setUploadedImageUri(null);
       setDraft(result);
     } catch (scanError) {
-      const message =
-        scanError instanceof Error ? scanError.message : 'Unable to scan nutrition label.';
-      setError(message);
+      setError(scanFallbackMessage(scanError, 'Unable to scan nutrition label.'));
       console.error('[ScanLabelScreen.startScan]', scanError);
     } finally {
       setActiveAction(null);
@@ -83,9 +89,7 @@ export default function ScanLabelScreen() {
       setUploadedImageUri(imageUri);
       setDraft(result);
     } catch (uploadError) {
-      const message =
-        uploadError instanceof Error ? uploadError.message : 'Unable to upload nutrition label.';
-      setError(message);
+      setError(scanFallbackMessage(uploadError, 'Unable to upload nutrition label.'));
       console.error('[ScanLabelScreen.uploadImage]', uploadError);
     } finally {
       setActiveAction(null);
@@ -151,7 +155,7 @@ export default function ScanLabelScreen() {
         sodiumMg: savedFood.sodiumMgPer100g,
       });
 
-      router.back();
+      router.replace('/dashboard');
     } catch (saveError) {
       const message = saveError instanceof Error ? saveError.message : 'Unable to save food log.';
       setError(message);
@@ -166,7 +170,7 @@ export default function ScanLabelScreen() {
       <Stack.Screen options={{ headerShown: false }} />
       <View className="bg-background flex-1">
         <View
-          className="border-border bg-background flex-row items-center border-b px-4 pb-3"
+          className="bg-background flex-row items-center px-4 pb-3"
           style={{ paddingTop: insets.top + 10 }}>
           <Pressable
             className="h-10 w-10 items-center justify-center rounded-full"
@@ -197,9 +201,9 @@ export default function ScanLabelScreen() {
           />
 
           <View
-            className="absolute left-4 right-4 flex-row items-center gap-4 rounded-2xl bg-background/95 p-4"
+            className="bg-background/95 absolute right-4 left-4 flex-row items-center gap-4 rounded-md p-4"
             style={{ bottom: Math.max(insets.bottom + 132, 148) }}>
-            <View className="bg-primary/15 h-12 w-12 items-center justify-center rounded-2xl">
+            <View className="bg-primary/15 h-12 w-12 items-center justify-center rounded-md">
               <Icon as={Utensils} className="text-primary size-6" />
             </View>
             <View className="flex-1">
@@ -222,13 +226,20 @@ export default function ScanLabelScreen() {
           </View>
 
           {error ? (
-            <View className="absolute left-4 right-4 top-4 rounded-xl bg-destructive/90 px-4 py-3">
-              <Text className="text-sm text-white">{error}</Text>
+            <View className="bg-background/95 absolute top-4 right-4 left-4 rounded-md px-4 py-3">
+              <Text className="text-foreground text-sm font-semibold">{error}</Text>
+              <Button
+                variant="default"
+                size="sm"
+                className="mt-3 self-start rounded-md"
+                onPress={() => router.push('/dashboard/add-custom-food')}>
+                <Text className="text-primary-foreground">Create Custom Food</Text>
+              </Button>
             </View>
           ) : null}
 
           {uploadedImageUri ? (
-            <View className="border-border absolute left-4 top-4 h-28 w-28 overflow-hidden rounded-2xl border bg-card">
+            <View className="bg-card absolute top-4 left-4 h-28 w-28 overflow-hidden rounded-md">
               <RNImage
                 source={{ uri: uploadedImageUri }}
                 className="h-full w-full"
@@ -239,28 +250,28 @@ export default function ScanLabelScreen() {
 
           {draft ? (
             <ScrollView
-              className="absolute left-4 right-4 max-h-[360px] rounded-2xl"
+              className="absolute right-4 left-4 max-h-[360px] rounded-md"
               showsVerticalScrollIndicator={false}
               style={{ bottom: Math.max(insets.bottom + 80, 96) }}>
-              <View className="bg-card/95 border-border rounded-2xl border p-5">
-              <View className="mb-4 flex-row items-center gap-2">
-                <Icon as={Sparkles} className="text-primary size-4" />
-                <Text className="text-foreground text-base font-bold">Scanned Draft</Text>
-              </View>
-              <View className="gap-2">
-                <DraftRow label="Food" value={draft.foodName} />
-                <DraftRow label="Serving" value={draft.servingSizeLabel} />
-                <DraftRow
-                  label="Calories"
-                  value={`${formatNumberGrouped(draft.caloriesPer100g)} kcal / 100g`}
-                />
-                <DraftRow label="Protein" value={`${draft.proteinPer100g}g / 100g`} />
-                <DraftRow label="Carbs" value={`${draft.carbsPer100g}g / 100g`} />
-                <DraftRow label="Fat" value={`${draft.fatsPer100g}g / 100g`} />
-                <DraftRow label="Fiber" value={`${draft.fiberPer100g}g / 100g`} />
-                <DraftRow label="Sugar" value={`${draft.sugarPer100g}g / 100g`} />
-                <DraftRow label="Sodium" value={`${draft.sodiumMgPer100g}mg / 100g`} />
-              </View>
+              <View className="bg-card/95 rounded-md p-5">
+                <View className="mb-4 flex-row items-center gap-2">
+                  <Icon as={Sparkles} className="text-primary size-4" />
+                  <Text className="text-foreground text-base font-bold">Scanned Draft</Text>
+                </View>
+                <View className="gap-2">
+                  <DraftRow label="Food" value={draft.foodName} />
+                  <DraftRow label="Serving" value={draft.servingSizeLabel} />
+                  <DraftRow
+                    label="Calories"
+                    value={`${formatNumberGrouped(draft.caloriesPer100g)} kcal / 100g`}
+                  />
+                  <DraftRow label="Protein" value={`${draft.proteinPer100g}g / 100g`} />
+                  <DraftRow label="Carbs" value={`${draft.carbsPer100g}g / 100g`} />
+                  <DraftRow label="Fat" value={`${draft.fatsPer100g}g / 100g`} />
+                  <DraftRow label="Fiber" value={`${draft.fiberPer100g}g / 100g`} />
+                  <DraftRow label="Sugar" value={`${draft.sugarPer100g}g / 100g`} />
+                  <DraftRow label="Sodium" value={`${draft.sodiumMgPer100g}mg / 100g`} />
+                </View>
               </View>
             </ScrollView>
           ) : null}
@@ -272,14 +283,14 @@ export default function ScanLabelScreen() {
             style={{ bottom: Math.max(insets.bottom, 16) }}>
             <Button
               variant="outline"
-              className="h-12 flex-1 rounded-full"
+              className="h-12 flex-1 rounded-md"
               disabled={isWorking}
               onPress={editDraft}>
               <Icon as={Pencil} className="text-foreground size-4" />
               <Text>Edit</Text>
             </Button>
             <Button
-              className="h-12 flex-1 rounded-full"
+              className="h-12 flex-1 rounded-md"
               disabled={isWorking}
               onPress={() => {
                 void saveDraft();
@@ -334,16 +345,16 @@ function ScannerViewfinder({
 
       <View pointerEvents="none" className="absolute inset-0 items-center justify-center">
         <View className="relative h-72 w-72">
-          <View className="border-primary absolute left-0 top-0 h-10 w-10 rounded-tl-2xl border-l-4 border-t-4" />
-          <View className="border-primary absolute right-0 top-0 h-10 w-10 rounded-tr-2xl border-r-4 border-t-4" />
+          <View className="border-primary absolute top-0 left-0 h-10 w-10 rounded-tl-2xl border-t-4 border-l-4" />
+          <View className="border-primary absolute top-0 right-0 h-10 w-10 rounded-tr-2xl border-t-4 border-r-4" />
           <View className="border-primary absolute bottom-0 left-0 h-10 w-10 rounded-bl-2xl border-b-4 border-l-4" />
-          <View className="border-primary absolute bottom-0 right-0 h-10 w-10 rounded-br-2xl border-b-4 border-r-4" />
-          <View className="bg-primary absolute left-0 right-0 top-1/2 h-0.5 shadow-lg shadow-green-500" />
+          <View className="border-primary absolute right-0 bottom-0 h-10 w-10 rounded-br-2xl border-r-4 border-b-4" />
+          <View className="bg-primary absolute top-1/2 right-0 left-0 h-0.5" />
         </View>
       </View>
 
       <View
-        className="absolute left-0 right-0 items-center gap-6 px-6"
+        className="absolute right-0 left-0 items-center gap-6 px-6"
         style={{ bottom: Math.max(bottomInset + 16, 28) }}>
         <View className="rounded-full border border-white/20 bg-black/40 px-4 py-2">
           <Text className="text-center text-sm font-medium text-white">
@@ -361,7 +372,7 @@ function ScannerViewfinder({
               onPress={onGallery}>
               <Icon as={ImageIcon} className="size-5 text-white" />
             </Button>
-            <Text className="text-[10px] font-bold uppercase text-white">Gallery</Text>
+            <Text className="text-[10px] font-bold text-white uppercase">Gallery</Text>
           </View>
 
           <Pressable
@@ -382,7 +393,7 @@ function ScannerViewfinder({
               onPress={onRecent}>
               <Icon as={History} className="size-5 text-white" />
             </Button>
-            <Text className="text-[10px] font-bold uppercase text-white">Recent</Text>
+            <Text className="text-[10px] font-bold text-white uppercase">Recent</Text>
           </View>
         </View>
       </View>

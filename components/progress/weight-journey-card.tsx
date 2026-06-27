@@ -106,28 +106,28 @@ function WeightJourneyChart({
           <Line x1="0" y1={grid3} x2={width} y2={grid3} stroke={gridColor} strokeWidth="1" />
           <Defs>
             <LinearGradient id="weightFill" x1="0" y1="0" x2="0" y2="1">
-              <Stop offset="0%" stopColor="#21c45d" stopOpacity="0.2" />
-              <Stop offset="100%" stopColor="#21c45d" stopOpacity="0" />
+              <Stop offset="0%" stopColor="#7ea56b" stopOpacity="0.2" />
+              <Stop offset="100%" stopColor="#7ea56b" stopOpacity="0" />
             </LinearGradient>
           </Defs>
           <Path d={fillPath} fill="url(#weightFill)" />
           <Path
             d={linePath}
             fill="none"
-            stroke="#21c45d"
+            stroke="#7ea56b"
             strokeWidth={3}
             strokeLinecap="round"
             strokeLinejoin="round"
           />
-          <Circle cx={points[0]?.x ?? 0} cy={points[0]?.y ?? plotBottom} r={3} fill="#21c45d" />
-          <Circle cx={mid.x} cy={mid.y} r={3} fill="#21c45d" />
-          <Circle cx={last.x} cy={last.y} r={4} fill={pointFill} stroke="#21c45d" strokeWidth={2} />
+          <Circle cx={points[0]?.x ?? 0} cy={points[0]?.y ?? plotBottom} r={3} fill="#7ea56b" />
+          <Circle cx={mid.x} cy={mid.y} r={3} fill="#7ea56b" />
+          <Circle cx={last.x} cy={last.y} r={4} fill={pointFill} stroke="#7ea56b" strokeWidth={2} />
           <Line
             x1={selection.x}
             y1={10}
             x2={selection.x}
             y2={plotBottom + 4}
-            stroke="#21c45d"
+            stroke="#7ea56b"
             strokeWidth={1.5}
             strokeDasharray="4 4"
             opacity={0.4}
@@ -137,7 +137,7 @@ function WeightJourneyChart({
             cy={selection.y}
             r={5}
             fill={pointFill}
-            stroke="#21c45d"
+            stroke="#7ea56b"
             strokeWidth={3}
           />
         </Svg>
@@ -168,13 +168,13 @@ export function WeightJourneyCard({
   const chartSeries = series.length ? series : [0];
 
   return (
-    <View className="border-border bg-card mb-6 rounded-[22px] border p-5 shadow-sm">
+    <View className="bg-card mb-6 rounded-md p-5">
       <View className="mb-4 flex-row items-center justify-between">
         <Text className="text-foreground text-base font-bold">Weight Journey</Text>
       </View>
 
       <View className="mb-6 flex-row flex-wrap gap-2">
-        <View className="bg-background-subtle min-w-[90px] flex-1 items-center rounded-xl px-2 py-2">
+        <View className="bg-background-subtle min-w-[90px] flex-1 items-center rounded-md px-2 py-2">
           <Text className="text-[10px] font-semibold tracking-wider text-slate-400 uppercase">
             Start
           </Text>
@@ -182,7 +182,7 @@ export function WeightJourneyCard({
             {startKg != null ? `${startKg}kg` : '--'}
           </Text>
         </View>
-        <View className="bg-primary/5 ring-primary/20 min-w-[90px] flex-1 items-center rounded-xl px-2 py-2 ring-1">
+        <View className="bg-primary/10 min-w-[90px] flex-1 items-center rounded-md px-2 py-2">
           <Text className="text-primary text-[10px] font-semibold tracking-wider uppercase">
             Current
           </Text>
@@ -190,7 +190,7 @@ export function WeightJourneyCard({
             {currentKg != null ? `${currentKg}kg` : '--'}
           </Text>
         </View>
-        <View className="bg-background-subtle min-w-[90px] flex-1 items-center rounded-xl px-2 py-2">
+        <View className="bg-background-subtle min-w-[90px] flex-1 items-center rounded-md px-2 py-2">
           <Text className="text-[10px] font-semibold tracking-wider text-slate-400 uppercase">
             Lost
           </Text>
@@ -200,10 +200,7 @@ export function WeightJourneyCard({
 
       <WeightJourneyChart series={chartSeries} onDragStateChange={onChartDragStateChange} />
 
-      <Button
-        variant="outline"
-        className="h-12 w-full rounded-full border-2"
-        onPress={onOpenLogWeight}>
+      <Button variant="outline" className="h-12 w-full rounded-md" onPress={onOpenLogWeight}>
         <Icon as={Plus} className="text-foreground size-4" />
         <Text className="text-foreground text-sm font-bold">Log Today&apos;s Weight</Text>
       </Button>

@@ -49,7 +49,7 @@ export default function PersonalInfoCollapsibleRow() {
                 value={field.value}
                 onChangeText={field.onChange}
                 onBlur={field.onBlur}
-                className="bg-input-bg h-11 rounded-xl"
+                className="bg-input-bg h-11 rounded-md"
               />
             )}
           />
@@ -66,7 +66,7 @@ export default function PersonalInfoCollapsibleRow() {
                 value={field.value}
                 onChangeText={field.onChange}
                 onBlur={field.onBlur}
-                className="bg-input-bg h-11 rounded-xl"
+                className="bg-input-bg h-11 rounded-md"
               />
             )}
           />
@@ -85,7 +85,7 @@ export default function PersonalInfoCollapsibleRow() {
                 onBlur={field.onBlur}
                 keyboardType="email-address"
                 autoCapitalize="none"
-                className="bg-input-bg h-11 rounded-xl"
+                className="bg-input-bg h-11 rounded-md"
               />
             )}
           />
@@ -93,7 +93,7 @@ export default function PersonalInfoCollapsibleRow() {
         </View>
 
         <Button
-          className="mt-1 h-10 rounded-full"
+          className="mt-1 h-10 rounded-md"
           disabled={!form.formState.isDirty || !form.formState.isValid}
           onPress={() => {
             void form.handleSubmit(savePersonalInfo)();

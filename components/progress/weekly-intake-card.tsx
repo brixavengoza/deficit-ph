@@ -34,7 +34,7 @@ function getStatusStyles(status: IntakeStatus) {
       };
     case 'normal':
       return {
-        bar: '#21c45d',
+        bar: '#7ea56b',
         barMuted: 'rgba(33,196,93,0.3)',
         textClass: 'text-primary',
         badgeClass: 'bg-primary/10',
@@ -139,7 +139,7 @@ export function WeeklyIntakeCard({ days, goalKcal, avgKcal }: WeeklyIntakeCardPr
 
   if (!days.length) {
     return (
-      <View className="border-border bg-card mb-6 h-78 rounded-[22px] border p-5 shadow-sm">
+      <View className="bg-card mb-6 h-78 rounded-md p-5">
         <Text className="text-foreground text-base font-bold">Weekly Intake</Text>
         <Text className="text-muted-foreground mt-2 text-sm">No intake data yet.</Text>
       </View>
@@ -158,7 +158,7 @@ export function WeeklyIntakeCard({ days, goalKcal, avgKcal }: WeeklyIntakeCardPr
         : 'On target';
 
   return (
-    <View className="border-border bg-card mb-6 h-78 rounded-[22px] border p-5 shadow-sm">
+    <View className="bg-card mb-6 h-78 rounded-md p-5">
       <View className="mb-6 flex-row items-center justify-between">
         <View>
           <Text className="text-foreground text-base font-bold">Weekly Intake</Text>

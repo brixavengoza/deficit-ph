@@ -4,7 +4,8 @@ export const DEFAULT_SERVING_GRAMS = 100;
 
 type PercentString = `${number}%`;
 
-export type AddFoodUnitOption = 'grams' | 'oz' | 'servings';
+export type AddFoodUnitOption = 'grams' | 'ml' | 'oz' | 'servings';
+export type RecipeIngredientUnitOption = 'g' | 'ml' | 'tsp' | 'tbsp' | 'cup';
 
 export type FoodMacroProfile = {
   proteinPer100g: number;
@@ -74,8 +75,17 @@ export function resolveMacroProfile(foodName: string, kcalPer100g: number): Food
 
 export function convertQuantityToGrams(quantity: number, unit: AddFoodUnitOption) {
   if (unit === 'grams') return quantity;
+  if (unit === 'ml') return quantity;
   if (unit === 'oz') return quantity * OUNCES_TO_GRAMS;
   return quantity * DEFAULT_SERVING_GRAMS;
+}
+
+export function convertRecipeQuantityToGrams(quantity: number, unit: RecipeIngredientUnitOption) {
+  if (unit === 'g') return quantity;
+  if (unit === 'ml') return quantity;
+  if (unit === 'tsp') return quantity * 5;
+  if (unit === 'tbsp') return quantity * 15;
+  return quantity * 240;
 }
 
 export function normalizeTimeInput(value: string) {

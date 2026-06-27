@@ -126,7 +126,7 @@ function TdeeCalculatorModal({ open, onClose }: { open: boolean; onClose: () => 
           className="flex-1 items-center justify-center bg-black/35 px-5"
           onPress={onClose}>
           <Pressable
-            className="bg-card max-h-[88%] w-full max-w-md rounded-[22px] p-5"
+            className="bg-card max-h-[88%] w-full max-w-md rounded-lg p-5"
             onPress={(event) => event.stopPropagation()}>
             <View className="mb-4 flex-row items-center justify-between">
               <View>
@@ -136,7 +136,7 @@ function TdeeCalculatorModal({ open, onClose }: { open: boolean; onClose: () => 
                 </Text>
               </View>
               <Pressable
-                className="bg-muted h-9 w-9 items-center justify-center rounded-full"
+                className="bg-muted h-9 w-9 items-center justify-center rounded-md"
                 onPress={onClose}>
                 <Icon as={X} className="text-foreground size-4" />
               </Pressable>
@@ -148,12 +148,12 @@ function TdeeCalculatorModal({ open, onClose }: { open: boolean; onClose: () => 
               contentContainerClassName="gap-4 pb-2">
               <View>
                 <Text className="text-foreground mb-2 text-sm font-semibold">Gender</Text>
-                <View className="bg-background-subtle flex-row rounded-full p-1">
+                <View className="bg-background-subtle flex-row rounded-md p-1">
                   {(['male', 'female'] as Sex[]).map((nextSex) => (
                     <Button
                       key={nextSex}
                       variant={sex === nextSex ? 'default' : 'ghost'}
-                      className="h-10 flex-1 rounded-full"
+                      className="h-10 flex-1 rounded-md"
                       onPress={() =>
                         setValue('sex', nextSex, {
                           shouldValidate: true,
@@ -210,8 +210,8 @@ function TdeeCalculatorModal({ open, onClose }: { open: boolean; onClose: () => 
                         variant="outline"
                         className={
                           selected
-                            ? 'border-primary bg-primary/5 h-auto rounded-xl px-3 py-3'
-                            : 'border-border bg-background-subtle h-auto rounded-xl px-3 py-3'
+                            ? 'bg-primary/10 h-auto rounded-md px-3 py-3'
+                            : 'bg-background-subtle h-auto rounded-md px-3 py-3'
                         }
                         onPress={() =>
                           setValue('activityLevel', option.key, {
@@ -240,7 +240,7 @@ function TdeeCalculatorModal({ open, onClose }: { open: boolean; onClose: () => 
               </View>
 
               {result ? (
-                <View className="border-primary/20 bg-primary/10 rounded-xl border p-4">
+                <View className="bg-primary/10 rounded-md p-4">
                   <Text className="text-primary text-sm font-bold">Estimated calories</Text>
                   <View className="mt-3 gap-2">
                     <ResultRow label="BMR" value={result.bmr} />
@@ -254,7 +254,7 @@ function TdeeCalculatorModal({ open, onClose }: { open: boolean; onClose: () => 
 
               <Button
                 variant="default"
-                className="h-12 rounded-full"
+                className="h-12 rounded-md"
                 onPress={handleSubmit(onSubmit)}>
                 <Text className="text-primary-foreground font-semibold">Calculate</Text>
               </Button>
@@ -295,7 +295,7 @@ function CalculatorInput({
               onBlur={onBlur}
               keyboardType="decimal-pad"
               placeholder={placeholder}
-              className="bg-input-bg h-12 rounded-xl pr-16"
+              className="bg-input-bg h-12 rounded-md pr-16"
             />
           )}
         />

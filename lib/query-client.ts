@@ -16,6 +16,7 @@ export const queryKeys = {
   commonFoods: ['foods', 'common'] as const,
   foodSearch: (query: string) => ['foods', 'search', query] as const,
   foodLogs: ['food-logs'] as const,
+  foodLogsForDay: (localDay: string) => ['food-logs', localDay] as const,
   homeDashboard: (dayCount: number) => ['home-dashboard', dayCount] as const,
   progress: ['progress'] as const,
 };

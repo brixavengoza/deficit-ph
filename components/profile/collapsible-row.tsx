@@ -31,7 +31,7 @@ export default function BaseCollapsibleRow({
         </View>
         <Icon as={ChevronDown} className={open ? 'text-primary size-5' : 'size-5 text-slate-400'} />
       </Pressable>
-      {open ? <View className="border-border border-t px-4 pb-4">{children}</View> : null}
+      {open ? <View className="bg-background/35 px-4 pb-4">{children}</View> : null}
     </View>
   );
 }

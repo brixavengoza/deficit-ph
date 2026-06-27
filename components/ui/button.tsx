@@ -7,7 +7,7 @@ import { Platform, Pressable } from 'react-native';
 
 const buttonVariants = cva(
   cn(
-    'group shrink-0 flex-row items-center justify-center gap-2 rounded-full',
+    'group shrink-0 flex-row items-center justify-center gap-2 rounded-md',
     Platform.select({
       web: "focus-visible:border-ring focus-visible:ring-ring/50 aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive whitespace-nowrap transition-all outline-none focus-visible:ring-[3px] disabled:pointer-events-none [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
     })
@@ -15,24 +15,21 @@ const buttonVariants = cva(
   {
     variants: {
       variant: {
-        default: cn(
-          'bg-primary active:bg-primary/90 shadow-sm shadow-black/10 active:shadow-none',
-          Platform.select({ web: 'hover:bg-red/90' })
-        ),
+        default: cn('bg-primary active:bg-primary/90', Platform.select({ web: 'hover:bg-red/90' })),
         destructive: cn(
-          'bg-destructive active:bg-destructive/90 shadow-sm shadow-black/10',
+          'bg-destructive active:bg-destructive/90',
           Platform.select({
             web: 'hover:bg-destructive/90 focus-visible:ring-destructive/20',
           })
         ),
         outline: cn(
-          'border-border bg-background active:bg-accent border shadow-sm shadow-black/5',
+          'bg-background active:bg-accent',
           Platform.select({
             web: 'hover:bg-accent',
           })
         ),
         secondary: cn(
-          'bg-secondary border-border/60 active:bg-secondary/80 border shadow-sm shadow-black/5',
+          'bg-secondary active:bg-secondary/80',
           Platform.select({ web: 'hover:bg-secondary/80' })
         ),
         ghost: cn('active:bg-accent bg-transparent', Platform.select({ web: 'hover:bg-accent' })),

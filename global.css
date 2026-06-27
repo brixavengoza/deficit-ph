@@ -20,17 +20,17 @@
 @layer theme {
   :root {
     @variant light {
-      /* Primary Brand Color - Green (#21c45d) */
-      --color-primary: oklch(0.72 0.18 145); /* #21c45d - Main green */
+      /* Primary Brand Color - Soft sage */
+      --color-primary: oklch(0.74 0.09 145); /* Softer sage green */
       --color-primary-foreground: oklch(1 0 0); /* White text on primary */
-      --color-primary-dark: oklch(0.62 0.18 145); /* #16a34a - Darker green for hover */
-      --color-primary-light: oklch(0.95 0.05 145); /* #dcfce7 - Light green tint */
+      --color-primary-dark: oklch(0.65 0.08 145); /* Muted darker sage */
+      --color-primary-light: oklch(0.96 0.02 110); /* Soft warm sage tint */
 
       /* Background Colors */
-      --color-background: oklch(0.99 0.002 145); /* #f6f8f7 - Warm light background */
-      --color-background-light: oklch(0.985 0.002 145); /* #f8fbfa - Slightly lighter */
+      --color-background: oklch(0.975 0.008 95); /* Warm neutral canvas */
+      --color-background-light: oklch(0.985 0.006 95); /* Soft ivory canvas */
       --color-background-dark: oklch(0.18 0.02 145); /* Dark mode bg value (for consistency) */
-      --color-background-subtle: oklch(0.96 0 0); /* #f3f4f6 - Gray subtle bg */
+      --color-background-subtle: oklch(0.952 0.01 100); /* Warm subtle surface */
 
       /* Surface/Card Colors */
       --color-surface: oklch(1 0 0); /* #ffffff - White cards */
@@ -41,18 +41,18 @@
 
       /* Text Colors */
       --color-text-main: oklch(0.2 0.01 145); /* #0f1a13 - Primary text */
-      --color-text-secondary: oklch(0.55 0.06 145); /* #53936a - Secondary green text */
+      --color-text-secondary: oklch(0.56 0.03 120); /* Soft sage text */
       --color-text-muted: oklch(0.5 0.01 220); /* #64748b - Muted slate */
       --color-foreground: oklch(0.25 0.01 145); /* Dark text */
 
       /* Input Colors */
-      --color-input-bg: oklch(0.96 0 0); /* #f3f4f6 - Light gray input bg */
-      --color-input: oklch(0.88 0 0); /* Input border */
-      --color-border: oklch(0.93 0 0); /* #e8e8e8 - General borders */
-      --color-ring: oklch(0.72 0.18 145); /* Primary for focus rings */
+      --color-input-bg: oklch(0.958 0.008 100); /* Warm input bg */
+      --color-input: oklch(0.89 0.008 100); /* Soft input border */
+      --color-border: oklch(0.9 0.006 100); /* Neutral warm borders */
+      --color-ring: oklch(0.74 0.09 145); /* Primary for focus rings */
 
       /* Semantic Colors */
-      --color-success: oklch(0.72 0.18 145); /* Green */
+      --color-success: oklch(0.74 0.09 145); /* Sage green */
       --color-warning: oklch(0.75 0.15 65); /* Orange #f97316 */
       --color-error: oklch(0.577 0.245 27.325); /* Red */
       --color-info: oklch(0.6 0.15 240); /* Blue */
@@ -82,7 +82,7 @@
       --color-destructive-foreground: oklch(1 0 0);
 
       /* Charts */
-      --color-chart-1: oklch(0.72 0.18 145); /* Primary green */
+      --color-chart-1: oklch(0.74 0.09 145); /* Primary sage */
       --color-chart-2: oklch(0.6 0.15 240); /* Blue */
       --color-chart-3: oklch(0.75 0.15 40); /* Orange */
       --color-chart-4: oklch(0.65 0.15 300); /* Purple */
@@ -91,20 +91,20 @@
       /* Sidebar (for completeness) */
       --color-sidebar: oklch(0.985 0 0);
       --color-sidebar-foreground: oklch(0.25 0.01 145);
-      --color-sidebar-primary: oklch(0.72 0.18 145);
+      --color-sidebar-primary: oklch(0.74 0.09 145);
       --color-sidebar-primary-foreground: oklch(1 0 0);
       --color-sidebar-accent: oklch(0.97 0 0);
       --color-sidebar-accent-foreground: oklch(0.25 0.01 145);
       --color-sidebar-border: oklch(0.93 0 0);
-      --color-sidebar-ring: oklch(0.72 0.18 145);
+      --color-sidebar-ring: oklch(0.74 0.09 145);
     }
 
     @variant dark {
-      /* Primary Brand Color - Brighter green for dark mode */
-      --color-primary: oklch(0.72 0.18 145); /* #21c45d - Stays vibrant */
+      /* Primary Brand Color - Softer sage for dark mode */
+      --color-primary: oklch(0.76 0.1 145); /* Soft sage highlight */
       --color-primary-foreground: oklch(1 0 0); /* White text */
-      --color-primary-dark: oklch(0.62 0.18 145); /* Darker for hover */
-      --color-primary-light: oklch(0.25 0.08 145); /* Dark green tint */
+      --color-primary-dark: oklch(0.67 0.09 145); /* Darker sage */
+      --color-primary-light: oklch(0.26 0.04 145); /* Muted dark sage tint */
 
       /* Background Colors - Dark green-tinted */
       --color-background: oklch(0.18 0.02 145); /* #122017 - Dark green bg */
@@ -121,7 +121,7 @@
 
       /* Text Colors */
       --color-text-main: oklch(0.95 0 0); /* Nearly white text */
-      --color-text-secondary: oklch(0.65 0.06 145); /* Lighter green text */
+      --color-text-secondary: oklch(0.7 0.04 130); /* Softer accent text */
       --color-text-muted: oklch(0.6 0.01 220); /* Muted slate */
       --color-foreground: oklch(0.95 0 0); /* Light text */
 
@@ -129,10 +129,10 @@
       --color-input-bg: oklch(0.26 0.02 145); /* Distinct dark input surface */
       --color-input: oklch(0.34 0.02 145); /* Input border */
       --color-border: oklch(0.25 0.02 145); /* Dark borders */
-      --color-ring: oklch(0.72 0.18 145); /* Primary for focus */
+      --color-ring: oklch(0.76 0.1 145); /* Primary for focus */
 
       /* Semantic Colors - Adjusted for dark mode */
-      --color-success: oklch(0.72 0.18 145); /* Green */
+      --color-success: oklch(0.76 0.1 145); /* Sage */
       --color-warning: oklch(0.75 0.15 65); /* Orange */
       --color-error: oklch(0.65 0.22 27); /* Softer red */
       --color-info: oklch(0.65 0.15 240); /* Softer blue */
@@ -162,7 +162,7 @@
       --color-destructive-foreground: oklch(1 0 0);
 
       /* Charts - Vibrant for dark mode */
-      --color-chart-1: oklch(0.72 0.18 145); /* Primary green */
+      --color-chart-1: oklch(0.76 0.1 145); /* Primary sage */
       --color-chart-2: oklch(0.65 0.15 240); /* Blue */
       --color-chart-3: oklch(0.75 0.15 40); /* Orange */
       --color-chart-4: oklch(0.65 0.15 300); /* Purple */
@@ -171,12 +171,12 @@
       /* Sidebar (for completeness) */
       --color-sidebar: oklch(0.22 0.02 145);
       --color-sidebar-foreground: oklch(0.95 0 0);
-      --color-sidebar-primary: oklch(0.72 0.18 145);
+      --color-sidebar-primary: oklch(0.76 0.1 145);
       --color-sidebar-primary-foreground: oklch(1 0 0);
       --color-sidebar-accent: oklch(0.25 0.02 145);
       --color-sidebar-accent-foreground: oklch(0.95 0 0);
       --color-sidebar-border: oklch(0.25 0.02 145);
-      --color-sidebar-ring: oklch(0.72 0.18 145);
+      --color-sidebar-ring: oklch(0.76 0.1 145);
     }
   }
 }

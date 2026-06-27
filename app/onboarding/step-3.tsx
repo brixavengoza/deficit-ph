@@ -2,6 +2,8 @@ import { Button } from '@/components/ui/button';
 import { Text } from '@/components/ui/text';
 import { stepThreeSchema, type OnboardingFormValues } from '@/lib/onboarding-form';
 import { completeOnboarding } from '@/lib/local-data';
+import { useProfileBundleStore } from '@/stores/use-profile-bundle-store';
+import { calculateCalorieTargets } from '@/utils/calorie-targets';
 import { useRouter } from 'expo-router';
 import { CircleCheckBig, Dumbbell, Scale, TrendingDown } from 'lucide-react-native';
 import { useFormContext } from 'react-hook-form';
@@ -21,21 +23,9 @@ const GOALS: Array<{
   { key: 'gain', title: 'Gain Muscle', subtitle: 'Build strength and mass', icon: Dumbbell },
 ];
 
-const ACTIVITY_FACTOR: Record<'sedentary' | 'light' | 'moderate' | 'very', number> = {
-  sedentary: 1.2,
-  light: 1.375,
-  moderate: 1.55,
-  very: 1.725,
-};
-
-const GOAL_ADJUSTMENT: Record<Goal, number> = {
-  lose: -500,
-  maintain: 0,
-  gain: 300,
-};
-
 export default function OnboardingStepThreeScreen() {
   const router = useRouter();
+  const refreshProfile = useProfileBundleStore((state) => state.refresh);
   const { watch, setValue, getValues } = useFormContext<OnboardingFormValues>();
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const [submitError, setSubmitError] = React.useState<string | null>(null);
@@ -48,30 +38,14 @@ export default function OnboardingStepThreeScreen() {
   const canProceed = stepThreeSchema.safeParse({ goal }).success;
 
   const calorieGoal = useMemo(() => {
-    if (!goal || !sex || !activityLevel) return null;
-
-    const ageNum = Number(age);
-    const heightNum = Number(heightCm);
-    const weightNum = Number(weightKg);
-
-    if (![ageNum, heightNum, weightNum].every((value) => Number.isFinite(value) && value > 0)) {
-      return null;
-    }
-
-    const bmrBase = 10 * weightNum + 6.25 * heightNum - 5 * ageNum;
-    const bmr = sex === 'male' ? bmrBase + 5 : bmrBase - 161;
-    const tdee = bmr * ACTIVITY_FACTOR[activityLevel];
-    const dailyCalories = Math.max(1200, Math.round(tdee + GOAL_ADJUSTMENT[goal]));
-    const protein = Math.round((dailyCalories * 0.3) / 4);
-    const carbs = Math.round((dailyCalories * 0.4) / 4);
-    const fat = Math.round((dailyCalories * 0.3) / 9);
-
-    return {
-      dailyCalories,
-      protein,
-      carbs,
-      fat,
-    };
+    return calculateCalorieTargets({
+      activityLevel,
+      age,
+      goal,
+      heightCm,
+      sex,
+      weightKg,
+    });
   }, [activityLevel, age, goal, heightCm, sex, weightKg]);
 
   const onNext = async () => {
@@ -94,6 +68,7 @@ export default function OnboardingStepThreeScreen() {
         carbs: calorieGoal.carbs,
         fat: calorieGoal.fat,
       });
+      await refreshProfile();
       router.replace('/dashboard');
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Failed to save onboarding.';
@@ -148,7 +123,7 @@ export default function OnboardingStepThreeScreen() {
                   <Text className="text-muted-foreground text-left text-sm">{item.subtitle}</Text>
                 </View>
 
-                {selected ? <CircleCheckBig color="#21c45d" size={20} /> : null}
+                {selected ? <CircleCheckBig color="#7ea56b" size={20} /> : null}
               </Button>
             );
           })}

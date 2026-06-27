@@ -1,6 +1,6 @@
 import { ChoiceModal } from '@/components/profile/choice-modal';
 
-type MeasureOption = 'grams' | 'oz' | 'servings';
+type MeasureOption = 'grams' | 'ml' | 'oz' | 'servings';
 
 type AddFoodMeasureModalProps = {
   open: boolean;
@@ -9,7 +9,7 @@ type AddFoodMeasureModalProps = {
   onSelect: (value: MeasureOption) => void;
 };
 
-const MEASURE_OPTIONS: MeasureOption[] = ['grams', 'oz', 'servings'];
+const MEASURE_OPTIONS: MeasureOption[] = ['grams', 'ml', 'oz', 'servings'];
 
 export function AddFoodMeasureModal({
   open,
@@ -23,9 +23,10 @@ export function AddFoodMeasureModal({
       open={open}
       options={MEASURE_OPTIONS}
       selected={selected}
+      optionLayout="pills"
+      showFooterClose={false}
       onClose={onClose}
       onSelect={onSelect}
     />
   );
 }
-

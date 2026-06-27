@@ -117,10 +117,8 @@ export const useProfileBundleStore = create<ProfileBundleState>((set, get) => ({
     set({ isSaving: true, error: null });
     try {
       await updateBodyMeasurements(values);
-      set((state) => ({
-        bundle: { ...state.bundle, ...values },
-        isSaving: false,
-      }));
+      const bundle = await loadProfileBundle();
+      set({ bundle, isSaving: false, hasLoaded: true });
     } catch (error) {
       set({
         error: error instanceof Error ? error.message : 'Failed to save measurements.',
@@ -134,10 +132,8 @@ export const useProfileBundleStore = create<ProfileBundleState>((set, get) => ({
     set({ isSaving: true, error: null });
     try {
       await updateActivityLevel(value);
-      set((state) => ({
-        bundle: { ...state.bundle, activityLevel: value },
-        isSaving: false,
-      }));
+      const bundle = await loadProfileBundle();
+      set({ bundle, isSaving: false, hasLoaded: true });
     } catch (error) {
       set({
         error: error instanceof Error ? error.message : 'Failed to save activity level.',

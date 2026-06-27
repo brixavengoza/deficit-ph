@@ -79,7 +79,7 @@ export default function OnboardingStepTwoScreen() {
                 <Text className="text-muted-foreground text-left text-sm">{item.subtitle}</Text>
               </View>
 
-              {selected ? <CircleCheckBig color="#21c45d" size={20} /> : null}
+              {selected ? <CircleCheckBig color="#7ea56b" size={20} /> : null}
             </Button>
           );
         })}

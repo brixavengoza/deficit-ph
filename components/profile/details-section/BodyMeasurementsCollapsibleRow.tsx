@@ -57,7 +57,7 @@ export default function BodyMeasurementsCollapsibleRow() {
                   onChangeText={field.onChange}
                   onBlur={field.onBlur}
                   keyboardType="decimal-pad"
-                  className="bg-input-bg h-11 rounded-xl"
+                  className="bg-input-bg h-11 rounded-md"
                 />
               )}
             />
@@ -77,7 +77,7 @@ export default function BodyMeasurementsCollapsibleRow() {
                   onChangeText={field.onChange}
                   onBlur={field.onBlur}
                   keyboardType="decimal-pad"
-                  className="bg-input-bg h-11 rounded-xl"
+                  className="bg-input-bg h-11 rounded-md"
                 />
               )}
             />
@@ -98,7 +98,7 @@ export default function BodyMeasurementsCollapsibleRow() {
                 onChangeText={field.onChange}
                 onBlur={field.onBlur}
                 keyboardType="decimal-pad"
-                className="bg-input-bg h-11 rounded-xl"
+                className="bg-input-bg h-11 rounded-md"
               />
             )}
           />
@@ -106,7 +106,7 @@ export default function BodyMeasurementsCollapsibleRow() {
         </View>
 
         <Button
-          className="mt-1 h-10 rounded-full"
+          className="mt-1 h-10 rounded-md"
           disabled={!form.formState.isDirty || !form.formState.isValid}
           onPress={() => {
             void form.handleSubmit(saveBodyMeasurements)();

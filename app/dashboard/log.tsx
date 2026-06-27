@@ -1,8 +1,12 @@
 import { getFoodEmoji } from '@/lib/food-emoji';
 import { Text } from '@/components/ui/text';
-import { useFoodLogsQuery } from '@/hooks/use-trackk-query';
+import { Icon } from '@/components/ui/icon';
+import { useDeleteFoodLogMutation, useFoodLogsQuery } from '@/hooks/use-trackk-query';
+import { router } from 'expo-router';
+import { Pencil, Trash2 } from 'lucide-react-native';
 import React from 'react';
 import { Pressable, RefreshControl, SectionList, View } from 'react-native';
+import { Swipeable } from 'react-native-gesture-handler';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 type FoodItem = {
@@ -18,6 +22,69 @@ type FoodSection = {
   data: FoodItem[];
 };
 
+function LogFoodRow({
+  item,
+  isLast,
+  isDeleting,
+  onDelete,
+}: {
+  item: FoodItem;
+  isLast: boolean;
+  isDeleting: boolean;
+  onDelete: (id: string) => void;
+}) {
+  const handleEdit = React.useCallback(() => {
+    router.push({
+      pathname: '/dashboard/add-food',
+      params: { entryId: item.id },
+    });
+  }, [item.id]);
+
+  const renderRightActions = React.useCallback(
+    () => (
+      <View className="flex-row">
+        <Pressable
+          className="bg-primary h-full w-20 items-center justify-center"
+          onPress={handleEdit}>
+          <Icon as={Pencil} className="size-5 text-white" />
+          <Text className="mt-1 text-xs font-bold text-white">Edit</Text>
+        </Pressable>
+        <Pressable
+          className="bg-destructive h-full w-20 items-center justify-center"
+          disabled={isDeleting}
+          onPress={() => onDelete(item.id)}>
+          <Icon as={Trash2} className="size-5 text-white" />
+          <Text className="mt-1 text-xs font-bold text-white">
+            {isDeleting ? 'Deleting' : 'Delete'}
+          </Text>
+        </Pressable>
+      </View>
+    ),
+    [handleEdit, isDeleting, item.id, onDelete]
+  );
+
+  return (
+    <Swipeable renderRightActions={renderRightActions} overshootRight={false}>
+      <Pressable
+        onPress={handleEdit}
+        className={`bg-card px-6 py-4 ${isLast ? '' : 'border-border border-b'}`}>
+        <View className="flex-row items-center justify-between">
+          <View className="flex-1 flex-row items-center pr-4">
+            <View className="bg-background-subtle mr-3 h-11 w-11 items-center justify-center rounded-md">
+              <Text className="text-2xl">{getFoodEmoji(item.name)}</Text>
+            </View>
+            <View className="flex-1">
+              <Text className="text-foreground text-base font-medium">{item.name}</Text>
+              <Text className="text-muted-foreground mt-0.5 text-sm">{item.portion}</Text>
+            </View>
+          </View>
+          <Text className="text-primary text-base font-bold">{item.kcal}</Text>
+        </View>
+      </Pressable>
+    </Swipeable>
+  );
+}
+
 function formatKcal(value: number) {
   return new Intl.NumberFormat('en-US').format(value);
 }
@@ -25,8 +92,10 @@ function formatKcal(value: number) {
 export default function DashboardLogScreen() {
   const insets = useSafeAreaInsets();
   const logsQuery = useFoodLogsQuery();
+  const deleteLogMutation = useDeleteFoodLogMutation();
   const loggedFoods = logsQuery.data ?? [];
   const [isRefreshing, setIsRefreshing] = React.useState(false);
+  const [deletingId, setDeletingId] = React.useState<string | null>(null);
 
   const sections = React.useMemo<FoodSection[]>(() => {
     if (!loggedFoods.length) return [];
@@ -71,10 +140,25 @@ export default function DashboardLogScreen() {
     }
   }, [logsQuery]);
 
+  const handleDelete = React.useCallback(
+    async (id: string) => {
+      if (deleteLogMutation.isPending) return;
+      setDeletingId(id);
+      try {
+        await deleteLogMutation.mutateAsync(id);
+      } catch (error) {
+        console.error('[DashboardLogScreen.deleteFoodLog]', error);
+      } finally {
+        setDeletingId(null);
+      }
+    },
+    [deleteLogMutation]
+  );
+
   return (
-    <View className="bg-surface flex-1">
+    <View className="bg-background flex-1">
       <View
-        className="bg-surface border-border flex-row items-center justify-between border-b px-4 pb-4"
+        className="bg-background flex-row items-center justify-between px-4 pb-4"
         style={{ paddingTop: insets.top + 8 }}>
         <Text className="text-foreground flex-1 text-center text-lg font-bold tracking-tight">
           Food History
@@ -92,12 +176,12 @@ export default function DashboardLogScreen() {
           <RefreshControl
             refreshing={isRefreshing}
             onRefresh={handleRefresh}
-            tintColor="#21c45d"
-            colors={['#21c45d']}
+            tintColor="#7ea56b"
+            colors={['#7ea56b']}
           />
         }
         renderSectionHeader={({ section }) => (
-          <View className="border-border bg-background-subtle flex-row items-center justify-between border-b px-6 py-3">
+          <View className="bg-primary/10 flex-row items-center justify-between px-6 py-3">
             <Text className="text-foreground text-base font-bold">{section.title}</Text>
             <Text className="text-muted-foreground text-sm font-semibold">
               {formatKcal(section.totalKcal)} kcal
@@ -105,23 +189,12 @@ export default function DashboardLogScreen() {
           </View>
         )}
         renderItem={({ item, index, section }) => (
-          <Pressable
-            className={`bg-surface px-6 py-4 ${
-              index === section.data.length - 1 ? '' : 'border-border border-b'
-            }`}>
-            <View className="flex-row items-center justify-between">
-              <View className="flex-1 flex-row items-center pr-4">
-                <View className="bg-background-subtle mr-3 h-11 w-11 items-center justify-center rounded-xl">
-                  <Text className="text-2xl">{getFoodEmoji(item.name)}</Text>
-                </View>
-                <View className="flex-1">
-                  <Text className="text-foreground text-base font-medium">{item.name}</Text>
-                  <Text className="text-muted-foreground mt-0.5 text-sm">{item.portion}</Text>
-                </View>
-              </View>
-              <Text className="text-primary text-base font-bold">{item.kcal}</Text>
-            </View>
-          </Pressable>
+          <LogFoodRow
+            item={item}
+            isLast={index === section.data.length - 1}
+            isDeleting={deletingId === item.id}
+            onDelete={handleDelete}
+          />
         )}
         ListEmptyComponent={
           <View className="px-6 py-10">

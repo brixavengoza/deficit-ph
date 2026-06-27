@@ -1,6 +1,13 @@
 import { Text } from '@/components/ui/text';
 import { useProfileBundleStore } from '@/stores/use-profile-bundle-store';
-import { ScrollView, View } from 'react-native';
+import { View } from 'react-native';
+
+function formatStatValue(value: string, options: { allowZero?: boolean } = {}) {
+  const numericValue = Number(value);
+  if (!Number.isFinite(numericValue) || numericValue < 0) return '--';
+  if (!options.allowZero && numericValue === 0) return '--';
+  return numericValue.toLocaleString(undefined, { maximumFractionDigits: 1 });
+}
 
 function StatTile({
   label,
@@ -14,7 +21,7 @@ function StatTile({
   highlight?: boolean;
 }) {
   return (
-    <View className="bg-card border-border w-full flex-1 items-center justify-center rounded-2xl border px-3 py-2">
+    <View className="bg-card w-full flex-1 items-center justify-center rounded-md px-3 py-2">
       <Text className="text-muted-foreground text-xs font-medium tracking-wider uppercase">
         {label}
       </Text>
@@ -36,9 +43,18 @@ export function ProfileStatsRow() {
 
   return (
     <View className="mb-8 flex flex-row gap-2 px-4">
-      <StatTile label="Weight" value={weight} unit={units === 'Metric' ? 'kg' : 'lb'} />
-      <StatTile label="Goal" value={calorieGoal} unit="kcal" />
-      <StatTile label="Streak" value={streakDays} unit="days" highlight />
+      <StatTile
+        label="Weight"
+        value={formatStatValue(weight)}
+        unit={units === 'Metric' ? 'kg' : 'lb'}
+      />
+      <StatTile label="Goal" value={formatStatValue(calorieGoal)} unit="kcal" />
+      <StatTile
+        label="Streak"
+        value={formatStatValue(streakDays, { allowZero: true })}
+        unit="days"
+        highlight
+      />
     </View>
   );
 }

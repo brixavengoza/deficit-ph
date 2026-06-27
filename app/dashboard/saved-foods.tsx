@@ -29,8 +29,8 @@ function SavedFoodRow({
       onPress={() => onPress(item)}
       android_ripple={{ color: 'rgba(15, 23, 42, 0.06)' }}
       style={({ pressed }) => [{ opacity: pressed ? 0.75 : 1 }]}
-      className="border-border bg-surface flex-row items-center justify-between border-b px-4 py-3">
-      <View className="bg-background-subtle mr-3 h-11 w-11 items-center justify-center rounded-xl">
+      className="bg-card flex-row items-center justify-between px-4 py-3">
+      <View className="bg-background-subtle mr-3 h-11 w-11 items-center justify-center rounded-md">
         <Text className="text-xl">{getFoodEmoji(item.name)}</Text>
       </View>
 
@@ -79,14 +79,14 @@ export default function SavedFoodsScreen() {
   }, []);
 
   return (
-    <View className="bg-surface flex-1">
+    <View className="bg-background flex-1">
       <View
-        className="bg-surface flex-row items-center justify-between px-4"
+        className="bg-background flex-row items-center justify-between px-4"
         style={{ paddingTop: insets.top + 8 }}>
         <Pressable
           accessibilityRole="button"
           accessibilityLabel="Go back"
-          className="h-10 w-10 items-center justify-center rounded-full"
+          className="h-10 w-10 items-center justify-center rounded-md"
           onPress={() => router.back()}>
           <Icon as={ArrowLeft} className="text-foreground size-5" />
         </Pressable>
@@ -97,7 +97,7 @@ export default function SavedFoodsScreen() {
       </View>
 
       <View className="px-4 pt-2 pb-3">
-        <View className="bg-input-bg border-input flex-row items-center overflow-hidden rounded-full border">
+        <View className="bg-input-bg flex-row items-center overflow-hidden rounded-md">
           <View className="px-4 pr-2">
             <Icon as={Search} className="text-muted-foreground size-5" />
           </View>

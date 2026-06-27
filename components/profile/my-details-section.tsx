@@ -7,8 +7,8 @@ import BodyMeasurementsCollapsibleRow from './details-section/BodyMeasurementsCo
 
 export default function MyDetailsSection() {
   return (
-    <View className="bg-card border-border overflow-hidden rounded-[22px] border">
-      <View className="border-border bg-background-subtle border-b px-5 py-3">
+    <View className="bg-card overflow-hidden rounded-md">
+      <View className="bg-background-subtle px-5 py-3">
         <Text className="text-muted-foreground text-xs font-bold tracking-wider uppercase">
           My Details
         </Text>

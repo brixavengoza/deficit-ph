@@ -10,6 +10,7 @@ import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import * as React from 'react';
 import { View } from 'react-native';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { Uniwind, useUniwind } from 'uniwind';
 import { useProfileBundleStore } from '@/stores/use-profile-bundle-store';
@@ -26,12 +27,15 @@ void SplashScreen.preventAutoHideAsync().catch((error) => {
 export default function RootLayout() {
   const { theme } = useUniwind();
   const preferredTheme = useProfileBundleStore((state) => state.bundle.theme);
+  const hasLoadedProfile = useProfileBundleStore((state) => state.hasLoaded);
+  const ensureLoaded = useProfileBundleStore((state) => state.ensureLoaded);
   const [appIsReady, setAppIsReady] = React.useState(false);
   const hasHiddenSplash = React.useRef(false);
 
   React.useEffect(() => {
     async function prepare() {
       try {
+        await ensureLoaded();
         // Keep splash visible briefly for brand exposure and smoother transition.
         await new Promise((resolve) => setTimeout(resolve, 500));
       } finally {
@@ -40,18 +44,19 @@ export default function RootLayout() {
     }
 
     void prepare();
-  }, []);
+  }, [ensureLoaded]);
 
   React.useEffect(() => {
+    if (!hasLoadedProfile) return;
     if (preferredTheme === 'Auto') {
       Uniwind.setTheme('system');
       return;
     }
     Uniwind.setTheme(preferredTheme.toLowerCase() as 'light' | 'dark');
-  }, [preferredTheme]);
+  }, [hasLoadedProfile, preferredTheme]);
 
   React.useEffect(() => {
-    if (!appIsReady || hasHiddenSplash.current) return;
+    if (!appIsReady || !hasLoadedProfile || hasHiddenSplash.current) return;
 
     hasHiddenSplash.current = true;
     try {
@@ -61,22 +66,24 @@ export default function RootLayout() {
     } catch (error) {
       console.warn('[splash] hide skipped', error);
     }
-  }, [appIsReady]);
+  }, [appIsReady, hasLoadedProfile]);
 
-  if (!appIsReady) {
+  if (!appIsReady || !hasLoadedProfile) {
     return null;
   }
 
   return (
     <QueryClientProvider client={queryClient}>
       <ThemeProvider value={NAV_THEME[theme ?? 'light']}>
-        <SafeAreaProvider>
-          <View className="flex-1">
-            <StatusBar style={theme === 'dark' ? 'light' : 'dark'} />
-            <Stack screenOptions={{ headerShown: false }} />
-            <PortalHost />
-          </View>
-        </SafeAreaProvider>
+        <GestureHandlerRootView className="flex-1">
+          <SafeAreaProvider>
+            <View className="flex-1">
+              <StatusBar style={theme === 'dark' ? 'light' : 'dark'} />
+              <Stack screenOptions={{ headerShown: false }} />
+              <PortalHost />
+            </View>
+          </SafeAreaProvider>
+        </GestureHandlerRootView>
       </ThemeProvider>
     </QueryClientProvider>
   );

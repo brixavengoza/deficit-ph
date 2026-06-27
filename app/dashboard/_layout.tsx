@@ -2,7 +2,7 @@ import { Icon } from '@/components/ui/icon';
 import { Text } from '@/components/ui/text';
 import { Link, Stack, router, usePathname } from 'expo-router';
 import { BarChart3, BookOpenText, Home, Plus, User } from 'lucide-react-native';
-import { Platform, Pressable, View } from 'react-native';
+import { Pressable, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
 import { useUniwind } from 'uniwind';
@@ -27,19 +27,16 @@ function TabItem({
 }) {
   return (
     <Pressable
-      className="w-14 items-center gap-1"
+      className="w-13 items-center gap-0.5"
       onPress={() => {
         if (!active) router.replace(href);
       }}>
-      <Icon
-        as={icon}
-        className={active ? 'text-primary size-[26px]' : 'text-muted-foreground size-[26px]'}
-      />
+      <Icon as={icon} className={active ? 'text-primary size-6' : 'text-muted-foreground size-6'} />
       <Text
         className={
           active
-            ? 'text-primary text-[11px] font-bold'
-            : 'text-muted-foreground text-[11px] font-medium'
+            ? 'text-primary text-[10px] font-bold'
+            : 'text-muted-foreground text-[10px] font-medium'
         }>
         {label}
       </Text>
@@ -90,17 +87,8 @@ export default function DashboardLayout() {
           <View
             pointerEvents="box-none"
             style={{ position: 'absolute', left: 0, right: 0, bottom: 0 }}>
-            <View className="relative h-16 w-full">
-              <View
-                pointerEvents="none"
-                className="absolute inset-0"
-                style={{
-                  shadowColor: '#000',
-                  shadowOpacity: Platform.OS === 'ios' ? 0.08 : 0,
-                  shadowRadius: 12,
-                  shadowOffset: { width: 0, height: -6 },
-                  elevation: 0,
-                }}>
+            <View className="relative h-14 w-full">
+              <View pointerEvents="none" className="absolute inset-0">
                 <Svg
                   width="100%"
                   height="100%"
@@ -114,13 +102,13 @@ export default function DashboardLayout() {
                 </Svg>
               </View>
 
-              <View className="absolute inset-0 flex-row items-center justify-between bg-transparent px-6">
-                <View className="mt-3 flex-row items-center gap-8">
+              <View className="absolute inset-0 flex-row items-end justify-between bg-transparent px-5 pb-1">
+                <View className="flex-row items-center gap-6">
                   <TabItem href={TabRoutes.Dashboard} label="Home" icon={Home} active={isHome} />
                   <TabItem href={TabRoutes.Log} label="Log" icon={BookOpenText} active={isLog} />
                 </View>
 
-                <View className="mt-3 flex-row items-center gap-8">
+                <View className="flex-row items-center gap-6">
                   <TabItem
                     href={TabRoutes.Progress}
                     label="Progress"
@@ -136,11 +124,13 @@ export default function DashboardLayout() {
                 </View>
               </View>
 
-              <View pointerEvents="box-none" className="absolute inset-x-0 -top-6 items-center">
+              <View pointerEvents="box-none" className="absolute inset-x-0 -top-5 items-center">
                 <Link href="/dashboard/log-food-search" asChild>
                   <Pressable>
-                    <View className="border-card bg-primary h-16 w-16 items-center justify-center rounded-full border-4 shadow-lg shadow-green-700/25">
-                      <Icon as={Plus} className="size-8 text-white" />
+                    <View className="bg-primary h-14 w-14 items-center justify-center rounded-full p-1.5">
+                      <View className="bg-primary h-full w-full items-center justify-center rounded-full">
+                        <Icon as={Plus} className="size-6 text-white" />
+                      </View>
                     </View>
                   </Pressable>
                 </Link>

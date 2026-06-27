@@ -46,7 +46,7 @@ export function AdherenceOverviewCard({
   weighInConsistency: number;
 }) {
   return (
-    <View className="border-border bg-card mb-6 rounded-[22px] border p-5 shadow-sm">
+    <View className="bg-card mb-6 rounded-md p-5">
       <Text className="text-foreground mb-4 text-base font-bold">Adherence Overview</Text>
 
       <View className="gap-4">

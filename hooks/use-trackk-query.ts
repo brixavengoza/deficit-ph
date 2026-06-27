@@ -2,6 +2,7 @@ import {
   addHydrationLog,
   addWeightLog,
   fetchCommonSeedFoods,
+  fetchFoodLogsForDay,
   fetchFoodLogs,
   fetchFoodsForSearch,
   fetchHomeDashboardSnapshot,
@@ -48,6 +49,13 @@ export function useFoodLogsQuery() {
   });
 }
 
+export function useFoodLogsForDayQuery(localDay: string) {
+  return useQuery({
+    queryKey: queryKeys.foodLogsForDay(localDay),
+    queryFn: () => fetchFoodLogsForDay(localDay),
+  });
+}
+
 export function useHomeDashboardQuery(dayCount: number) {
   return useQuery({
     queryKey: queryKeys.homeDashboard(dayCount),
@@ -64,6 +72,7 @@ export function useProgressQuery() {
 
 function invalidateAllAnalytics(client: ReturnType<typeof useQueryClient>) {
   void client.invalidateQueries({ queryKey: queryKeys.foodLogs });
+  void client.invalidateQueries({ queryKey: ['food-logs'] });
   void client.invalidateQueries({ queryKey: queryKeys.foods });
   void client.invalidateQueries({ queryKey: queryKeys.progress });
   void client.invalidateQueries({ queryKey: ['home-dashboard'] });
