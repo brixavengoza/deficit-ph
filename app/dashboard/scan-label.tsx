@@ -1,11 +1,10 @@
 import { Button } from '@/components/ui/button';
 import { Icon } from '@/components/ui/icon';
 import { Text } from '@/components/ui/text';
-import { useInsertFoodLogMutation, useUpsertUserFoodMutation } from '@/hooks/use-trackk-query';
+import { useUpsertUserFoodMutation } from '@/hooks/use-trackk-query';
 import { scanNutritionLabel, uploadNutritionLabelImage } from '@/lib/food-label-scanner';
 import { formatNumberGrouped } from '@/lib/number-format';
 import type { NutritionLabelDraft } from '@/lib/nutrition-label-parser';
-import { formatTimeLabelFromDate } from '@/utils/add-food-utils';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import * as ImagePicker from 'expo-image-picker';
 import { router, Stack } from 'expo-router';
@@ -44,7 +43,6 @@ export default function ScanLabelScreen() {
   const [isSaving, setIsSaving] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
   const upsertFoodMutation = useUpsertUserFoodMutation();
-  const insertFoodLogMutation = useInsertFoodLogMutation();
   const isWorking = activeAction != null || isSaving;
 
   const startScan = React.useCallback(async () => {
@@ -131,31 +129,19 @@ export default function ScanLabelScreen() {
         servingSizeLabel: draft.servingSizeLabel,
       });
 
-      await insertFoodLogMutation.mutateAsync({
-        foodId: savedFood.id,
-        foodName: savedFood.name,
-        kcalPer100g: savedFood.kcalPer100g,
-        proteinPer100g: savedFood.proteinPer100g,
-        carbsPer100g: savedFood.carbsPer100g,
-        fatsPer100g: savedFood.fatsPer100g,
-        fiberPer100g: savedFood.fiberPer100g,
-        sugarPer100g: savedFood.sugarPer100g,
-        sodiumMgPer100g: savedFood.sodiumMgPer100g,
-        quantity: 100,
-        unit: 'grams',
-        gramsEquivalent: 100,
-        meal: 'Lunch',
-        logTime: formatTimeLabelFromDate(new Date()),
-        totalKcal: savedFood.kcalPer100g,
-        proteinGrams: savedFood.proteinPer100g,
-        carbsGrams: savedFood.carbsPer100g,
-        fatsGrams: savedFood.fatsPer100g,
-        fiberGrams: savedFood.fiberPer100g,
-        sugarGrams: savedFood.sugarPer100g,
-        sodiumMg: savedFood.sodiumMgPer100g,
+      router.replace({
+        pathname: '/dashboard/add-food',
+        params: {
+          foodName: savedFood.name,
+          kcalPer100g: valueParam(savedFood.kcalPer100g),
+          proteinPer100g: valueParam(savedFood.proteinPer100g),
+          carbsPer100g: valueParam(savedFood.carbsPer100g),
+          fatsPer100g: valueParam(savedFood.fatsPer100g),
+          fiberPer100g: valueParam(savedFood.fiberPer100g),
+          sugarPer100g: valueParam(savedFood.sugarPer100g),
+          sodiumMgPer100g: valueParam(savedFood.sodiumMgPer100g),
+        },
       });
-
-      router.replace('/dashboard');
     } catch (saveError) {
       const message = saveError instanceof Error ? saveError.message : 'Unable to save food log.';
       setError(message);
@@ -163,7 +149,7 @@ export default function ScanLabelScreen() {
     } finally {
       setIsSaving(false);
     }
-  }, [draft, insertFoodLogMutation, upsertFoodMutation]);
+  }, [draft, upsertFoodMutation]);
 
   return (
     <>

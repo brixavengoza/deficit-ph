@@ -14,6 +14,8 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { Uniwind, useUniwind } from 'uniwind';
 import { useProfileBundleStore } from '@/stores/use-profile-bundle-store';
+import { Button } from '@/components/ui/button';
+import { Text } from '@/components/ui/text';
 
 export {
   // Catch any errors thrown by the Layout component.
@@ -28,7 +30,9 @@ export default function RootLayout() {
   const { theme } = useUniwind();
   const preferredTheme = useProfileBundleStore((state) => state.bundle.theme);
   const hasLoadedProfile = useProfileBundleStore((state) => state.hasLoaded);
+  const profileLoadError = useProfileBundleStore((state) => state.error);
   const ensureLoaded = useProfileBundleStore((state) => state.ensureLoaded);
+  const refreshProfile = useProfileBundleStore((state) => state.refresh);
   const [appIsReady, setAppIsReady] = React.useState(false);
   const hasHiddenSplash = React.useRef(false);
 
@@ -70,6 +74,36 @@ export default function RootLayout() {
 
   if (!appIsReady || !hasLoadedProfile) {
     return null;
+  }
+
+  if (profileLoadError) {
+    return (
+      <QueryClientProvider client={queryClient}>
+        <ThemeProvider value={NAV_THEME[theme ?? 'light']}>
+          <GestureHandlerRootView className="flex-1">
+            <SafeAreaProvider>
+              <View className="bg-background flex-1 items-center justify-center px-6">
+                <StatusBar style={theme === 'dark' ? 'light' : 'dark'} />
+                <Text className="text-foreground text-center text-xl font-bold">
+                  We could not open your local data
+                </Text>
+                <Text className="text-muted-foreground mt-2 text-center text-sm leading-5">
+                  Your food logs are stored on this device. Try again, and if this keeps happening,
+                  restart the app.
+                </Text>
+                <Button
+                  className="mt-5 h-12 rounded-full px-6"
+                  onPress={() => {
+                    void refreshProfile();
+                  }}>
+                  <Text>Try Again</Text>
+                </Button>
+              </View>
+            </SafeAreaProvider>
+          </GestureHandlerRootView>
+        </ThemeProvider>
+      </QueryClientProvider>
+    );
   }
 
   return (

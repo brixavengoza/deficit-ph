@@ -12,7 +12,7 @@ import {
   useFoodsQuery,
 } from '@/hooks/use-trackk-query';
 import { useRouter } from 'expo-router';
-import { ArrowLeft, ChevronRight, PencilLine, Plus, ScanLine, Search } from 'lucide-react-native';
+import { ArrowLeft, ChevronRight, PencilLine, Plus, Search } from 'lucide-react-native';
 import React from 'react';
 import { Keyboard, KeyboardAvoidingView, Platform, Pressable, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -21,6 +21,12 @@ type SearchFood = {
   id: string;
   name: string;
   kcalPer100g: number;
+  proteinPer100g?: number;
+  carbsPer100g?: number;
+  fatsPer100g?: number;
+  fiberPer100g?: number;
+  sugarPer100g?: number;
+  sodiumMgPer100g?: number;
 };
 
 type SearchRow =
@@ -140,7 +146,17 @@ export default function LogFoodSearchScreen() {
 
   const commonFoods = React.useMemo<SearchFood[]>(
     () =>
-      seedFoods.map((food) => ({ id: food.id, name: food.name, kcalPer100g: food.kcalPer100g })),
+      seedFoods.map((food) => ({
+        id: food.id,
+        name: food.name,
+        kcalPer100g: food.kcalPer100g,
+        proteinPer100g: food.proteinPer100g,
+        carbsPer100g: food.carbsPer100g,
+        fatsPer100g: food.fatsPer100g,
+        fiberPer100g: food.fiberPer100g,
+        sugarPer100g: food.sugarPer100g,
+        sodiumMgPer100g: food.sodiumMgPer100g,
+      })),
     [seedFoods]
   );
 
@@ -152,6 +168,12 @@ export default function LogFoodSearchScreen() {
         id: food.id,
         name: food.name,
         kcalPer100g: food.kcalPer100g,
+        proteinPer100g: food.proteinPer100g,
+        carbsPer100g: food.carbsPer100g,
+        fatsPer100g: food.fatsPer100g,
+        fiberPer100g: food.fiberPer100g,
+        sugarPer100g: food.sugarPer100g,
+        sodiumMgPer100g: food.sodiumMgPer100g,
       })),
     [searchResults]
   );
@@ -197,7 +219,17 @@ export default function LogFoodSearchScreen() {
             ...savedFoods.map((food) => ({
               type: 'food' as const,
               id: `saved-${food.id}`,
-              food: { id: food.id, name: food.name, kcalPer100g: food.kcalPer100g },
+              food: {
+                id: food.id,
+                name: food.name,
+                kcalPer100g: food.kcalPer100g,
+                proteinPer100g: food.proteinPer100g,
+                carbsPer100g: food.carbsPer100g,
+                fatsPer100g: food.fatsPer100g,
+                fiberPer100g: food.fiberPer100g,
+                sugarPer100g: food.sugarPer100g,
+                sodiumMgPer100g: food.sodiumMgPer100g,
+              },
             })),
           ]
         : []),
@@ -248,6 +280,12 @@ export default function LogFoodSearchScreen() {
           params: {
             foodName: food.name,
             kcalPer100g: String(food.kcalPer100g),
+            proteinPer100g: String(food.proteinPer100g ?? 0),
+            carbsPer100g: String(food.carbsPer100g ?? 0),
+            fatsPer100g: String(food.fatsPer100g ?? 0),
+            fiberPer100g: String(food.fiberPer100g ?? 0),
+            sugarPer100g: String(food.sugarPer100g ?? 0),
+            sodiumMgPer100g: String(food.sodiumMgPer100g ?? 0),
           },
         });
       }, 110);
@@ -348,14 +386,6 @@ export default function LogFoodSearchScreen() {
           </View>
 
           <View className="mt-3 flex-row gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              className="h-10 flex-1 rounded-md"
-              onPress={() => router.push('/dashboard/scan-label')}>
-              <Icon as={ScanLine} className="text-foreground size-4" />
-              <Text>Scan Label</Text>
-            </Button>
             <Button
               size="sm"
               className="h-10 flex-1 rounded-md"

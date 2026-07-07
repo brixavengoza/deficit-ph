@@ -74,6 +74,7 @@ export const useProfileBundleStore = create<ProfileBundleState>((set, get) => ({
     } catch (error) {
       set({
         error: error instanceof Error ? error.message : 'Failed to load profile data.',
+        hasLoaded: true,
         isLoading: false,
       });
     }

@@ -5,9 +5,8 @@ import { Icon } from '@/components/ui/icon';
 import { Input } from '@/components/ui/input';
 import { Text } from '@/components/ui/text';
 import { useCommonFoodsQuery, useFoodSearchQuery } from '@/hooks/use-trackk-query';
-import { useInsertFoodLogMutation, useUpsertUserFoodMutation } from '@/hooks/use-trackk-query';
+import { useUpsertUserFoodMutation } from '@/hooks/use-trackk-query';
 import { SavedFoodModel } from '@/lib/local-data';
-import { formatTimeLabelFromDate } from '@/utils/add-food-utils';
 import {
   convertRecipeQuantityToGrams,
   roundTo,
@@ -85,6 +84,15 @@ type IngredientFoodPickerProps = {
 
 function firstParam(value?: string | string[]) {
   return Array.isArray(value) ? value[0] : value;
+}
+
+function numberParam(value?: string | string[]) {
+  const parsed = Number(firstParam(value));
+  return Number.isFinite(parsed) && parsed >= 0 ? parsed : 0;
+}
+
+function valueParam(value: number) {
+  return Number.isFinite(value) ? String(value) : '0';
 }
 
 function createIngredient(): RecipeIngredient {
@@ -251,7 +259,21 @@ function NumericField({
 export default function AddCustomFoodScreen() {
   const insets = useSafeAreaInsets();
   const isDarkMode = useColorScheme() === 'dark';
-  const params = useLocalSearchParams<Partial<Record<'foodName' | 'caloriesPer100g', string>>>();
+  const params = useLocalSearchParams<
+    Partial<
+      Record<
+        | 'foodName'
+        | 'caloriesPer100g'
+        | 'proteinPer100g'
+        | 'carbsPer100g'
+        | 'fatsPer100g'
+        | 'fiberPer100g'
+        | 'sugarPer100g'
+        | 'sodiumMgPer100g',
+        string
+      >
+    >
+  >();
   const [submittingAction, setSubmittingAction] = React.useState<'save' | 'save-log' | null>(null);
   const [ingredients, setIngredients] = React.useState<RecipeIngredient[]>([createIngredient()]);
   const [foodPickerIngredientId, setFoodPickerIngredientId] = React.useState<string | null>(null);
@@ -262,8 +284,25 @@ export default function AddCustomFoodScreen() {
   const commonFoodsQuery = useCommonFoodsQuery();
   const foodSearchQuery = useFoodSearchQuery(normalizedFoodPickerQuery);
   const upsertFoodMutation = useUpsertUserFoodMutation();
-  const insertFoodLogMutation = useInsertFoodLogMutation();
   const isSubmitting = submittingAction != null;
+  const incomingNutrition = React.useMemo(
+    () => ({
+      proteinPer100g: numberParam(params.proteinPer100g),
+      carbsPer100g: numberParam(params.carbsPer100g),
+      fatsPer100g: numberParam(params.fatsPer100g),
+      fiberPer100g: numberParam(params.fiberPer100g),
+      sugarPer100g: numberParam(params.sugarPer100g),
+      sodiumMgPer100g: numberParam(params.sodiumMgPer100g),
+    }),
+    [
+      params.carbsPer100g,
+      params.fatsPer100g,
+      params.fiberPer100g,
+      params.proteinPer100g,
+      params.sodiumMgPer100g,
+      params.sugarPer100g,
+    ]
+  );
 
   const {
     control,
@@ -444,40 +483,29 @@ export default function AddCustomFoodScreen() {
         const savedFood = await upsertFoodMutation.mutateAsync({
           name: values.foodName.trim(),
           kcalPer100g: Number(values.caloriesPer100g),
-          proteinPer100g: 0,
-          carbsPer100g: 0,
-          fatsPer100g: 0,
-          fiberPer100g: 0,
-          sugarPer100g: 0,
-          sodiumMgPer100g: 0,
+          proteinPer100g: incomingNutrition.proteinPer100g,
+          carbsPer100g: incomingNutrition.carbsPer100g,
+          fatsPer100g: incomingNutrition.fatsPer100g,
+          fiberPer100g: incomingNutrition.fiberPer100g,
+          sugarPer100g: incomingNutrition.sugarPer100g,
+          sodiumMgPer100g: incomingNutrition.sodiumMgPer100g,
           servingSizeLabel: '100g',
         });
 
         if (shouldLogToday) {
-          await insertFoodLogMutation.mutateAsync({
-            foodId: savedFood.id,
-            foodName: savedFood.name,
-            kcalPer100g: savedFood.kcalPer100g,
-            proteinPer100g: savedFood.proteinPer100g,
-            carbsPer100g: savedFood.carbsPer100g,
-            fatsPer100g: savedFood.fatsPer100g,
-            fiberPer100g: savedFood.fiberPer100g,
-            sugarPer100g: savedFood.sugarPer100g,
-            sodiumMgPer100g: savedFood.sodiumMgPer100g,
-            quantity: 100,
-            unit: 'grams',
-            gramsEquivalent: 100,
-            meal: 'Lunch',
-            logTime: formatTimeLabelFromDate(new Date()),
-            totalKcal: Number(values.caloriesPer100g),
-            proteinGrams: 0,
-            carbsGrams: 0,
-            fatsGrams: 0,
-            fiberGrams: 0,
-            sugarGrams: 0,
-            sodiumMg: 0,
+          router.replace({
+            pathname: '/dashboard/add-food',
+            params: {
+              foodName: savedFood.name,
+              kcalPer100g: valueParam(savedFood.kcalPer100g),
+              proteinPer100g: valueParam(savedFood.proteinPer100g),
+              carbsPer100g: valueParam(savedFood.carbsPer100g),
+              fatsPer100g: valueParam(savedFood.fatsPer100g),
+              fiberPer100g: valueParam(savedFood.fiberPer100g),
+              sugarPer100g: valueParam(savedFood.sugarPer100g),
+              sodiumMgPer100g: valueParam(savedFood.sodiumMgPer100g),
+            },
           });
-          router.replace('/dashboard');
           return;
         }
 
@@ -490,7 +518,7 @@ export default function AddCustomFoodScreen() {
         setSubmittingAction(null);
       }
     },
-    [insertFoodLogMutation, recipeIngredients, setError, upsertFoodMutation]
+    [incomingNutrition, recipeIngredients, setError, upsertFoodMutation]
   );
 
   const previewCalories = Number(watch('caloriesPer100g') || 0);

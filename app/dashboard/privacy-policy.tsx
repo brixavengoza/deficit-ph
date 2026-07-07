@@ -3,10 +3,7 @@ import { Text } from '@/components/ui/text';
 import { router } from 'expo-router';
 import {
   ArrowLeft,
-  ChevronRight,
   Database,
-  Download,
-  FileText,
   Lock,
   Mail,
   Send,
@@ -121,8 +118,8 @@ export default function PrivacyPolicyScreen() {
           </View>
 
           <Text className="text-muted-foreground text-sm leading-5">
-            This screen explains what DeficitPH collects, why it is used, and the controls you have
-            over your personal information.
+            This screen explains what Deficit PH saves on your device and why it is needed for the
+            calorie tracking experience.
           </Text>
 
           <View className="mt-4 flex-row gap-3">
@@ -162,10 +159,10 @@ export default function PrivacyPolicyScreen() {
               </Text>
             </View>
             <View className="bg-background-subtle rounded-md p-4">
-              <Text className="text-foreground text-sm font-semibold">Usage diagnostics</Text>
+              <Text className="text-foreground text-sm font-semibold">App preferences</Text>
               <Text className="text-muted-foreground mt-1 text-sm leading-5">
-                Device type, app version, crash reports, and basic usage events to improve
-                reliability and performance.
+                Theme choice and app settings used to keep the experience consistent between app
+                opens.
               </Text>
             </View>
           </View>
@@ -176,12 +173,11 @@ export default function PrivacyPolicyScreen() {
           iconWrapClassName="bg-primary/15"
           iconClassName="text-primary"
           title="2. How We Use Information"
-          subtitle="For core features, support, and app quality">
+          subtitle="For core local features">
           <View className="gap-1 pl-2">
             <Bullet>Calculate calorie targets and personalized deficit recommendations.</Bullet>
             <Bullet>Show progress analytics and keep your logs available between app opens.</Bullet>
-            <Bullet>Investigate crashes, bugs, and performance issues.</Bullet>
-            <Bullet>Provide support for account and data requests.</Bullet>
+            <Bullet>Save custom foods, meals, hydration, weight, and profile preferences locally.</Bullet>
           </View>
         </SectionCard>
 
@@ -193,9 +189,8 @@ export default function PrivacyPolicyScreen() {
           subtitle="We do not sell your data">
           <View className="gap-3">
             <Text className="text-muted-foreground text-sm leading-5">
-              We may share limited information with service providers that help us operate the app
-              (such as crash diagnostics or app quality tooling), under security and confidentiality
-              obligations. Your food logs and progress are stored locally on this device.
+              Your food logs, profile details, progress, hydration, and weight entries are stored
+              locally on this device for the V1 app experience.
             </Text>
             <View className="bg-primary/10 rounded-md p-4">
               <Text className="text-foreground text-sm leading-5">
@@ -204,11 +199,9 @@ export default function PrivacyPolicyScreen() {
               </Text>
             </View>
             <View className="gap-2">
-              <Bullet>Reasonable technical and organizational safeguards are applied.</Bullet>
-              <Bullet>
-                Data is retained only as long as needed for service and legal requirements.
-              </Bullet>
-              <Bullet>Deletion requests trigger account/data removal workflows.</Bullet>
+              <Bullet>Keep your device locked to protect local app data.</Bullet>
+              <Bullet>Removing the app removes the local data stored by the app on this device.</Bullet>
+              <Bullet>Only grant camera or photo access when you want to use those features.</Bullet>
             </View>
           </View>
         </SectionCard>
@@ -219,26 +212,10 @@ export default function PrivacyPolicyScreen() {
           iconClassName="text-accent-foreground"
           title="4. Your Privacy Choices"
           subtitle="Manage your data and account">
-          <View className="gap-3">
-            <Pressable className="bg-background-subtle flex-row items-center justify-between rounded-md px-4 py-3">
-              <View className="flex-row items-center gap-3">
-                <Icon as={FileText} className="text-primary size-4" />
-                <Text className="text-foreground text-sm font-medium">
-                  Request a copy of your personal data
-                </Text>
-              </View>
-              <Icon as={ChevronRight} className="size-4 text-slate-400" />
-            </Pressable>
-
-            <Pressable className="bg-background-subtle flex-row items-center justify-between rounded-md px-4 py-3">
-              <View className="flex-row items-center gap-3">
-                <Icon as={Download} className="text-primary size-4" />
-                <Text className="text-foreground text-sm font-medium">
-                  Export logs and progress history
-                </Text>
-              </View>
-              <Icon as={ChevronRight} className="size-4 text-slate-400" />
-            </Pressable>
+          <View className="gap-2 pl-2">
+            <Bullet>Update your profile, goals, theme, and saved foods inside the app.</Bullet>
+            <Bullet>Use your device settings to revoke camera or photo permissions.</Bullet>
+            <Bullet>Delete the app if you want to remove V1 local data from this device.</Bullet>
           </View>
         </SectionCard>
 
@@ -255,8 +232,8 @@ export default function PrivacyPolicyScreen() {
                 Contact the Privacy Team
               </Text>
               <Text className="text-muted-foreground mt-2 text-sm leading-5">
-                For concerns about data handling, access requests, or account deletion, reach out
-                and we will respond as soon as possible.
+                For concerns about data handling or privacy, reach out and we will respond as soon
+                as possible.
               </Text>
             </View>
           </View>

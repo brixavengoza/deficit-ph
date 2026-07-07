@@ -10,7 +10,6 @@ import {
   useHomeDashboardQuery,
 } from '@/hooks/use-trackk-query';
 import { getFoodEmoji } from '@/lib/food-emoji';
-import type { LoggedFoodModel } from '@/lib/local-data';
 import { formatNumberGrouped } from '@/lib/number-format';
 import { router, Stack } from 'expo-router';
 import {
@@ -19,7 +18,6 @@ import {
   Edit3,
   PencilLine,
   Plus,
-  QrCode,
   Scale,
   Search,
   Utensils,
@@ -36,14 +34,6 @@ const CALORIE_RING_RADIUS = (CALORIE_RING_SIZE - CALORIE_RING_STROKE) / 2;
 const CALORIE_RING_CIRCUMFERENCE = 2 * Math.PI * CALORIE_RING_RADIUS;
 
 type PromptTone = 'primary' | 'info' | 'warning';
-type PromptAction = {
-  id: string;
-  label: string;
-  body: string;
-  icon: typeof Search;
-  tone: PromptTone;
-  onPress: () => void;
-};
 
 function getLocalDayKey(date = new Date()) {
   const year = date.getFullYear();
@@ -58,76 +48,6 @@ function getTodayLabel() {
     month: 'short',
     day: 'numeric',
   }).format(new Date());
-}
-
-function getMealPromptLabel(hour = new Date().getHours()) {
-  if (hour < 11) return 'Log breakfast';
-  if (hour < 16) return 'Log lunch';
-  if (hour < 21) return 'Log dinner';
-  return 'Log snack';
-}
-
-function getPromptMeal(hour = new Date().getHours()) {
-  if (hour < 11) return 'Breakfast';
-  if (hour < 16) return 'Lunch';
-  if (hour < 21) return 'Dinner';
-  return 'Snack';
-}
-
-function buildActionPrompts({
-  currentWeightKg,
-  hydrationCurrentMl,
-  hydrationTargetMl,
-  todayFoods,
-  onAddWater,
-  onLogWeight,
-}: {
-  currentWeightKg: number | null;
-  hydrationCurrentMl: number;
-  hydrationTargetMl: number;
-  todayFoods: LoggedFoodModel[];
-  onAddWater: () => void;
-  onLogWeight: () => void;
-}): PromptAction[] {
-  const hour = new Date().getHours();
-  const meal = getPromptMeal(hour);
-  const hasCurrentMeal = todayFoods.some((food) => food.meal === meal);
-  const prompts: PromptAction[] = [];
-
-  if (!hasCurrentMeal) {
-    prompts.push({
-      id: 'meal',
-      label: getMealPromptLabel(hour),
-      body: 'Add one meal and your calories update right away.',
-      icon: Utensils,
-      tone: 'primary',
-      onPress: () => router.push('/dashboard/log-food-search'),
-    });
-  }
-
-  if (hour < 12 && currentWeightKg == null) {
-    prompts.push({
-      id: 'weight',
-      label: 'Log weight today',
-      body: 'Morning weigh-ins make your trend easier to trust.',
-      icon: Scale,
-      tone: 'warning',
-      onPress: onLogWeight,
-    });
-  }
-
-  if (hydrationCurrentMl < hydrationTargetMl * 0.35) {
-    prompts.push({
-      id: 'water',
-      label: 'Add water',
-      body: 'A quick glass keeps today from looking empty.',
-      icon: Droplets,
-      tone: 'info',
-      onPress: onAddWater,
-    });
-  }
-
-  return prompts.slice(0, 3);
 }
 
 function QuickAction({
@@ -159,74 +79,31 @@ function QuickAction({
   );
 }
 
-function PromptCard({ prompt }: { prompt: PromptAction }) {
-  const toneClass =
-    prompt.tone === 'info'
-      ? 'bg-info/10'
-      : prompt.tone === 'warning'
-        ? 'bg-warning/10'
-        : 'bg-primary/10';
-  const iconBoxClass =
-    prompt.tone === 'info'
-      ? 'bg-info/15 text-info'
-      : prompt.tone === 'warning'
-        ? 'bg-warning/15 text-warning'
-        : 'bg-primary/15 text-primary';
-  const iconClass =
-    prompt.tone === 'info'
-      ? 'text-info'
-      : prompt.tone === 'warning'
-        ? 'text-warning'
-        : 'text-primary';
-
-  return (
-    <Pressable
-      onPress={prompt.onPress}
-      style={({ pressed }) => [{ opacity: pressed ? 0.76 : 1 }]}
-      className={`flex-1 flex-row items-center gap-3 rounded-md px-3 py-3 ${toneClass}`}>
-      <View className={`h-10 w-10 items-center justify-center rounded-md ${iconBoxClass}`}>
-        <Icon as={prompt.icon} className={`size-5 ${iconClass}`} />
-      </View>
-      <View className="min-w-0 flex-1">
-        <Text numberOfLines={1} className="text-foreground text-sm font-extrabold">
-          {prompt.label}
-        </Text>
-        <Text numberOfLines={2} className="text-muted-foreground mt-0.5 text-xs leading-4">
-          {prompt.body}
-        </Text>
-      </View>
-    </Pressable>
-  );
-}
-
-function MacroBar({
+function MacroTotal({
   isDarkMode,
   label,
   tone,
   value,
-  target,
 }: {
   isDarkMode: boolean;
   label: string;
   tone: PromptTone;
   value: number;
-  target: number;
 }) {
-  const progress = target > 0 ? Math.min(100, (value / target) * 100) : 0;
-  const fillClass = tone === 'info' ? 'bg-info' : tone === 'warning' ? 'bg-warning' : 'bg-primary';
+  const dotClass = tone === 'info' ? 'bg-info' : tone === 'warning' ? 'bg-warning' : 'bg-primary';
   const labelClass = isDarkMode ? 'text-white/65' : 'text-muted-foreground';
   const valueClass = isDarkMode ? 'text-white' : 'text-foreground';
-  const trackClass = isDarkMode ? 'bg-white/10' : 'bg-primary/15';
+  const tileClass = isDarkMode ? 'bg-white/10' : 'bg-card/70';
 
   return (
-    <View className="flex-1">
-      <View className="mb-1 flex-row items-center justify-between">
+    <View className={`${tileClass} flex-1 rounded-md px-3 py-3`}>
+      <View className="flex-row items-center gap-1.5">
+        <View className={`h-2 w-2 rounded-full ${dotClass}`} />
         <Text className={`${labelClass} text-[10px] font-bold uppercase`}>{label}</Text>
-        <Text className={`${valueClass} text-[11px] font-bold`}>{formatNumberGrouped(value)}g</Text>
       </View>
-      <View className={`h-1.5 overflow-hidden rounded-full ${trackClass}`}>
-        <View className={`h-full rounded-full ${fillClass}`} style={{ width: `${progress}%` }} />
-      </View>
+      <Text className={`${valueClass} mt-1 text-base font-black`}>
+        {formatNumberGrouped(value)}g
+      </Text>
     </View>
   );
 }
@@ -236,7 +113,7 @@ function CalorieHero({
   consumedKcal,
   goalKcal,
   isDarkMode,
-  macroProgress,
+  macroTotals,
   remainingKcal,
 }: {
   calorieProgress: number;
@@ -244,7 +121,7 @@ function CalorieHero({
   goalKcal: number;
   isDarkMode: boolean;
   remainingKcal: number;
-  macroProgress: { label: string; tone: PromptTone; value: number; target: number }[];
+  macroTotals: { label: string; tone: PromptTone; value: number }[];
 }) {
   const ringProgress = Math.max(0, Math.min(1, calorieProgress / 100));
   const strokeDashoffset = CALORIE_RING_CIRCUMFERENCE * (1 - ringProgress);
@@ -317,9 +194,9 @@ function CalorieHero({
         </View>
       </View>
 
-      <View className="mt-5 gap-3">
-        {macroProgress.map((macro) => (
-          <MacroBar key={macro.label} isDarkMode={isDarkMode} {...macro} />
+      <View className="mt-5 flex-row gap-2">
+        {macroTotals.map((macro) => (
+          <MacroTotal key={macro.label} isDarkMode={isDarkMode} {...macro} />
         ))}
       </View>
 
@@ -377,23 +254,20 @@ export default function DashboardScreen() {
   const hydrationTargetMl = homeDashboard.data?.hydrationTargetMl ?? 2500;
   const currentWeightKg = todaySummary?.weightKg ?? homeDashboard.data?.currentWeightKg ?? null;
 
-  const macroProgress = [
+  const macroTotals = [
     {
       label: 'Protein',
       value: todaySummary?.proteinG ?? 0,
-      target: homeDashboard.data?.proteinTargetG ?? 120,
       tone: 'primary' as const,
     },
     {
       label: 'Carbs',
       value: todaySummary?.carbsG ?? 0,
-      target: homeDashboard.data?.carbsTargetG ?? 220,
       tone: 'info' as const,
     },
     {
       label: 'Fat',
       value: todaySummary?.fatG ?? 0,
-      target: homeDashboard.data?.fatTargetG ?? 70,
       tone: 'warning' as const,
     },
   ];
@@ -455,19 +329,6 @@ export default function DashboardScreen() {
     [addWeightMutation, homeDashboard]
   );
 
-  const prompts = React.useMemo(
-    () =>
-      buildActionPrompts({
-        currentWeightKg,
-        hydrationCurrentMl,
-        hydrationTargetMl,
-        todayFoods,
-        onAddWater: openHydrationModal,
-        onLogWeight: () => setWeightModalOpen(true),
-      }),
-    [currentWeightKg, hydrationCurrentMl, hydrationTargetMl, openHydrationModal, todayFoods]
-  );
-
   return (
     <>
       <Stack.Screen options={{ headerShown: false }} />
@@ -502,25 +363,12 @@ export default function DashboardScreen() {
               </Button>
             </View>
 
-            {prompts.length > 0 ? (
-              <View className="gap-2">
-                <Text className="text-muted-foreground px-1 text-xs font-bold tracking-wider uppercase">
-                  Next best action
-                </Text>
-                <View className="gap-2">
-                  {prompts.map((prompt) => (
-                    <PromptCard key={prompt.id} prompt={prompt} />
-                  ))}
-                </View>
-              </View>
-            ) : null}
-
             <CalorieHero
               calorieProgress={calorieProgress}
               consumedKcal={consumedKcal}
               goalKcal={goalKcal}
               isDarkMode={isDarkMode}
-              macroProgress={macroProgress}
+              macroTotals={macroTotals}
               remainingKcal={remainingKcal}
             />
 
@@ -540,14 +388,9 @@ export default function DashboardScreen() {
                   onPress={() => setWeightModalOpen(true)}
                 />
                 <QuickAction
-                  label="Create Food"
+                  label="Custom Food"
                   icon={PencilLine}
                   onPress={() => router.push('/dashboard/add-custom-food')}
-                />
-                <QuickAction
-                  label="Scan Label"
-                  icon={QrCode}
-                  onPress={() => router.push('/dashboard/scan-label')}
                 />
               </View>
             </View>

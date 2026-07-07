@@ -1,24 +1,33 @@
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Text } from '@/components/ui/text';
-import { type OnboardingFormValues } from '@/lib/onboarding-form';
+import FieldError from '@/components/profile/field-error';
+import { stepOneSchema, type OnboardingFormValues } from '@/lib/onboarding-form';
 import { useRouter } from 'expo-router';
 import { Controller, useFormContext } from 'react-hook-form';
 import { KeyboardAvoidingView, Platform, ScrollView, View } from 'react-native';
 
 export default function OnboardingStepOneScreen() {
   const router = useRouter();
-  const { control, watch, setValue } = useFormContext<OnboardingFormValues>();
+  const {
+    control,
+    watch,
+    setValue,
+    trigger,
+    formState: { errors },
+  } = useFormContext<OnboardingFormValues>();
 
   const selectedSex = watch('sex');
   const age = watch('age');
   const heightCm = watch('heightCm');
   const weightKg = watch('weightKg');
-  const canProceed =
-    Boolean(selectedSex) &&
-    [age, heightCm, weightKg].every(
-      (value) => typeof value === 'string' && value.trim().length > 0
-    );
+  const canProceed = stepOneSchema.safeParse({ sex: selectedSex, age, heightCm, weightKg }).success;
+
+  const goNext = async () => {
+    const isValid = await trigger(['sex', 'age', 'heightCm', 'weightKg'], { shouldFocus: true });
+    if (!isValid) return;
+    router.push('/onboarding/step-2');
+  };
 
   return (
     <KeyboardAvoidingView
@@ -107,6 +116,7 @@ export default function OnboardingStepOneScreen() {
                       years
                     </Text>
                   </View>
+                  <FieldError message={errors.age?.message} />
                 </View>
 
                 <View className="gap-1.5">
@@ -130,6 +140,7 @@ export default function OnboardingStepOneScreen() {
                       cm
                     </Text>
                   </View>
+                  <FieldError message={errors.heightCm?.message} />
                 </View>
 
                 <View className="gap-1.5">
@@ -153,6 +164,7 @@ export default function OnboardingStepOneScreen() {
                       kg
                     </Text>
                   </View>
+                  <FieldError message={errors.weightKg?.message} />
                 </View>
               </View>
             </View>
@@ -167,9 +179,7 @@ export default function OnboardingStepOneScreen() {
           className="h-14 w-full rounded-full"
           disabled={!canProceed}
           onPress={() => {
-            if (!canProceed) return;
-            console.log('[onboarding step 1]', { sex: selectedSex, age, heightCm, weightKg });
-            router.push('/onboarding/step-2');
+            void goNext();
           }}>
           <Text className="text-primary-foreground text-lg font-bold">Next</Text>
         </Button>
