@@ -3,6 +3,14 @@ import * as SQLite from 'expo-sqlite';
 import { SEED_FOODS } from '@/lib/local-seed-foods';
 import { formatTimeLabelFromDate, parseTimeLabelToDate } from '@/utils/add-food-utils';
 import { calculateCalorieTargets } from '@/utils/calorie-targets';
+import { evaluateGoalSafety } from '@/utils/health-guardrails';
+import { heightInputToCm, weightInputToKg } from '@/utils/units';
+
+// Bump only for ADDITIVE migrations. RULE (data-loss red-team): never run a destructive
+// table rebuild (e.g. widening a CHECK) via the additive helpers below. Any rebuild must
+// live in a versioned branch that runs inside a transaction, verifies row-count before
+// DROP, and bumps this constant.
+const SCHEMA_VERSION = 1;
 
 type AppUnits = 'Metric' | 'Imperial';
 type AppTheme = 'Auto' | 'Light' | 'Dark';
@@ -91,6 +99,14 @@ export type LoggedFoodModel = {
   id: string;
   foodName: string;
   kcalPer100g: number;
+  // Per-100g snapshots carried alongside the entry so an edit re-seeds from the REAL
+  // logged macros instead of re-fabricating a synthetic split (see add-food.tsx).
+  proteinPer100g: number;
+  carbsPer100g: number;
+  fatsPer100g: number;
+  fiberPer100g: number;
+  sugarPer100g: number;
+  sodiumMgPer100g: number;
   quantity: number;
   unit: 'grams' | 'ml' | 'oz' | 'servings';
   gramsEquivalent: number;
@@ -366,16 +382,81 @@ async function openAndPrepareDb() {
     );
 
     CREATE INDEX IF NOT EXISTS hydration_logs_logged_idx ON hydration_logs(logged_at);
+
+    -- Backend-foundation tables (additive, offline-safe cache; no network code yet).
+    -- catalog_foods is a SEPARATE table on purpose: SQLite cannot ALTER the foods.source
+    -- CHECK constraint without a full rebuild, so we never add 'catalog' to foods.source.
+    -- Future sync must upsert via INSERT ... ON CONFLICT DO UPDATE (server-owned columns
+    -- only) — never INSERT OR REPLACE — and this table carries NO cascade FK (mirrors the
+    -- FK-less food_logs snapshot pattern) so a catalog refresh can never delete user data.
+    CREATE TABLE IF NOT EXISTS catalog_foods (
+      id TEXT PRIMARY KEY,
+      name TEXT NOT NULL,
+      kcal_per_100g REAL NOT NULL DEFAULT 0,
+      protein_per_100g REAL NOT NULL DEFAULT 0,
+      carbs_per_100g REAL NOT NULL DEFAULT 0,
+      fat_per_100g REAL NOT NULL DEFAULT 0,
+      fiber_per_100g REAL NOT NULL DEFAULT 0,
+      sugar_per_100g REAL NOT NULL DEFAULT 0,
+      sodium_mg_per_100g REAL NOT NULL DEFAULT 0,
+      serving_size_label TEXT,
+      provenance TEXT,
+      verified INTEGER NOT NULL DEFAULT 0,
+      revision INTEGER NOT NULL DEFAULT 0,
+      updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+      deleted_at TEXT
+    );
+
+    CREATE INDEX IF NOT EXISTS catalog_foods_search_idx ON catalog_foods(name COLLATE NOCASE);
+
+    -- Local entitlement CACHE ONLY. Truth is derived from the store receipt on every
+    -- launch (Transaction.currentEntitlements / queryPurchases) and reconciled in.
+    -- Runtime policy (correctness + data-loss red-team): never REVOKE on a transient
+    -- error — only GRANT on positive proof, and never gate solely on this local row.
+    CREATE TABLE IF NOT EXISTS entitlements (
+      id INTEGER PRIMARY KEY CHECK (id = 1),
+      unlocked INTEGER NOT NULL DEFAULT 0,
+      product_id TEXT,
+      source TEXT,
+      last_verified_at TEXT,
+      updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+
+    -- Recipe drafts: client-generated UUID (stable across publish retries) + status.
+    -- A draft is cleared ONLY after a server ack, so a mid-flight failure never loses input.
+    CREATE TABLE IF NOT EXISTS recipe_drafts (
+      id TEXT PRIMARY KEY,
+      title TEXT NOT NULL DEFAULT '',
+      payload_json TEXT NOT NULL DEFAULT '{}',
+      status TEXT NOT NULL DEFAULT 'draft'
+        CHECK (status IN ('draft', 'pending', 'published', 'failed')),
+      remote_recipe_id TEXT,
+      created_at TEXT NOT NULL DEFAULT (datetime('now')),
+      updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
   `);
 
   await db.runAsync('INSERT OR IGNORE INTO profile (id) VALUES (1)');
   await db.runAsync('INSERT OR IGNORE INTO user_preferences (id) VALUES (1)');
   await db.runAsync('INSERT OR IGNORE INTO user_goals (id) VALUES (1)');
+  await db.runAsync('INSERT OR IGNORE INTO entitlements (id) VALUES (1)');
   await ensureProfileColumns(db);
   await ensureNutritionColumns(db);
   await seedLocalFoods(db);
+  await stampSchemaVersion(db);
 
   return db;
+}
+
+async function stampSchemaVersion(db: SQLite.SQLiteDatabase) {
+  const row = await db.getFirstAsync<{ user_version: number }>('PRAGMA user_version');
+  const current = row?.user_version ?? 0;
+  if (current >= SCHEMA_VERSION) return;
+  // Every migration to date is additive (CREATE TABLE IF NOT EXISTS / ensureColumn), all
+  // individually idempotent, so there is nothing destructive to replay here — we only
+  // stamp the version so future migrations have a floor to branch on. SCHEMA_VERSION is a
+  // numeric constant, so this interpolation cannot be injected (PRAGMA rejects bind params).
+  await db.execAsync(`PRAGMA user_version = ${SCHEMA_VERSION}`);
 }
 
 async function ensureColumn(
@@ -478,13 +559,34 @@ async function refreshCalorieTargets(
     getLatestWeightKg(db),
   ]);
 
+  const goal: AppGoal = goals?.goal ?? 'lose';
+  const heightCm = overrides.heightCm ?? profile?.height_cm;
+  const weightKg = overrides.weightKg ?? latestWeight ?? profile?.start_weight_kg;
+
+  // SAFETY GATE (health-safety red-team, Finding 1): the STORED daily target must be
+  // gated by construction, not only on the one-time onboarding screen. If the persisted
+  // goal is 'lose' but the guardrail blocks a cut (minor or underweight — e.g. the user
+  // later edited their weight down), never persist an ungated deficit. Fall back to the
+  // recommended safe goal so every downstream consumer (dashboard, future AI planner)
+  // reads a safety-gated target. The goal enum itself is left untouched (re-gated
+  // idempotently on the next refresh); flipping it is a UX decision, not a data one.
+  const safety = evaluateGoalSafety({
+    age: profile?.age,
+    heightCm,
+    weightKg,
+    sex: profile?.sex,
+    goal,
+  });
+  const effectiveGoal: AppGoal =
+    goal === 'lose' && !safety.allowLose ? (safety.recommendedGoal ?? 'maintain') : goal;
+
   const targets = calculateCalorieTargets({
     activityLevel: overrides.activityLevel ?? preferences?.activity_level ?? 'moderate',
     age: profile?.age,
-    goal: goals?.goal ?? 'lose',
-    heightCm: overrides.heightCm ?? profile?.height_cm,
+    goal: effectiveGoal,
+    heightCm,
     sex: profile?.sex,
-    weightKg: overrides.weightKg ?? latestWeight ?? profile?.start_weight_kg,
+    weightKg,
   });
 
   if (!targets) return;
@@ -626,18 +728,25 @@ export async function updateBodyMeasurements(values: {
   height: string;
   weight: string;
   goalWeight: string;
+  units: AppUnits;
 }) {
   const db = await getDb();
   const now = new Date().toISOString();
-  const weightKg = toNumber(values.weight);
+  // Inputs arrive in the user's DISPLAY units. Convert Imperial in/lb to the canonical
+  // cm/kg the DB (and all BMI + calorie math) assumes. Storing raw Imperial numbers here
+  // corrupted safety-critical math (correctness + health-safety red-team): a 140 lb user
+  // was persisted as 140 "kg", inflating BMI so the guardrail wrongly unblocked a cut.
+  const heightCm = heightInputToCm(toNumber(values.height), values.units);
+  const weightKg = weightInputToKg(toNumber(values.weight), values.units);
+  const goalWeightKg = weightInputToKg(toNumber(values.goalWeight), values.units);
 
   await db.withExclusiveTransactionAsync(async (txn) => {
     await txn.runAsync(
       'UPDATE profile SET height_cm = ?, start_weight_kg = ?, updated_at = ? WHERE id = 1',
-      [toNumber(values.height), weightKg, now]
+      [heightCm, weightKg, now]
     );
     await txn.runAsync('UPDATE user_goals SET goal_weight_kg = ?, updated_at = ? WHERE id = 1', [
-      toNumber(values.goalWeight),
+      goalWeightKg,
       now,
     ]);
     if (weightKg > 0) {
@@ -648,10 +757,7 @@ export async function updateBodyMeasurements(values: {
     }
   });
 
-  await refreshCalorieTargets(db, {
-    heightCm: toNumber(values.height),
-    weightKg,
-  });
+  await refreshCalorieTargets(db, { heightCm, weightKg });
 }
 
 export async function updateUnits(units: AppUnits) {
@@ -862,6 +968,12 @@ function mapFoodLogRow(row: FoodLogRow): LoggedFoodModel {
     id: row.id,
     foodName: row.food_name_snapshot,
     kcalPer100g: toNumber(row.kcal_per_100g_snapshot),
+    proteinPer100g: toNumber(row.protein_per_100g_snapshot),
+    carbsPer100g: toNumber(row.carbs_per_100g_snapshot),
+    fatsPer100g: toNumber(row.fat_per_100g_snapshot),
+    fiberPer100g: toNumber(row.fiber_per_100g_snapshot),
+    sugarPer100g: toNumber(row.sugar_per_100g_snapshot),
+    sodiumMgPer100g: toNumber(row.sodium_mg_per_100g_snapshot),
     quantity: toNumber(row.quantity),
     unit,
     gramsEquivalent: toNumber(row.grams_equivalent),

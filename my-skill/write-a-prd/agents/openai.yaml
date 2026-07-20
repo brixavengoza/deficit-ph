@@ -1,0 +1,4 @@
+interface:
+  display_name: "Write PRD"
+  short_description: "Research, interview, and write a rigorous PRD"
+  default_prompt: "Use $write-a-prd to research my proposed feature, resolve its design decisions with me, and write issues/prd.md."

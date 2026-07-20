@@ -13,10 +13,12 @@ A skill is a set of local instructions stored in a `SKILL.md` file.
 - react-best-practices: Use when building or refactoring React Native screens and components. (file: my-skill/react-best-practices/SKILL.md)
 - react-native-reusables-ui: Use when building or refactoring React Native UI in this codebase with local reusables + Uniwind patterns. (file: my-skill/react-native-reusables-ui/SKILL.md)
 - taglish-genz: Use when writing user-facing content for Filipino Gen Z audience in natural Taglish tone. (file: my-skill/taglish-genz/SKILL.md)
+- grill-me: Interrogate a plan one decision at a time, recommending answers and researching the codebase first. (file: my-skill/grill-me/SKILL.md)
+- write-a-prd: Research, interview, and turn a feature proposal into a local PRD at `issues/prd.md`. (file: my-skill/write-a-prd/SKILL.md)
 
 ### How to use skills
 
-- Trigger a skill by naming it directly (for example `$react-best-practices`) or by asking for work that clearly matches the skill description.
+- Trigger a skill by naming it directly (for example `$write-a-prd`) or by asking for work that clearly matches the skill description.
 - If multiple skills apply, use the smallest set that covers the task.
 - Open each `SKILL.md` and follow its workflow; only load additional referenced files as needed.
 - Keep the working context lean and avoid loading unrelated reference content.
@@ -26,3 +28,16 @@ A skill is a set of local instructions stored in a `SKILL.md` file.
 - Codex globally auto-discovers skills from `~/.codex/skills`.
 - This repo includes `my-skill/sync-to-codex-home.sh` to keep `my-skill/*` linked into `~/.codex/skills`.
 - Re-run sync after adding/removing skill folders.
+
+## Claude Code (parallel counterpart)
+
+The same standards are mirrored for Claude Code:
+
+- **Rules:** `CLAUDE.md` (project overview, non-negotiables, publish gate).
+- **Skills:** `.claude/skills/*` (ports of the skills above, plus `orchestrate` and `publish-gate`).
+- **Agents:** `.claude/agents/*` — a multi-agent red-team pipeline (four parallel specialists →
+  four-angle adversarial red-team → synthesis → independent calibrated confidence audit),
+  invoked via the `orchestrate` skill for high-stakes work.
+
+When you change a shared standard in `my-skill/*`, mirror it in `.claude/skills/*` (and vice
+versa) so both ecosystems stay in sync.

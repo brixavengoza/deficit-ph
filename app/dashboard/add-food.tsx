@@ -113,6 +113,19 @@ export default function AddFoodScreen() {
     [editingEntry?.kcalPer100g, params.kcalPer100g]
   );
   const macroProfile = React.useMemo(() => {
+    // When editing an existing log, seed macros from the entry's OWN per-100g snapshot.
+    // Re-deriving via resolveMacroProfile here silently replaced the real logged macros
+    // with a fabricated 35/40/25 split on any edit (even just changing the time).
+    if (editingEntry) {
+      return {
+        proteinPer100g: editingEntry.proteinPer100g,
+        carbsPer100g: editingEntry.carbsPer100g,
+        fatsPer100g: editingEntry.fatsPer100g,
+        fiberPer100g: editingEntry.fiberPer100g,
+        sugarPer100g: editingEntry.sugarPer100g,
+        sodiumMgPer100g: editingEntry.sodiumMgPer100g,
+      };
+    }
     const resolved = resolveMacroProfile(foodName, kcalPer100g);
     const scannedProtein = Number(params.proteinPer100g);
     const scannedCarbs = Number(params.carbsPer100g);
@@ -140,6 +153,7 @@ export default function AddFoodScreen() {
           : resolved.sodiumMgPer100g,
     };
   }, [
+    editingEntry,
     foodName,
     kcalPer100g,
     params.carbsPer100g,
@@ -242,7 +256,6 @@ export default function AddFoodScreen() {
     async (values: AddFoodFormValues) => {
       setIsSubmitting(true);
       try {
-        await new Promise((resolve) => setTimeout(resolve, 220));
         const quantity = Number(values.quantity);
         const gramsEquivalent = roundTo(convertQuantityToGrams(quantity, values.unit), 1);
 

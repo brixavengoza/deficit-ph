@@ -117,7 +117,8 @@ export const useProfileBundleStore = create<ProfileBundleState>((set, get) => ({
   saveBodyMeasurements: async (values) => {
     set({ isSaving: true, error: null });
     try {
-      await updateBodyMeasurements(values);
+      // Persist in the user's active units so local-data can convert Imperial → metric.
+      await updateBodyMeasurements({ ...values, units: get().bundle.units });
       const bundle = await loadProfileBundle();
       set({ bundle, isSaving: false, hasLoaded: true });
     } catch (error) {

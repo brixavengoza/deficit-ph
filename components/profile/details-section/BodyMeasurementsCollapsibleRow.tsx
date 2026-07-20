@@ -10,6 +10,18 @@ import { Input } from '@/components/ui/input';
 import FieldError from '../field-error';
 import { Button } from '@/components/ui/button';
 import { useProfileBundleStore } from '@/stores/use-profile-bundle-store';
+import { heightCmToDisplay, weightKgToDisplay } from '@/utils/units';
+
+// The bundle stores canonical metric (cm/kg). Convert to the user's display units so the
+// value shown under an "in"/"lb" label is actually Imperial — the save path converts back
+// to metric, keeping the round-trip consistent (no corruption on re-save).
+function toDisplay(metricValue: string, kind: 'height' | 'weight', units: 'Metric' | 'Imperial') {
+  const num = Number(metricValue);
+  if (!Number.isFinite(num) || num <= 0) return metricValue;
+  const converted =
+    kind === 'height' ? heightCmToDisplay(num, units) : weightKgToDisplay(num, units);
+  return String(Math.round(converted * 10) / 10);
+}
 
 export default function BodyMeasurementsCollapsibleRow() {
   const [open, setOpen] = React.useState(false);
@@ -26,8 +38,12 @@ export default function BodyMeasurementsCollapsibleRow() {
   });
 
   React.useEffect(() => {
-    form.reset({ height, weight, goalWeight });
-  }, [form, goalWeight, height, weight]);
+    form.reset({
+      height: toDisplay(height, 'height', units),
+      weight: toDisplay(weight, 'weight', units),
+      goalWeight: toDisplay(goalWeight, 'weight', units),
+    });
+  }, [form, goalWeight, height, units, weight]);
 
   const saveBodyMeasurements = async (values: BodyMeasurementsValues) => {
     await saveBodyToDb(values);

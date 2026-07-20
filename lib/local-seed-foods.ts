@@ -513,22 +513,6 @@ export const SEED_FOODS: SeedFood[] = [
     servingSizeLabel: '1 tbsp',
   },
   {
-    name: 'Sugar, White',
-    kcalPer100g: 387,
-    proteinPer100g: 0,
-    carbsPer100g: 100,
-    fatsPer100g: 0,
-    servingSizeLabel: '1 tsp',
-  },
-  {
-    name: 'Brown Sugar',
-    kcalPer100g: 380,
-    proteinPer100g: 0,
-    carbsPer100g: 98,
-    fatsPer100g: 0,
-    servingSizeLabel: '1 tsp',
-  },
-  {
     name: 'Maple Syrup',
     kcalPer100g: 260,
     proteinPer100g: 0,
@@ -2879,5 +2863,1902 @@ export const SEED_FOODS: SeedFood[] = [
     carbsPer100g: 7.5,
     fatsPer100g: 2,
     servingSizeLabel: '1 cup',
+  },
+
+  // ==================== PH ulam, rice & noodle dishes (added 2026-07-20) ====================
+  // --- Rice & rice porridge ---
+  {
+    name: 'Kanin (White Rice), Cooked',
+    kcalPer100g: 130,
+    proteinPer100g: 2.7,
+    carbsPer100g: 28,
+    fatsPer100g: 0.3,
+    servingSizeLabel: '1 cup',
+  },
+  {
+    name: 'Brown Rice, Cooked',
+    kcalPer100g: 123,
+    proteinPer100g: 2.7,
+    carbsPer100g: 26,
+    fatsPer100g: 1,
+    servingSizeLabel: '1 cup',
+  },
+  {
+    name: 'Sinangag (Garlic Fried Rice)',
+    kcalPer100g: 163,
+    proteinPer100g: 2.8,
+    carbsPer100g: 27,
+    fatsPer100g: 4.5,
+    servingSizeLabel: '1 cup',
+    // VERIFY: oil-to-rice ratio varies a lot by cook; estimated from typical recipe proportions.
+  },
+  {
+    name: 'Java Rice (Turmeric Rice)',
+    kcalPer100g: 168,
+    proteinPer100g: 2.6,
+    carbsPer100g: 29,
+    fatsPer100g: 4.5,
+    servingSizeLabel: '1 cup',
+    // VERIFY: no dedicated nutrition source found; estimated from typical annatto/turmeric fried rice recipe.
+  },
+  {
+    name: 'Lugaw, Plain (Rice Porridge)',
+    kcalPer100g: 60,
+    proteinPer100g: 1.3,
+    carbsPer100g: 13,
+    fatsPer100g: 0.3,
+    servingSizeLabel: '1 bowl',
+    // VERIFY: estimated from standard 1:8 rice-to-water congee ratio, not a direct source.
+  },
+  {
+    name: 'Arroz Caldo (Chicken Rice Porridge)',
+    kcalPer100g: 110,
+    proteinPer100g: 6.5,
+    carbsPer100g: 14,
+    fatsPer100g: 3.2,
+    servingSizeLabel: '1 bowl',
+    // VERIFY: published values ranged very widely (170-411 kcal/bowl across sources); used a mid-range per-100g estimate.
+  },
+  {
+    name: 'Goto (Beef Tripe Rice Porridge)',
+    kcalPer100g: 115,
+    proteinPer100g: 7,
+    carbsPer100g: 13,
+    fatsPer100g: 4.5,
+    servingSizeLabel: '1 bowl',
+    // VERIFY: sources disagreed widely (210-353 kcal/bowl); tripe fat content is highly recipe-dependent.
+  },
+  {
+    name: 'Sopas (Chicken Macaroni Soup)',
+    kcalPer100g: 110,
+    proteinPer100g: 6.5,
+    carbsPer100g: 12,
+    fatsPer100g: 4,
+    servingSizeLabel: '1 bowl',
+    // VERIFY: recipes vary a lot depending on amount of evaporated/fresh milk used.
+  },
+
+  // --- Soups & stews ---
+  {
+    name: 'Sinigang Na Baboy (Pork Sinigang)',
+    kcalPer100g: 62,
+    proteinPer100g: 6.2,
+    carbsPer100g: 4.5,
+    fatsPer100g: 2.8,
+    servingSizeLabel: '1 bowl',
+    // VERIFY: broth-to-solids ratio varies a lot by household; sources ranged 180-350 kcal per bowl.
+  },
+  {
+    name: 'Sinigang Na Hipon (Shrimp Sinigang)',
+    kcalPer100g: 52,
+    proteinPer100g: 6.8,
+    carbsPer100g: 4.5,
+    fatsPer100g: 1.3,
+    servingSizeLabel: '1 bowl',
+    // VERIFY: no dedicated source found; estimated by analogy to pork sinigang with a shrimp swap.
+  },
+  {
+    name: 'Sinigang Na Isda (Bangus Sinigang)',
+    kcalPer100g: 68,
+    proteinPer100g: 7.2,
+    carbsPer100g: 4.5,
+    fatsPer100g: 3.2,
+    servingSizeLabel: '1 bowl',
+    // VERIFY: no dedicated source found; estimated by analogy using milkfish's higher natural fat content.
+  },
+  {
+    name: 'Tinolang Manok (Chicken Tinola)',
+    kcalPer100g: 78,
+    proteinPer100g: 9.5,
+    carbsPer100g: 4,
+    fatsPer100g: 2.8,
+    servingSizeLabel: '1 bowl',
+  },
+  {
+    name: 'Nilagang Baka (Beef Nilaga)',
+    kcalPer100g: 92,
+    proteinPer100g: 9.5,
+    carbsPer100g: 4.5,
+    fatsPer100g: 4.5,
+    servingSizeLabel: '1 bowl',
+    // VERIFY: published serving values ranged very widely depending on beef cut and marrow content.
+  },
+  {
+    name: 'Pochero, Beef',
+    kcalPer100g: 112,
+    proteinPer100g: 8.5,
+    carbsPer100g: 8,
+    fatsPer100g: 5.5,
+    servingSizeLabel: '1 serving',
+    // VERIFY: no dedicated source consulted; estimated from nilaga plus the added banana/tomato-sauce richness.
+  },
+  {
+    name: 'Bicol Express',
+    kcalPer100g: 180,
+    proteinPer100g: 9,
+    carbsPer100g: 5,
+    fatsPer100g: 14,
+    servingSizeLabel: '1 serving',
+  },
+  {
+    name: 'Batchoy (La Paz Batchoy)',
+    kcalPer100g: 100,
+    proteinPer100g: 6.5,
+    carbsPer100g: 10,
+    fatsPer100g: 4.5,
+    servingSizeLabel: '1 bowl',
+    // VERIFY: sources ranged ~85-140 kcal/100g depending on noodle and pork-offal ratio.
+  },
+
+  // --- Adobo & other staple ulam (adobo, bistek, etc. were surprising gaps in the seed set) ---
+  {
+    name: 'Adobong Manok (Chicken Adobo)',
+    kcalPer100g: 145,
+    proteinPer100g: 17,
+    carbsPer100g: 4,
+    fatsPer100g: 9.5,
+    servingSizeLabel: '1 serving',
+  },
+  {
+    name: 'Adobong Baboy (Pork Adobo)',
+    kcalPer100g: 195,
+    proteinPer100g: 14.5,
+    carbsPer100g: 3.5,
+    fatsPer100g: 14.5,
+    servingSizeLabel: '1 serving',
+    // VERIFY: sources disagreed widely (165 kcal/100g vs an outlier near 350); used a mid-high estimate given typical pork belly fat content.
+  },
+  {
+    name: 'Bistek Tagalog (Beef Steak, Filipino Style)',
+    kcalPer100g: 180,
+    proteinPer100g: 16,
+    carbsPer100g: 5,
+    fatsPer100g: 11,
+    servingSizeLabel: '1 serving',
+    // VERIFY: sources ranged 167-495 kcal per serving depending on cut and oil amount; used a mid estimate.
+  },
+  {
+    name: 'Pork Steak, Filipino Style',
+    kcalPer100g: 220,
+    proteinPer100g: 17,
+    carbsPer100g: 5,
+    fatsPer100g: 15,
+    servingSizeLabel: '1 serving',
+    // VERIFY: no dedicated source found; estimated as the pork-chop analog of bistek tagalog.
+  },
+  {
+    name: 'Chicken Curry, Filipino Style',
+    kcalPer100g: 160,
+    proteinPer100g: 12,
+    carbsPer100g: 8,
+    fatsPer100g: 9.5,
+    servingSizeLabel: '1 serving',
+    // VERIFY: no dedicated source consulted; estimated from a typical potato-carrot-coconut milk curry recipe.
+  },
+  {
+    name: 'Humba (Visayan Sweet Pork Stew)',
+    kcalPer100g: 210,
+    proteinPer100g: 13,
+    carbsPer100g: 9,
+    fatsPer100g: 14,
+    servingSizeLabel: '1 serving',
+    // VERIFY: sources ranged widely (roughly 173-225 kcal/100g equivalent); used a mid estimate.
+  },
+  {
+    name: 'Binagoongan Baboy (Pork Cooked In Shrimp Paste)',
+    kcalPer100g: 210,
+    proteinPer100g: 14,
+    carbsPer100g: 5,
+    fatsPer100g: 15,
+    servingSizeLabel: '1 serving',
+    // VERIFY: sources ranged widely depending on whether coconut milk is added; used a mid estimate.
+  },
+  {
+    name: 'Adobo Sa Gata (Chicken Adobo In Coconut Milk)',
+    kcalPer100g: 210,
+    proteinPer100g: 13,
+    carbsPer100g: 4,
+    fatsPer100g: 16,
+    servingSizeLabel: '1 serving',
+    // VERIFY: no dedicated source; estimated as chicken adobo plus coconut milk richness.
+  },
+  {
+    name: 'Paksiw Na Pata (Pork Hocks Braised In Vinegar)',
+    kcalPer100g: 220,
+    proteinPer100g: 16,
+    carbsPer100g: 6,
+    fatsPer100g: 15,
+    servingSizeLabel: '1 serving',
+    // VERIFY: no dedicated source; estimated from the fat/gelatin content of similar braised pork-hock dishes.
+  },
+
+  // --- Sisig & lechon ---
+  {
+    name: 'Sisig, Pork (Sizzling Sisig)',
+    kcalPer100g: 230,
+    proteinPer100g: 14,
+    carbsPer100g: 4,
+    fatsPer100g: 18.5,
+    servingSizeLabel: '1 serving',
+    // VERIFY: recipes vary a lot (with/without mayo, egg, liver); sources ranged roughly 200-260 kcal/100g.
+  },
+  {
+    name: 'Sisig, Chicken',
+    kcalPer100g: 180,
+    proteinPer100g: 16,
+    carbsPer100g: 4,
+    fatsPer100g: 11.5,
+    servingSizeLabel: '1 serving',
+    // VERIFY: no dedicated source; scaled down from pork sisig's fat content.
+  },
+  {
+    name: 'Sisig, Tuna',
+    kcalPer100g: 165,
+    proteinPer100g: 15,
+    carbsPer100g: 3,
+    fatsPer100g: 10.5,
+    servingSizeLabel: '1 serving',
+    // VERIFY: no dedicated source; estimated from a canned-tuna-and-mayo recipe ratio.
+  },
+  {
+    name: 'Lechon Kawali',
+    kcalPer100g: 450,
+    proteinPer100g: 20,
+    carbsPer100g: 1,
+    fatsPer100g: 36,
+    servingSizeLabel: '1 serving',
+  },
+  {
+    name: 'Lechon (Roast Pig), Meat With Skin',
+    kcalPer100g: 294,
+    proteinPer100g: 25.8,
+    carbsPer100g: 0,
+    fatsPer100g: 21.3,
+    servingSizeLabel: '100g',
+  },
+  {
+    name: 'Lechon Manok (Roast Chicken)',
+    kcalPer100g: 220,
+    proteinPer100g: 24,
+    carbsPer100g: 2,
+    fatsPer100g: 13,
+    servingSizeLabel: '1/4 chicken',
+    // VERIFY: estimated from USDA roast chicken (meat+skin) plus a Filipino basting marinade adjustment.
+  },
+
+  // --- Grilled & fried fish / meat ---
+  {
+    name: 'Daing Na Bangus, Fried',
+    kcalPer100g: 210,
+    proteinPer100g: 20,
+    carbsPer100g: 2,
+    fatsPer100g: 13.5,
+    servingSizeLabel: '1 piece',
+    // VERIFY: most public sources describe poached/raw milkfish (~120-125 kcal/100g); adjusted upward for pan-frying oil absorption, which those sources don't account for.
+  },
+  {
+    name: 'Inihaw Na Isda (Grilled Fish, Generic)',
+    kcalPer100g: 150,
+    proteinPer100g: 24,
+    carbsPer100g: 0.5,
+    fatsPer100g: 5.5,
+    servingSizeLabel: '1 serving',
+    // VERIFY: generic average across common grilled species (tilapia, galunggong, bangus); actual value depends heavily on the fish used.
+  },
+  {
+    name: 'Inihaw Na Manok (Chicken Inasal)',
+    kcalPer100g: 150,
+    proteinPer100g: 17.5,
+    carbsPer100g: 2.5,
+    fatsPer100g: 7.5,
+    servingSizeLabel: '1 piece',
+  },
+  {
+    name: 'Inihaw Na Pusit (Grilled Squid)',
+    kcalPer100g: 110,
+    proteinPer100g: 18,
+    carbsPer100g: 2,
+    fatsPer100g: 3,
+    servingSizeLabel: '1 serving',
+    // VERIFY: no dedicated source; estimated from raw squid baseline plus light oil basting.
+  },
+  {
+    name: 'Tuna Panga, Grilled (Grilled Tuna Jaw)',
+    kcalPer100g: 200,
+    proteinPer100g: 22,
+    carbsPer100g: 0.5,
+    fatsPer100g: 12,
+    servingSizeLabel: '1 serving',
+    // VERIFY: no dedicated source found; tuna collar/jaw is a notably fattier cut than loin, estimate is approximate.
+  },
+  {
+    name: 'Longganisa, Fried (Sweet)',
+    kcalPer100g: 300,
+    proteinPer100g: 14,
+    carbsPer100g: 8,
+    fatsPer100g: 22,
+    servingSizeLabel: '2 links',
+    // VERIFY: brand values ranged 267-360 kcal/100g; used a mid estimate.
+  },
+  {
+    name: 'Tocino, Fried (Sweet Cured Pork)',
+    kcalPer100g: 220,
+    proteinPer100g: 14,
+    carbsPer100g: 12,
+    fatsPer100g: 13,
+    servingSizeLabel: '1 serving',
+    // VERIFY: sources ranged ~180-200+ kcal/100g depending on sugar/fat ratio and frying.
+  },
+  {
+    name: 'Beef Tapa, Fried',
+    kcalPer100g: 220,
+    proteinPer100g: 24,
+    carbsPer100g: 3,
+    fatsPer100g: 11,
+    servingSizeLabel: '1 serving',
+    // VERIFY: sources ranged 180-270 kcal/100g by brand and cut.
+  },
+
+  // --- Vegetable ulam (ginisang, ginataang, and friends) ---
+  {
+    name: 'Ginisang Ampalaya (With Egg And Pork)',
+    kcalPer100g: 95,
+    proteinPer100g: 6,
+    carbsPer100g: 4.5,
+    fatsPer100g: 6,
+    servingSizeLabel: '1 cup',
+    // VERIFY: composite estimate from ingredient ratios; no dish-level source found.
+  },
+  {
+    name: 'Ginisang Kangkong (With Garlic And Bagoong)',
+    kcalPer100g: 60,
+    proteinPer100g: 3,
+    carbsPer100g: 4,
+    fatsPer100g: 3.5,
+    servingSizeLabel: '1 cup',
+    // VERIFY: composite estimate from ingredient ratios; no dish-level source found.
+  },
+  {
+    name: 'Ginisang Sitaw (With Pork And Shrimp)',
+    kcalPer100g: 85,
+    proteinPer100g: 6,
+    carbsPer100g: 6,
+    fatsPer100g: 4.5,
+    servingSizeLabel: '1 cup',
+    // VERIFY: composite estimate from ingredient ratios; no dish-level source found.
+  },
+  {
+    name: 'Ginisang Upo (With Shrimp)',
+    kcalPer100g: 45,
+    proteinPer100g: 3,
+    carbsPer100g: 4,
+    fatsPer100g: 2,
+    servingSizeLabel: '1 cup',
+    // VERIFY: composite estimate from ingredient ratios; no dish-level source found.
+  },
+  {
+    name: 'Pinakbet (Ilocano Vegetable Stew)',
+    kcalPer100g: 85,
+    proteinPer100g: 5,
+    carbsPer100g: 7,
+    fatsPer100g: 4.5,
+    servingSizeLabel: '1 cup',
+    // VERIFY: published serving values ranged very widely (roughly 60-283 kcal/serving) depending on meat content.
+  },
+  {
+    name: 'Laing (Taro Leaves In Coconut Milk)',
+    kcalPer100g: 180,
+    proteinPer100g: 5,
+    carbsPer100g: 9,
+    fatsPer100g: 14,
+    servingSizeLabel: '1/2 cup',
+    // VERIFY: sources strongly disagreed (one ~150 kcal/100g, others 600+ kcal/100g). Used the lower figure for consistency with other ginataang dishes already in this catalog (Bicol Express, Ginataang Manok) — please recheck against a recipe calculator before shipping.
+  },
+  {
+    name: 'Ginataang Kalabasa At Sitaw',
+    kcalPer100g: 95,
+    proteinPer100g: 3,
+    carbsPer100g: 8,
+    fatsPer100g: 6,
+    servingSizeLabel: '1 cup',
+    // VERIFY: composite estimate from ingredient ratios; no dish-level source found.
+  },
+  {
+    name: 'Ginataang Langka (Jackfruit In Coconut Milk)',
+    kcalPer100g: 140,
+    proteinPer100g: 5,
+    carbsPer100g: 10,
+    fatsPer100g: 9.5,
+    servingSizeLabel: '1 cup',
+    // VERIFY: composite estimate from ingredient ratios; no dish-level source found.
+  },
+  {
+    name: 'Chopsuey (Mixed Vegetable Stir-Fry)',
+    kcalPer100g: 75,
+    proteinPer100g: 4,
+    carbsPer100g: 7,
+    fatsPer100g: 3.5,
+    servingSizeLabel: '1 cup',
+    // VERIFY: sources ranged very widely depending on meat/quail-egg content and sauce thickness.
+  },
+  {
+    name: 'Adobong Sitaw (String Beans Adobo)',
+    kcalPer100g: 70,
+    proteinPer100g: 3.5,
+    carbsPer100g: 6,
+    fatsPer100g: 4,
+    servingSizeLabel: '1 cup',
+    // VERIFY: composite estimate from ingredient ratios; no dish-level source found.
+  },
+  {
+    name: 'Pesang Isda (Poached Fish In Ginger Broth)',
+    kcalPer100g: 65,
+    proteinPer100g: 9,
+    carbsPer100g: 3,
+    fatsPer100g: 2,
+    servingSizeLabel: '1 bowl',
+    // VERIFY: composite estimate from ingredient ratios; no dish-level source found.
+  },
+
+  // --- Lumpia ---
+  {
+    name: 'Lumpiang Shanghai, Fried',
+    kcalPer100g: 220,
+    proteinPer100g: 10,
+    carbsPer100g: 14,
+    fatsPer100g: 14,
+    servingSizeLabel: '4 pieces',
+  },
+  {
+    name: 'Lumpiang Sariwa (Fresh Vegetable Roll)',
+    kcalPer100g: 120,
+    proteinPer100g: 6,
+    carbsPer100g: 15,
+    fatsPer100g: 4,
+    servingSizeLabel: '1 roll',
+    // VERIFY: composite estimate from ingredient ratios; no dish-level source found.
+  },
+  {
+    name: 'Lumpiang Togue (Beansprout Lumpia, Fried)',
+    kcalPer100g: 180,
+    proteinPer100g: 5,
+    carbsPer100g: 18,
+    fatsPer100g: 10,
+    servingSizeLabel: '3 pieces',
+    // VERIFY: composite estimate from ingredient ratios; no dish-level source found.
+  },
+
+  // --- Pancit & noodle dishes ---
+  {
+    name: 'Pancit Canton, Guisado',
+    kcalPer100g: 165,
+    proteinPer100g: 7,
+    carbsPer100g: 22,
+    fatsPer100g: 5.5,
+    servingSizeLabel: '1 cup',
+    // VERIFY: instant-noodle vs homemade values varied enormously (120-467 kcal/100g); used a homemade-style estimate.
+  },
+  {
+    name: 'Pancit Bihon, Guisado',
+    kcalPer100g: 165,
+    proteinPer100g: 6,
+    carbsPer100g: 24,
+    fatsPer100g: 5,
+    servingSizeLabel: '1 cup',
+  },
+  {
+    name: 'Pancit Malabon',
+    kcalPer100g: 150,
+    proteinPer100g: 6,
+    carbsPer100g: 18,
+    fatsPer100g: 6.5,
+    servingSizeLabel: '1 serving',
+  },
+  {
+    name: 'Sotanghon Guisado (Glass Noodle Stir-Fry)',
+    kcalPer100g: 140,
+    proteinPer100g: 6,
+    carbsPer100g: 20,
+    fatsPer100g: 4.5,
+    servingSizeLabel: '1 cup',
+    // VERIFY: no dedicated source; estimated by analogy to pancit bihon (glass noodles hydrate differently than rice noodles).
+  },
+  // --- Standalone proteins commonly used in "-silog" combos ---
+  {
+    name: 'Spam, Fried',
+    kcalPer100g: 320,
+    proteinPer100g: 13,
+    carbsPer100g: 4,
+    fatsPer100g: 29,
+    servingSizeLabel: '2 slices',
+    // VERIFY: based on manufacturer label values scaled to 100g; pan-frying adds a bit more oil than the base label reflects.
+  },
+  {
+    name: 'Hotdog, Filipino Style (Sweet), Pan-Fried',
+    kcalPer100g: 260,
+    proteinPer100g: 11,
+    carbsPer100g: 8,
+    fatsPer100g: 21,
+    servingSizeLabel: '2 pieces',
+    // VERIFY: no dedicated source for Filipino sweet-style red hotdogs specifically; estimated from generic hotdog nutrition.
+  },
+
+  // --- "-Silog" combo plates (rice + protein + fried egg) ---
+  // VERIFY (all silog entries): computed from a typical plate — 150g garlic rice +
+  // 90g protein + 1 fried egg (~50g) — using this file's own Sinangag / Egg, Sunny
+  // Side Up values as components, not a directly sourced whole-dish nutrition value.
+  // Actual restaurant/vendor portions vary a lot.
+  {
+    name: 'Tapsilog (Beef Tapa, Garlic Rice, Fried Egg)',
+    kcalPer100g: 185,
+    proteinPer100g: 11,
+    carbsPer100g: 15.5,
+    fatsPer100g: 8,
+    servingSizeLabel: '1 plate',
+  },
+  {
+    name: 'Tocilog (Tocino, Garlic Rice, Fried Egg)',
+    kcalPer100g: 184,
+    proteinPer100g: 8,
+    carbsPer100g: 18.5,
+    fatsPer100g: 9,
+    servingSizeLabel: '1 plate',
+  },
+  {
+    name: 'Longsilog (Longganisa, Garlic Rice, Fried Egg)',
+    kcalPer100g: 209,
+    proteinPer100g: 8,
+    carbsPer100g: 17,
+    fatsPer100g: 11.5,
+    servingSizeLabel: '1 plate',
+  },
+  {
+    name: 'Bangsilog (Daing Na Bangus, Garlic Rice, Fried Egg)',
+    kcalPer100g: 178,
+    proteinPer100g: 10,
+    carbsPer100g: 15,
+    fatsPer100g: 8.5,
+    servingSizeLabel: '1 plate',
+  },
+  {
+    name: 'Hotsilog (Hotdog, Garlic Rice, Fried Egg)',
+    kcalPer100g: 196,
+    proteinPer100g: 7,
+    carbsPer100g: 17,
+    fatsPer100g: 11.3,
+    servingSizeLabel: '1 plate',
+  },
+  {
+    name: 'Spamsilog (Spam, Garlic Rice, Fried Egg)',
+    kcalPer100g: 215,
+    proteinPer100g: 7.7,
+    carbsPer100g: 16,
+    fatsPer100g: 14,
+    servingSizeLabel: '1 plate',
+  },
+  {
+    name: 'Chicksilog (Fried Chicken, Garlic Rice, Fried Egg)',
+    kcalPer100g: 192,
+    proteinPer100g: 10.5,
+    carbsPer100g: 17,
+    fatsPer100g: 9,
+    servingSizeLabel: '1 plate',
+  },
+
+  // ==================== PH fast food & street food (added 2026-07-20) ====================
+  // ---------- JOLLIBEE ----------
+  {
+    // VERIFY: Jollibee USA official nutrition PDF used as PH proxy (same "Original
+    // Recipe" batter); PH-specific lab values not published. 85g piece, 220 kcal.
+    name: 'Jollibee Chickenjoy, 1pc Drumstick',
+    kcalPer100g: 259,
+    proteinPer100g: 23.5,
+    carbsPer100g: 3.5,
+    fatsPer100g: 16.5,
+    servingSizeLabel: '1 piece (drumstick)',
+  },
+  {
+    // VERIFY: Jollibee USA official PDF used as PH proxy. 125g piece, 380 kcal.
+    name: 'Jollibee Chickenjoy, 1pc Thigh',
+    kcalPer100g: 304,
+    proteinPer100g: 21.6,
+    carbsPer100g: 4,
+    fatsPer100g: 22.4,
+    servingSizeLabel: '1 piece (thigh)',
+  },
+  {
+    // VERIFY: Jollibee USA official PDF used as PH proxy. 126g piece, 350 kcal.
+    name: 'Jollibee Chickenjoy, 1pc Spicy Thigh',
+    kcalPer100g: 278,
+    proteinPer100g: 18.3,
+    carbsPer100g: 11.9,
+    fatsPer100g: 16.7,
+    servingSizeLabel: '1 piece (spicy thigh)',
+  },
+  {
+    // VERIFY: Jollibee USA official PDF (411g, 610 kcal) used as PH proxy; PH cup size
+    // may run smaller, but the per-100g macro ratio should hold reasonably well.
+    name: 'Jollibee Jolly Spaghetti',
+    kcalPer100g: 148,
+    proteinPer100g: 5.6,
+    carbsPer100g: 18.5,
+    fatsPer100g: 5.6,
+    servingSizeLabel: '1 regular serving',
+  },
+  {
+    // VERIFY: derived by subtracting Jollibee's own published steamed-rice figure
+    // (198g/190kcal) from the official "2pcs Burgersteak with Rice" combo (422g/570kcal)
+    // — not an independently published solo figure.
+    name: 'Jollibee Burger Steak, 2pcs (No Rice)',
+    kcalPer100g: 170,
+    proteinPer100g: 8.9,
+    carbsPer100g: 5.4,
+    fatsPer100g: 12.5,
+    servingSizeLabel: '2 pieces (patty + gravy, no rice)',
+  },
+  {
+    // VERIFY: Jollibee USA official PDF used as PH proxy (94g piece, 270 kcal); shared
+    // Filipino-heritage product, likely close to identical in PH.
+    name: 'Jollibee Peach Mango Pie',
+    kcalPer100g: 287,
+    proteinPer100g: 3.2,
+    carbsPer100g: 42.6,
+    fatsPer100g: 11.7,
+    servingSizeLabel: '1 piece',
+  },
+  {
+    // VERIFY: Jollibee USA official PDF used as PH proxy (97g piece, 310 kcal).
+    name: 'Jollibee Ube Pie',
+    kcalPer100g: 320,
+    proteinPer100g: 4.1,
+    carbsPer100g: 46.4,
+    fatsPer100g: 15.5,
+    servingSizeLabel: '1 piece',
+  },
+  {
+    // VERIFY: Jollibee USA official PDF used as PH proxy (249g, 609 kcal); PH bun/patty
+    // recipe may differ somewhat from the US "Chicken Sandwich Original".
+    name: 'Jollibee Chicken Sandwich (Original)',
+    kcalPer100g: 245,
+    proteinPer100g: 13.3,
+    carbsPer100g: 18.5,
+    fatsPer100g: 13.3,
+    servingSizeLabel: '1 sandwich',
+  },
+  {
+    // VERIFY: Jollibee USA official PDF used as PH proxy (77g small cup, 25 kcal).
+    name: 'Jollibee Gravy',
+    kcalPer100g: 33,
+    proteinPer100g: 1.3,
+    carbsPer100g: 6.5,
+    fatsPer100g: 0,
+    servingSizeLabel: '1 small cup',
+  },
+  {
+    // VERIFY: no official PH nutrition data found for this soft-serve dessert;
+    // estimated from typical sundae composition.
+    name: 'Jollibee Twirl Sundae',
+    kcalPer100g: 160,
+    proteinPer100g: 3,
+    carbsPer100g: 27,
+    fatsPer100g: 4.5,
+    servingSizeLabel: '1 regular cup',
+  },
+  {
+    // VERIFY: PH-exclusive item (not on the US menu, so no official PDF data);
+    // estimated from a typical cheese-coated hotdog-on-a-stick.
+    name: 'Jollibee Jolly Hotdog (Cheesy Yumdog)',
+    kcalPer100g: 311,
+    proteinPer100g: 10,
+    carbsPer100g: 25,
+    fatsPer100g: 19,
+    servingSizeLabel: '1 piece (stick)',
+  },
+
+  // ---------- McDONALD'S PHILIPPINES ----------
+  {
+    // VERIFY: derived by subtracting an estimated rice-cup portion from the official
+    // PH website total for "1pc Chicken McDo with Rice" (504 kcal); chicken-only
+    // weight (~150g) is an estimate, not officially published.
+    name: "McDonald's Chicken McDo, 1pc (No Rice)",
+    kcalPer100g: 209,
+    proteinPer100g: 14.7,
+    carbsPer100g: 10,
+    fatsPer100g: 12,
+    servingSizeLabel: '1 piece',
+  },
+  {
+    // VERIFY: PH gram weight/macro split not independently published. Calorie total
+    // from an older official PH leaflet (~510-550 kcal); macros extrapolated from
+    // McDonald's globally standard Big Mac recipe.
+    name: "McDonald's Big Mac",
+    kcalPer100g: 237,
+    proteinPer100g: 10.8,
+    carbsPer100g: 19.4,
+    fatsPer100g: 11.2,
+    servingSizeLabel: '1 burger',
+  },
+  {
+    // VERIFY: same methodology as Big Mac above (PH calorie figure, globally standard
+    // macro ratio extrapolated).
+    name: "McDonald's Cheeseburger",
+    kcalPer100g: 250,
+    proteinPer100g: 12.5,
+    carbsPer100g: 25.9,
+    fatsPer100g: 10,
+    servingSizeLabel: '1 burger',
+  },
+  {
+    // VERIFY: same methodology as Big Mac above.
+    name: "McDonald's McChicken",
+    kcalPer100g: 238,
+    proteinPer100g: 8.3,
+    carbsPer100g: 23.8,
+    fatsPer100g: 12.5,
+    servingSizeLabel: '1 sandwich',
+  },
+  {
+    // VERIFY: same methodology as Big Mac above.
+    name: "McDonald's Filet-O-Fish",
+    kcalPer100g: 250,
+    proteinPer100g: 9.9,
+    carbsPer100g: 25,
+    fatsPer100g: 11.8,
+    servingSizeLabel: '1 sandwich',
+  },
+  {
+    // VERIFY: weight estimated (~130g); official PH leaflet gives calories only
+    // (170 kcal), no published macro breakdown.
+    name: "McDonald's Sundae (Chocolate)",
+    kcalPer100g: 131,
+    proteinPer100g: 3.1,
+    carbsPer100g: 23.1,
+    fatsPer100g: 3.1,
+    servingSizeLabel: '1 cup',
+  },
+  {
+    // VERIFY: no official nutrition data found for this drink; estimated from a
+    // typical regular Coke + soft-serve combination.
+    name: "McDonald's McFloat (Coke Float)",
+    kcalPer100g: 66,
+    proteinPer100g: 0.4,
+    carbsPer100g: 13.1,
+    fatsPer100g: 0.9,
+    servingSizeLabel: '1 regular cup',
+  },
+  {
+    // VERIFY: weight and macro split estimated from typical pancake composition; only
+    // a total calorie figure (410 kcal) was found in an older official PH leaflet.
+    name: "McDonald's Hotcakes, 2pc (with Butter & Syrup)",
+    kcalPer100g: 228,
+    proteinPer100g: 4.6,
+    carbsPer100g: 38.7,
+    fatsPer100g: 6.1,
+    servingSizeLabel: '2 pieces with butter & syrup',
+  },
+  {
+    // VERIFY: PH-specific recipe/weight not confirmed; used McDonald's globally
+    // standard baked apple pie figures as proxy.
+    name: "McDonald's Apple Pie",
+    kcalPer100g: 312,
+    proteinPer100g: 2.6,
+    carbsPer100g: 40.3,
+    fatsPer100g: 16.9,
+    servingSizeLabel: '1 piece',
+  },
+  {
+    // VERIFY: PH-specific figure uncertain (the official PH combo page had an apparent
+    // data error for carbs on this item); used McDonald's globally standard 6pc
+    // McNuggets nutrition as proxy.
+    name: "McDonald's Chicken McNuggets, 6pc",
+    kcalPer100g: 260,
+    proteinPer100g: 13.5,
+    carbsPer100g: 16.7,
+    fatsPer100g: 15.6,
+    servingSizeLabel: '6 pieces',
+  },
+
+  // ---------- CHOWKING ----------
+  {
+    // VERIFY: sourced from third-party aggregator data (not Chowking's own published
+    // figures); bowl weight estimated at ~450g.
+    name: 'Chowking Chao Fan (Yang Chow Fried Rice)',
+    kcalPer100g: 135,
+    proteinPer100g: 4,
+    carbsPer100g: 21.3,
+    fatsPer100g: 3.3,
+    servingSizeLabel: '1 bowl',
+  },
+  {
+    // VERIFY: calorie figure from a third-party aggregator (100g/4pc = 240 kcal);
+    // protein/carb/fat split estimated to fit that total, not independently published.
+    name: 'Chowking Siomai (Fried Pork), 4pcs',
+    kcalPer100g: 240,
+    proteinPer100g: 10,
+    carbsPer100g: 18,
+    fatsPer100g: 14,
+    servingSizeLabel: '4 pieces',
+  },
+  {
+    // VERIFY: no official Chowking data found; estimated from typical siopao asado
+    // composition (steamed wheat bun + sweetened pork filling).
+    name: 'Chowking Siopao Asado, 1pc',
+    kcalPer100g: 280,
+    proteinPer100g: 9,
+    carbsPer100g: 42,
+    fatsPer100g: 8,
+    servingSizeLabel: '1 piece (medium)',
+  },
+
+  // ---------- MANG INASAL ----------
+  {
+    // VERIFY: third-party aggregator estimate; Mang Inasal doesn't publish official
+    // nutrition facts. Cut weight estimated (~190g). Excludes unli rice.
+    name: 'Mang Inasal Chicken Inasal, Paa (Leg-Thigh)',
+    kcalPer100g: 263,
+    proteinPer100g: 18.4,
+    carbsPer100g: 2.6,
+    fatsPer100g: 18.4,
+    servingSizeLabel: '1 piece (paa/leg-thigh)',
+  },
+  {
+    // VERIFY: no official or third-party gram data found specifically for the pecho
+    // (breast) cut; estimated as the leaner counterpart to the paa cut above.
+    name: 'Mang Inasal Chicken Inasal, Pecho (Breast)',
+    kcalPer100g: 211,
+    proteinPer100g: 21.1,
+    carbsPer100g: 1.7,
+    fatsPer100g: 13.3,
+    servingSizeLabel: '1 piece (pecho/breast)',
+  },
+  {
+    // VERIFY: estimated from typical Filipino garlic fried rice; Mang Inasal doesn't
+    // publish exact figures for its "unli rice". Log separately per cup consumed.
+    name: 'Mang Inasal Unli Rice (Garlic Rice), 1 cup',
+    kcalPer100g: 175,
+    proteinPer100g: 3,
+    carbsPer100g: 32,
+    fatsPer100g: 4,
+    servingSizeLabel: '1 cup (unli rice)',
+  },
+
+  // ---------- KFC PHILIPPINES ----------
+  {
+    // VERIFY: no official KFC PH data found; estimated from typical fried
+    // popcorn-chicken composition.
+    name: 'KFC Chicken Popcorn',
+    kcalPer100g: 310,
+    proteinPer100g: 17,
+    carbsPer100g: 19,
+    fatsPer100g: 20,
+    servingSizeLabel: '1 regular cup',
+  },
+  {
+    // VERIFY: sourced from KFC's published (likely US) nutrition data; PH coleslaw
+    // recipe may differ slightly.
+    name: 'KFC Coleslaw',
+    kcalPer100g: 75,
+    proteinPer100g: 0.5,
+    carbsPer100g: 8.2,
+    fatsPer100g: 4.5,
+    servingSizeLabel: '1 cup',
+  },
+  {
+    // VERIFY: generic estimate; not sourced from official PH nutrition data.
+    name: 'KFC Mashed Potato with Gravy',
+    kcalPer100g: 90,
+    proteinPer100g: 2,
+    carbsPer100g: 14,
+    fatsPer100g: 3.5,
+    servingSizeLabel: '1 regular serving',
+  },
+
+  // ---------- GREENWICH PIZZA ----------
+  {
+    // VERIFY: sourced from a third-party aggregator; official Greenwich nutrition
+    // breakdown not published. Slice weight assumed ~100g.
+    name: 'Greenwich Pizza, Hawaiian Overload, 1 slice',
+    kcalPer100g: 157,
+    proteinPer100g: 7,
+    carbsPer100g: 17,
+    fatsPer100g: 7,
+    servingSizeLabel: '1 slice',
+  },
+  {
+    // VERIFY: no official Greenwich data found; estimated as similar in style to
+    // other sweet Filipino-style spaghetti (e.g. Jollibee's), loosely corroborated by
+    // third-party calorie estimates (~300-400 kcal/serving).
+    name: 'Greenwich Ultimate Meaty Spaghetti',
+    kcalPer100g: 145,
+    proteinPer100g: 5,
+    carbsPer100g: 20,
+    fatsPer100g: 5,
+    servingSizeLabel: '1 regular serving',
+  },
+  {
+    // VERIFY: no official data found; estimated from typical cheesy garlic bread.
+    name: 'Greenwich Cheesy Garlic Bread, 1pc',
+    kcalPer100g: 360,
+    proteinPer100g: 9,
+    carbsPer100g: 38,
+    fatsPer100g: 19,
+    servingSizeLabel: '1 piece',
+  },
+
+  // ---------- GOLDILOCKS ----------
+  {
+    // VERIFY: no official nutrition data found; estimated from typical ingredients
+    // (cassava, coconut milk, condensed milk, custard topping).
+    name: 'Goldilocks Cassava Cake, 1 slice',
+    kcalPer100g: 320,
+    proteinPer100g: 4,
+    carbsPer100g: 45,
+    fatsPer100g: 14,
+    servingSizeLabel: '1 slice',
+  },
+  {
+    // VERIFY: aggregator data found for this item was internally inconsistent
+    // (implausible per-gram values), so this uses an independent estimate based on
+    // typical ensaymada ingredients (butter-enriched brioche, butter/sugar/cheese top).
+    name: 'Goldilocks Ensaymada (Regular, with Cheese)',
+    kcalPer100g: 370,
+    proteinPer100g: 7,
+    carbsPer100g: 45,
+    fatsPer100g: 17,
+    servingSizeLabel: '1 piece (regular)',
+  },
+  {
+    // VERIFY: no reliable data found; estimated from a typical soft sponge cake with
+    // butter/cheese topping.
+    name: 'Goldilocks Mamon (Special, with Cheese)',
+    kcalPer100g: 350,
+    proteinPer100g: 6,
+    carbsPer100g: 45,
+    fatsPer100g: 15,
+    servingSizeLabel: '1 piece',
+  },
+  {
+    // VERIFY: no official data found; estimated from known composition (buttercream +
+    // cashew meringue layers), which is very fat/sugar dense.
+    name: 'Goldilocks Sans Rival, 1 slice',
+    kcalPer100g: 480,
+    proteinPer100g: 5,
+    carbsPer100g: 35,
+    fatsPer100g: 36,
+    servingSizeLabel: '1 slice',
+  },
+
+  // ---------- POTATO CORNER ----------
+  {
+    // VERIFY: third-party aggregator estimate; exact "regular" cup weight not
+    // officially published (assumed ~90g); calories/macros vary notably by flavor
+    // (cheese/BBQ vs sour cream/plain salted).
+    name: 'Potato Corner Fries, Regular (Flavored)',
+    kcalPer100g: 333,
+    proteinPer100g: 5.8,
+    carbsPer100g: 52.5,
+    fatsPer100g: 11.4,
+    servingSizeLabel: '1 regular cup',
+  },
+  {
+    // VERIFY: estimated similarly to the fries entry above; official gram-for-gram
+    // data unavailable.
+    name: 'Potato Corner Chubbies, Regular',
+    kcalPer100g: 290,
+    proteinPer100g: 5,
+    carbsPer100g: 50,
+    fatsPer100g: 9,
+    servingSizeLabel: '1 regular cup',
+  },
+
+  // ---------- STREET FOOD / MERIENDA ----------
+  {
+    // VERIFY: no official data for this street food; estimated as the leaner
+    // chicken-cut counterpart to the catalog's existing generic "Isaw, Grilled" entry.
+    name: 'Isaw ng Manok (Chicken Intestine), Grilled',
+    kcalPer100g: 160,
+    proteinPer100g: 19,
+    carbsPer100g: 2,
+    fatsPer100g: 8,
+    servingSizeLabel: '4 sticks',
+  },
+  {
+    // VERIFY: no official data; estimated as the fattier pork-cut counterpart to the
+    // existing generic "Isaw, Grilled" entry.
+    name: 'Isaw ng Baboy (Pork Intestine), Grilled',
+    kcalPer100g: 210,
+    proteinPer100g: 16,
+    carbsPer100g: 2,
+    fatsPer100g: 15,
+    servingSizeLabel: '4 sticks',
+  },
+  {
+    // VERIFY: no official nutrition data for this street food (grilled coagulated
+    // chicken blood cube); estimated from typical blood-cube composition (high
+    // protein, low fat) plus a light BBQ glaze during grilling.
+    name: 'Betamax (Grilled Chicken Blood Cube)',
+    kcalPer100g: 110,
+    proteinPer100g: 14,
+    carbsPer100g: 4,
+    fatsPer100g: 5,
+    servingSizeLabel: '4 sticks',
+  },
+  {
+    // VERIFY: recipe varies significantly by vendor (coconut milk / carabao milk /
+    // regular milk base, sugar level); estimated from a typical traditional Filipino
+    // sorbetes.
+    name: 'Dirty Ice Cream (Sorbetes)',
+    kcalPer100g: 170,
+    proteinPer100g: 2.5,
+    carbsPer100g: 26,
+    fatsPer100g: 6.5,
+    servingSizeLabel: '1 scoop (cone)',
+  },
+  {
+    // VERIFY: nutritionally close to the catalog's existing "Fried Calamari" entry but
+    // represents the thinner-battered street-vendor cone version; estimated, not
+    // independently sourced.
+    name: 'Calamares, Street Style (with Vinegar Dip)',
+    kcalPer100g: 280,
+    proteinPer100g: 16,
+    carbsPer100g: 20,
+    fatsPer100g: 16,
+    servingSizeLabel: '1 cup (street vendor serving)',
+  },
+  {
+    // VERIFY: informal vendor food, no standard published data; estimated as a
+    // lighter, steamed counterpart to the fried "Chowking Siomai" entry above.
+    name: 'Siomai, Carinderia-Style (Steamed)',
+    kcalPer100g: 200,
+    proteinPer100g: 11,
+    carbsPer100g: 16,
+    fatsPer100g: 10,
+    servingSizeLabel: '4 pieces (steamed, carinderia-style)',
+  },
+  {
+    // VERIFY: sourced from Jollibee's official steamed-rice figure (198g/190kcal);
+    // used generically since most PH fastfood chains serve a near-identical plain
+    // steamed rice cup. Useful for logging Mang Inasal-style unli rice separately.
+    name: 'Fastfood Steamed Rice, 1 cup',
+    kcalPer100g: 96,
+    proteinPer100g: 2,
+    carbsPer100g: 22.2,
+    fatsPer100g: 0,
+    servingSizeLabel: '1 cup',
+  },
+  {
+    // VERIFY: informal vendor recipe, no standard published data; estimated from a
+    // typical sweet-and-spicy fishball sauce (vinegar, brown sugar, cornstarch, chili).
+    name: 'Fishball Sauce (Sweet & Spicy Vinegar Dip)',
+    kcalPer100g: 90,
+    proteinPer100g: 0.5,
+    carbsPer100g: 22,
+    fatsPer100g: 0.2,
+    servingSizeLabel: '2 tbsp',
+  },
+
+  // ---------- MERIENDA SNACKS (Gen Z pantry staples) ----------
+  {
+    // VERIFY: recalled typical potato-crisp nutrition-label values; not independently
+    // re-verified via a live source this session.
+    name: 'Piattos (Cheese)',
+    kcalPer100g: 536,
+    proteinPer100g: 7.1,
+    carbsPer100g: 53.6,
+    fatsPer100g: 32.1,
+    servingSizeLabel: '1 small bag (28g)',
+  },
+  {
+    // VERIFY: estimated from typical corn/multigrain chip composition; close in
+    // profile to the catalog's existing generic "Corn Chips" entry, distinguished
+    // here by brand for search purposes.
+    name: 'Nova (Multigrain, Country Cheddar)',
+    kcalPer100g: 525,
+    proteinPer100g: 7,
+    carbsPer100g: 62,
+    fatsPer100g: 29,
+    servingSizeLabel: '1 small bag',
+  },
+  {
+    // VERIFY: recalled typical corn-chip nutrition profile; not cross-checked against
+    // a live label this session.
+    name: 'Chippy (Barbecue)',
+    kcalPer100g: 510,
+    proteinPer100g: 6,
+    carbsPer100g: 62,
+    fatsPer100g: 26,
+    servingSizeLabel: '1 small bag (30g)',
+  },
+  {
+    // VERIFY: estimated from typical corn-chip snack composition; not independently
+    // verified this session.
+    name: 'Clover Chips (Cheese)',
+    kcalPer100g: 520,
+    proteinPer100g: 6,
+    carbsPer100g: 60,
+    fatsPer100g: 28,
+    servingSizeLabel: '1 small bag',
+  },
+  {
+    // VERIFY: estimated close to the catalog's existing "Skyflakes Crackers" profile
+    // (both are basic saltine-style crackers); not independently re-verified.
+    name: 'Fita Crackers',
+    kcalPer100g: 440,
+    proteinPer100g: 8,
+    carbsPer100g: 70,
+    fatsPer100g: 14,
+    servingSizeLabel: '4 pieces',
+  },
+  {
+    // VERIFY: recalled typical peanut-butter sandwich cracker nutrition-label values;
+    // not independently re-verified this session.
+    name: 'Rebisco Sandwich Crackers (Peanut Butter)',
+    kcalPer100g: 470,
+    proteinPer100g: 9,
+    carbsPer100g: 60,
+    fatsPer100g: 21,
+    servingSizeLabel: '1 pack (6 pieces)',
+  },
+  {
+    // VERIFY: estimated from typical peanut-cocoa candy tablet composition; not
+    // independently verified this session.
+    name: 'Choc-Nut',
+    kcalPer100g: 500,
+    proteinPer100g: 8,
+    carbsPer100g: 45,
+    fatsPer100g: 32,
+    servingSizeLabel: '5 pieces',
+  },
+  {
+    // VERIFY: recalled typical prawn-cracker nutrition profile; not independently
+    // re-verified this session.
+    name: 'Oishi Prawn Crackers (Regular)',
+    kcalPer100g: 500,
+    proteinPer100g: 4,
+    carbsPer100g: 60,
+    fatsPer100g: 28,
+    servingSizeLabel: '1 small bag (60g)',
+  },
+
+  // ---------- MILK TEA (Gen Z brands, distinct from existing Brown Sugar / Taro) ----------
+  {
+    // VERIFY: no official brand nutrition data published; estimated based on typical
+    // wintermelon milk tea composition (tea, milk, wintermelon syrup, tapioca pearls).
+    name: 'Milk Tea, Macao Imperial Tea Wintermelon (with Pearls)',
+    kcalPer100g: 210,
+    proteinPer100g: 3,
+    carbsPer100g: 40,
+    fatsPer100g: 4.5,
+    servingSizeLabel: '1 regular cup (with pearls)',
+  },
+  {
+    // VERIFY: varies significantly by brand and sugar level ordered; estimated for a
+    // moderately sweet classic black-tea-with-milk order, no toppings.
+    name: 'Milk Tea, Classic (No Pearls)',
+    kcalPer100g: 90,
+    proteinPer100g: 2,
+    carbsPer100g: 14,
+    fatsPer100g: 3,
+    servingSizeLabel: '1 regular cup, no toppings',
+  },
+  {
+    // VERIFY: no official brand data; estimated from typical cheese-foam tea
+    // composition (tea base + salted cream-cheese foam topping).
+    name: 'Milk Tea, Cheese Foam',
+    kcalPer100g: 140,
+    proteinPer100g: 2.5,
+    carbsPer100g: 22,
+    fatsPer100g: 5,
+    servingSizeLabel: '1 regular cup',
+  },
+  {
+    // VERIFY: no official brand data; estimated from typical fruit tea + popping-boba
+    // syrup composition (no milk, so lower fat than milk tea).
+    name: 'Fruit Tea with Popping Boba',
+    kcalPer100g: 75,
+    proteinPer100g: 0.3,
+    carbsPer100g: 18,
+    fatsPer100g: 0.2,
+    servingSizeLabel: '1 regular cup (with popping boba)',
+  },
+  {
+    // VERIFY: no official brand data; estimated similarly to other creamy/caramel-style
+    // milk tea flavors already in this batch.
+    name: 'Milk Tea, Hokkaido (Chatime-style, with Pearls)',
+    kcalPer100g: 220,
+    proteinPer100g: 3,
+    carbsPer100g: 42,
+    fatsPer100g: 5,
+    servingSizeLabel: '1 regular cup (with pearls)',
+  },
+
+  // ==================== PH packaged groceries, drinks & produce (added 2026-07-20) ====================
+  // ---------- Instant noodles (Lucky Me!) ----------
+  {
+    name: 'Lucky Me! Pancit Canton, Original',
+    kcalPer100g: 462,
+    proteinPer100g: 10.4,
+    carbsPer100g: 60,
+    fatsPer100g: 20.5,
+    servingSizeLabel: '1 pack (60g)',
+  },
+  {
+    name: 'Lucky Me! Pancit Canton, Chilimansi',
+    // VERIFY: sources disagree on exact serving (280-370 kcal per pack across
+    // listings); used the most consistent 80g-serving macro ratio.
+    kcalPer100g: 460,
+    proteinPer100g: 9,
+    carbsPer100g: 63,
+    fatsPer100g: 18,
+    servingSizeLabel: '1 pack (60g)',
+  },
+  {
+    name: 'Lucky Me! Pancit Canton, Extra Hot',
+    // VERIFY: no distinct nutrition panel found; assumed close to Chilimansi
+    // since the noodle block is identical and only the seasoning differs.
+    kcalPer100g: 460,
+    proteinPer100g: 9,
+    carbsPer100g: 61,
+    fatsPer100g: 19,
+    servingSizeLabel: '1 pack (60g)',
+  },
+  {
+    name: 'Lucky Me! Beef Mami',
+    // VERIFY: search results ranged 121-310 kcal depending on cup vs. pack
+    // format; used the 55g "Beef na Beef" pack figure as the anchor.
+    kcalPer100g: 430,
+    proteinPer100g: 9,
+    carbsPer100g: 68,
+    fatsPer100g: 13,
+    servingSizeLabel: '1 pack (55g)',
+  },
+  {
+    name: 'Lucky Me! Chicken Mami',
+    // VERIFY: search results ranged 125-300 kcal per serving across cup/pack
+    // formats; estimated from the 55g pack format consistent with Beef Mami.
+    kcalPer100g: 400,
+    proteinPer100g: 8,
+    carbsPer100g: 65,
+    fatsPer100g: 10,
+    servingSizeLabel: '1 pack (55g)',
+  },
+
+  // ---------- Canned goods ----------
+  {
+    name: 'Argentina Corned Beef',
+    // VERIFY: brand nutrition listings for "Argentina" varied widely
+    // (150-286 kcal/100g); used a middle-of-range corned beef estimate.
+    kcalPer100g: 190,
+    proteinPer100g: 16,
+    carbsPer100g: 1.5,
+    fatsPer100g: 14,
+    servingSizeLabel: '1 can (150g)',
+  },
+  {
+    name: 'CDO Corned Beef',
+    kcalPer100g: 250,
+    proteinPer100g: 27,
+    carbsPer100g: 0.5,
+    fatsPer100g: 19,
+    servingSizeLabel: '1 can (150g)',
+  },
+  {
+    name: 'Purefoods Corned Beef',
+    // VERIFY: derived from a 56g-serving listing (160 kcal); carb figure (7g)
+    // is higher than typical corned beef, possibly includes added gravy.
+    kcalPer100g: 230,
+    proteinPer100g: 15,
+    carbsPer100g: 3,
+    fatsPer100g: 17,
+    servingSizeLabel: '1 can (150g)',
+  },
+  {
+    name: '555 Sardines in Tomato Sauce',
+    kcalPer100g: 89,
+    proteinPer100g: 10.7,
+    carbsPer100g: 3.6,
+    fatsPer100g: 3.6,
+    servingSizeLabel: '1 can (155g)',
+  },
+  {
+    name: '555 Sardines, Spicy',
+    // VERIFY: no separate label found for the "Spicy/Hot" SKU; estimated
+    // slightly higher than the tomato-sauce variant (added chili oil).
+    kcalPer100g: 95,
+    proteinPer100g: 10,
+    carbsPer100g: 4,
+    fatsPer100g: 4.5,
+    servingSizeLabel: '1 can (155g)',
+  },
+  {
+    name: 'Ligo Sardines in Tomato Sauce',
+    kcalPer100g: 107,
+    proteinPer100g: 10.7,
+    carbsPer100g: 5.4,
+    fatsPer100g: 4.5,
+    servingSizeLabel: '1 can (155g)',
+  },
+  {
+    name: 'Ligo Sardines, Spicy',
+    // VERIFY: assumed close to the tomato-sauce variant; no distinct label found.
+    kcalPer100g: 110,
+    proteinPer100g: 10.5,
+    carbsPer100g: 5,
+    fatsPer100g: 5,
+    servingSizeLabel: '1 can (155g)',
+  },
+  {
+    name: 'Century Tuna Flakes in Oil',
+    kcalPer100g: 179,
+    proteinPer100g: 12.5,
+    carbsPer100g: 3.6,
+    fatsPer100g: 12.7,
+    servingSizeLabel: '1 can (155g)',
+  },
+  {
+    name: 'Century Tuna Chunks in Water',
+    // VERIFY: sources ranged 64-125 kcal/100g depending on SKU (Premium Red
+    // vs. standard); used a middle estimate for plain tuna-in-water.
+    kcalPer100g: 90,
+    proteinPer100g: 20,
+    carbsPer100g: 1,
+    fatsPer100g: 1,
+    servingSizeLabel: '1 can (155g)',
+  },
+  {
+    name: 'Century Tuna, Hot & Spicy',
+    // VERIFY: no distinct label found; estimated close to Flakes in Oil with
+    // added chili.
+    kcalPer100g: 175,
+    proteinPer100g: 13,
+    carbsPer100g: 4,
+    fatsPer100g: 12,
+    servingSizeLabel: '1 can (155g)',
+  },
+  {
+    name: 'Spam, Classic',
+    kcalPer100g: 321,
+    proteinPer100g: 12.5,
+    carbsPer100g: 2,
+    fatsPer100g: 25.1,
+    servingSizeLabel: '1 slice (56g)',
+  },
+  {
+    name: 'Spam, Lite',
+    // VERIFY: estimated from Hormel's "33% fewer calories, 50% less fat"
+    // marketing claim vs. Classic; no direct nutrition panel found.
+    kcalPer100g: 215,
+    proteinPer100g: 16,
+    carbsPer100g: 2,
+    fatsPer100g: 12.5,
+    servingSizeLabel: '1 slice (56g)',
+  },
+  {
+    name: 'Purefoods Sweet Ham',
+    kcalPer100g: 108,
+    proteinPer100g: 17,
+    carbsPer100g: 3,
+    fatsPer100g: 3.5,
+    servingSizeLabel: '2 slices (64g)',
+  },
+
+  // ---------- Milk / dairy ----------
+  {
+    name: 'Bear Brand Sterilized Milk',
+    kcalPer100g: 68,
+    proteinPer100g: 3.3,
+    carbsPer100g: 5.5,
+    fatsPer100g: 3.8,
+    servingSizeLabel: '1 can (300ml)',
+  },
+  {
+    name: 'Alaska Condensed Milk',
+    // VERIFY: one source reported an implausibly high 565 kcal/100g; used a
+    // figure closer to the generic sweetened-condensed-milk range instead,
+    // adjusted for Alaska's filled-milk (coconut oil) formulation.
+    kcalPer100g: 335,
+    proteinPer100g: 3,
+    carbsPer100g: 56,
+    fatsPer100g: 9,
+    servingSizeLabel: '2 tbsp (40g)',
+  },
+  {
+    name: 'Alaska Evaporated Milk',
+    kcalPer100g: 142,
+    proteinPer100g: 6.5,
+    carbsPer100g: 9.7,
+    fatsPer100g: 8.5,
+    servingSizeLabel: '1 can (154ml)',
+  },
+  {
+    name: 'Birch Tree Powdered Full Cream Milk',
+    // VERIFY: two source figures disagreed (per-10g scaled vs. per-100g
+    // listing); used the directly-cited per-100g panel.
+    kcalPer100g: 452,
+    proteinPer100g: 17,
+    carbsPer100g: 57.3,
+    fatsPer100g: 18.2,
+    servingSizeLabel: '3 tbsp (25g)',
+  },
+  {
+    name: 'Milo Powder (Dry)',
+    kcalPer100g: 421,
+    proteinPer100g: 10,
+    carbsPer100g: 70.5,
+    fatsPer100g: 10.8,
+    servingSizeLabel: '3 tbsp (30g)',
+  },
+
+  // ---------- Breads / carbs ----------
+  {
+    name: 'Pandesal',
+    kcalPer100g: 290,
+    proteinPer100g: 8,
+    carbsPer100g: 53,
+    fatsPer100g: 4.5,
+    servingSizeLabel: '2 pieces (60g)',
+  },
+  {
+    name: 'Tasty Bread (Sliced Loaf)',
+    kcalPer100g: 280,
+    proteinPer100g: 8,
+    carbsPer100g: 52,
+    fatsPer100g: 4,
+    servingSizeLabel: '2 slices (60g)',
+  },
+  {
+    name: 'Spaghetti, Cooked (Plain)',
+    kcalPer100g: 131,
+    proteinPer100g: 5,
+    carbsPer100g: 25,
+    fatsPer100g: 1.1,
+    servingSizeLabel: '1 cup (140g)',
+  },
+  {
+    name: 'Spaghetti, Filipino-Style (Sweet Sauce)',
+    // VERIFY: whole-dish estimate (sweet tomato sauce, hotdog, cheese) since
+    // it varies a lot by household recipe.
+    kcalPer100g: 190,
+    proteinPer100g: 6,
+    carbsPer100g: 30,
+    fatsPer100g: 6,
+    servingSizeLabel: '1 cup (200g)',
+  },
+  {
+    name: 'Del Monte Filipino Style Spaghetti Sauce (Jarred)',
+    kcalPer100g: 72,
+    proteinPer100g: 0.8,
+    carbsPer100g: 16.8,
+    fatsPer100g: 0,
+    servingSizeLabel: '1/2 cup (125g)',
+  },
+  {
+    name: 'Pan de Coco',
+    // VERIFY: no branded nutrition panel found; estimated from a sweet bread
+    // roll base plus a sweetened coconut filling.
+    kcalPer100g: 320,
+    proteinPer100g: 6,
+    carbsPer100g: 52,
+    fatsPer100g: 10,
+    servingSizeLabel: '1 piece (60g)',
+  },
+  {
+    name: 'Ensaymada',
+    // VERIFY: recipes vary a lot (butter, cheese, sugar topping); this is a
+    // representative bakery-style estimate, not a specific brand.
+    kcalPer100g: 390,
+    proteinPer100g: 7,
+    carbsPer100g: 48,
+    fatsPer100g: 18,
+    servingSizeLabel: '1 piece (80g)',
+  },
+
+  // ---------- Condiments & seasoning mixes ----------
+  {
+    name: 'Datu Puti Toyo (Soy Sauce)',
+    // VERIFY: source listings conflated per-tablespoon and per-100g figures;
+    // estimated true per-100g from the per-tbsp value.
+    kcalPer100g: 60,
+    proteinPer100g: 6,
+    carbsPer100g: 8,
+    fatsPer100g: 0,
+    servingSizeLabel: '1 tbsp (15ml)',
+  },
+  {
+    name: 'Datu Puti Suka (Vinegar)',
+    kcalPer100g: 18,
+    proteinPer100g: 0,
+    carbsPer100g: 0.4,
+    fatsPer100g: 0,
+    servingSizeLabel: '1 tbsp (15ml)',
+  },
+  {
+    name: 'Silver Swan Soy Sauce',
+    // VERIFY: no distinct nutrition panel found; estimated in line with other
+    // Filipino soy sauce brands.
+    kcalPer100g: 50,
+    proteinPer100g: 6,
+    carbsPer100g: 6,
+    fatsPer100g: 0,
+    servingSizeLabel: '1 tbsp (15ml)',
+  },
+  {
+    name: 'Datu Puti Patis (Fish Sauce)',
+    // VERIFY: brand-specific panel not found; estimated in line with generic
+    // patis already in the catalog.
+    kcalPer100g: 40,
+    proteinPer100g: 5,
+    carbsPer100g: 4,
+    fatsPer100g: 0,
+    servingSizeLabel: '1 tbsp (15ml)',
+  },
+  {
+    name: 'UFC Banana Ketchup',
+    kcalPer100g: 200,
+    proteinPer100g: 0.5,
+    carbsPer100g: 47,
+    fatsPer100g: 0.3,
+    servingSizeLabel: '1 tbsp (17g)',
+  },
+  {
+    name: 'Jufran Banana Ketchup',
+    // VERIFY: no distinct nutrition panel found; estimated close to UFC's
+    // banana ketchup (same product category, similar sugar-forward recipe).
+    kcalPer100g: 195,
+    proteinPer100g: 0.5,
+    carbsPer100g: 46,
+    fatsPer100g: 0.3,
+    servingSizeLabel: '1 tbsp (17g)',
+  },
+  {
+    name: 'Knorr Sinigang sa Sampalok Mix',
+    // VERIFY: sachet weight assumed at 22g (standard single-meal size);
+    // per-100g derived from a per-pouch calorie figure.
+    kcalPer100g: 377,
+    proteinPer100g: 1,
+    carbsPer100g: 90,
+    fatsPer100g: 0.5,
+    servingSizeLabel: '1 sachet (22g)',
+  },
+  {
+    name: 'Knorr Chicken Cube',
+    kcalPer100g: 300,
+    proteinPer100g: 18,
+    carbsPer100g: 18,
+    fatsPer100g: 17.7,
+    servingSizeLabel: '1 cube (10g)',
+  },
+  {
+    name: 'Knorr Pork Cube',
+    // VERIFY: no distinct label found; assumed close to the Chicken Cube
+    // (bouillon cubes share a similar fat/salt base across flavors).
+    kcalPer100g: 290,
+    proteinPer100g: 17,
+    carbsPer100g: 19,
+    fatsPer100g: 17,
+    servingSizeLabel: '1 cube (10g)',
+  },
+  {
+    name: "Mama Sita's Oyster Sauce",
+    kcalPer100g: 128,
+    proteinPer100g: 5.6,
+    carbsPer100g: 22,
+    fatsPer100g: 0.3,
+    servingSizeLabel: '1 tbsp (18g)',
+  },
+  {
+    name: "Mama Sita's Adobo Mix",
+    // VERIFY: no nutrition panel found; estimated as a starch/salt/spice
+    // seasoning mix similar to other Mama Sita's dry mixes.
+    kcalPer100g: 350,
+    proteinPer100g: 8,
+    carbsPer100g: 65,
+    fatsPer100g: 5,
+    servingSizeLabel: '1 sachet (50g)',
+  },
+  {
+    name: 'Maggi Magic Sarap',
+    kcalPer100g: 150,
+    proteinPer100g: 18,
+    carbsPer100g: 19,
+    fatsPer100g: 0.5,
+    servingSizeLabel: '1 sachet (8g)',
+  },
+
+  // ---------- Coffee / 3-in-1 mixes ----------
+  {
+    name: 'Kopiko Brown Coffee 3-in-1',
+    kcalPer100g: 310,
+    proteinPer100g: 3.4,
+    carbsPer100g: 55,
+    fatsPer100g: 7,
+    servingSizeLabel: '1 sachet (29g)',
+  },
+  {
+    name: 'Nescafe 3-in-1 Original',
+    // VERIFY: sachet weight varies by source (16g/17.5g/20g); used the 20g
+    // listing with matching macro breakdown.
+    kcalPer100g: 425,
+    proteinPer100g: 5,
+    carbsPer100g: 70,
+    fatsPer100g: 15,
+    servingSizeLabel: '1 sachet (20g)',
+  },
+  {
+    name: 'Great Taste White 3-in-1 Coffee',
+    kcalPer100g: 400,
+    proteinPer100g: 3.3,
+    carbsPer100g: 60,
+    fatsPer100g: 20,
+    servingSizeLabel: '1 sachet (30g)',
+  },
+
+  // ---------- Softdrinks & other packaged drinks ----------
+  {
+    name: 'Coca-Cola, Regular',
+    kcalPer100g: 42,
+    proteinPer100g: 0,
+    carbsPer100g: 10.6,
+    fatsPer100g: 0,
+    servingSizeLabel: '1 can (330ml)',
+  },
+  {
+    name: 'Coca-Cola Zero Sugar',
+    kcalPer100g: 0.3,
+    proteinPer100g: 0,
+    carbsPer100g: 0.1,
+    fatsPer100g: 0,
+    servingSizeLabel: '1 can (330ml)',
+  },
+  {
+    name: 'Sprite',
+    kcalPer100g: 42,
+    proteinPer100g: 0,
+    carbsPer100g: 10.5,
+    fatsPer100g: 0,
+    servingSizeLabel: '1 can (330ml)',
+  },
+  {
+    name: 'Royal Tru-Orange',
+    // VERIFY: math-consistent source put this notably lower (20 kcal/100ml)
+    // than a typical orange soda (~40+ kcal/100ml) — flagging in case the
+    // source serving size was misreported.
+    kcalPer100g: 20,
+    proteinPer100g: 0,
+    carbsPer100g: 5.1,
+    fatsPer100g: 0,
+    servingSizeLabel: '1 bottle (295ml)',
+  },
+  {
+    name: 'C2 Green Tea, Apple',
+    kcalPer100g: 50,
+    proteinPer100g: 0,
+    carbsPer100g: 11,
+    fatsPer100g: 0.25,
+    servingSizeLabel: '1 bottle (500ml)',
+  },
+  {
+    name: 'C2 Green Tea, Original (Lemon)',
+    // VERIFY: no distinct panel found; estimated close to the Apple variant.
+    kcalPer100g: 48,
+    proteinPer100g: 0,
+    carbsPer100g: 11.5,
+    fatsPer100g: 0,
+    servingSizeLabel: '1 bottle (500ml)',
+  },
+  {
+    name: 'Zesto Orange Juice Drink',
+    kcalPer100g: 40,
+    proteinPer100g: 0,
+    carbsPer100g: 10,
+    fatsPer100g: 0,
+    servingSizeLabel: '1 pouch (200ml)',
+  },
+  {
+    name: 'Powerade Ion4',
+    kcalPer100g: 15,
+    proteinPer100g: 0,
+    carbsPer100g: 3.9,
+    fatsPer100g: 0,
+    servingSizeLabel: '1 bottle (500ml)',
+  },
+  {
+    name: 'Pepsi',
+    kcalPer100g: 42,
+    proteinPer100g: 0,
+    carbsPer100g: 11.6,
+    fatsPer100g: 0,
+    servingSizeLabel: '1 can (330ml)',
+  },
+  {
+    name: 'Mountain Dew',
+    kcalPer100g: 50,
+    proteinPer100g: 0,
+    carbsPer100g: 12.9,
+    fatsPer100g: 0,
+    servingSizeLabel: '1 can (330ml)',
+  },
+  {
+    name: 'Tang Powdered Juice, Calamansi (Prepared)',
+    // VERIFY: sources conflated prepared-drink and dry-powder values (one
+    // listing implied 151 kcal/100ml prepared, which is implausibly high for
+    // a diluted drink); used a typical diluted-powdered-juice estimate instead.
+    kcalPer100g: 42,
+    proteinPer100g: 0,
+    carbsPer100g: 10.5,
+    fatsPer100g: 0,
+    servingSizeLabel: '1 glass (240ml prepared)',
+  },
+
+  // ---------- Fruits (Filipino names) ----------
+  {
+    name: 'Saging (Banana), Lakatan',
+    kcalPer100g: 89,
+    proteinPer100g: 1.1,
+    carbsPer100g: 22.8,
+    fatsPer100g: 0.3,
+    servingSizeLabel: '1 medium (100g)',
+  },
+  {
+    name: 'Saging (Banana), Latundan',
+    // VERIFY: per-100g figure derived from a per-fruit estimate (105 kcal
+    // for a ~130g banana); no direct per-100g panel found.
+    kcalPer100g: 90,
+    proteinPer100g: 1.1,
+    carbsPer100g: 21,
+    fatsPer100g: 0.2,
+    servingSizeLabel: '1 medium (100g)',
+  },
+  {
+    name: 'Saba (Cardaba Banana), Raw',
+    kcalPer100g: 120,
+    proteinPer100g: 1.2,
+    carbsPer100g: 31.5,
+    fatsPer100g: 0.3,
+    servingSizeLabel: '1 medium (100g)',
+  },
+  {
+    name: 'Mangga (Mango), Ripe',
+    kcalPer100g: 60,
+    proteinPer100g: 0.8,
+    carbsPer100g: 15,
+    fatsPer100g: 0.4,
+    servingSizeLabel: '1 cup sliced (165g)',
+  },
+  {
+    name: 'Mangga (Mango), Green',
+    // VERIFY: sources ranged 47-60 kcal/100g depending on variety/ripeness;
+    // used the midpoint.
+    kcalPer100g: 50,
+    proteinPer100g: 0.8,
+    carbsPer100g: 15,
+    fatsPer100g: 0.3,
+    servingSizeLabel: '1 cup sliced (165g)',
+  },
+  {
+    name: 'Papaya, Ripe',
+    kcalPer100g: 43,
+    proteinPer100g: 0.47,
+    carbsPer100g: 10.8,
+    fatsPer100g: 0.26,
+    servingSizeLabel: '1 cup cubed (145g)',
+  },
+  {
+    name: 'Pinya (Pineapple), Fresh',
+    kcalPer100g: 50,
+    proteinPer100g: 0.54,
+    carbsPer100g: 13.1,
+    fatsPer100g: 0.12,
+    servingSizeLabel: '1 cup chunks (165g)',
+  },
+  {
+    name: 'Atis (Sugar Apple)',
+    kcalPer100g: 94,
+    proteinPer100g: 2.1,
+    carbsPer100g: 23.6,
+    fatsPer100g: 0.3,
+    servingSizeLabel: '1 fruit (155g)',
+  },
+  {
+    name: 'Guyabano (Soursop)',
+    kcalPer100g: 66,
+    proteinPer100g: 1,
+    carbsPer100g: 16.8,
+    fatsPer100g: 0.3,
+    servingSizeLabel: '1 cup pulp (225g)',
+  },
+  {
+    name: 'Chico (Sapodilla)',
+    kcalPer100g: 83,
+    proteinPer100g: 0.44,
+    carbsPer100g: 20,
+    fatsPer100g: 1.1,
+    servingSizeLabel: '1 medium (170g)',
+  },
+
+  // ---------- Vegetables (Filipino names) ----------
+  {
+    name: 'Kangkong (Water Spinach), Cooked',
+    kcalPer100g: 22,
+    proteinPer100g: 2.6,
+    carbsPer100g: 3.9,
+    fatsPer100g: 0.3,
+    servingSizeLabel: '1 cup cooked (95g)',
+  },
+  {
+    name: 'Ampalaya (Bitter Gourd), Cooked',
+    kcalPer100g: 19,
+    proteinPer100g: 1,
+    carbsPer100g: 4.3,
+    fatsPer100g: 0.2,
+    servingSizeLabel: '1 cup cooked (124g)',
+  },
+  {
+    name: 'Talong (Eggplant), Grilled',
+    kcalPer100g: 35,
+    proteinPer100g: 0.8,
+    carbsPer100g: 8.6,
+    fatsPer100g: 0.2,
+    servingSizeLabel: '1 whole (100g)',
+  },
+  {
+    name: 'Okra, Cooked',
+    kcalPer100g: 22,
+    proteinPer100g: 1.9,
+    carbsPer100g: 4.5,
+    fatsPer100g: 0.2,
+    servingSizeLabel: '1 cup cooked (160g)',
+  },
+  {
+    name: 'Upo (Bottle Gourd), Cooked',
+    kcalPer100g: 20,
+    proteinPer100g: 0.6,
+    carbsPer100g: 3.4,
+    fatsPer100g: 0.2,
+    servingSizeLabel: '1 cup cooked (146g)',
+  },
+  {
+    name: 'Sayote (Chayote), Cooked',
+    kcalPer100g: 19,
+    proteinPer100g: 0.6,
+    carbsPer100g: 4.1,
+    fatsPer100g: 0.3,
+    servingSizeLabel: '1 cup cooked (160g)',
+  },
+  {
+    name: 'Patola (Luffa), Cooked',
+    kcalPer100g: 20,
+    proteinPer100g: 0.6,
+    carbsPer100g: 4,
+    fatsPer100g: 0.2,
+    servingSizeLabel: '1 cup cooked (95g)',
+  },
+  {
+    name: 'Alugbati (Malabar Spinach), Cooked',
+    kcalPer100g: 23,
+    proteinPer100g: 2,
+    carbsPer100g: 3.8,
+    fatsPer100g: 0.3,
+    servingSizeLabel: '1 cup cooked (87g)',
   },
 ];

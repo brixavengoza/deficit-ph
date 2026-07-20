@@ -1,4 +1,4 @@
-import { ACTIVITY_LEVEL_OPTIONS, ActivityLevel } from '@/lib/profile-settings-mock';
+import { ACTIVITY_LEVEL_OPTIONS, ActivityLevel } from '@/lib/profile-settings-options';
 import React from 'react';
 import StaticRow from '../static-row';
 import { Activity } from 'lucide-react-native';

@@ -12,6 +12,8 @@ import { Icon } from '@/components/ui/icon';
 import { Input } from '@/components/ui/input';
 import { Text } from '@/components/ui/text';
 import { formatNumberGrouped } from '@/lib/number-format';
+import { calculateCalorieTargets } from '@/utils/calorie-targets';
+import { isMinor } from '@/utils/health-guardrails';
 
 type Sex = 'male' | 'female';
 type ActivityLevel = 'sedentary' | 'light' | 'moderate' | 'very';
@@ -20,12 +22,11 @@ const ACTIVITY_OPTIONS: Array<{
   key: ActivityLevel;
   title: string;
   subtitle: string;
-  multiplier: number;
 }> = [
-  { key: 'sedentary', title: 'Sedentary', subtitle: 'Little to no exercise', multiplier: 1.2 },
-  { key: 'light', title: 'Light', subtitle: 'Exercise 1-3 days/week', multiplier: 1.375 },
-  { key: 'moderate', title: 'Moderate', subtitle: 'Exercise 3-5 days/week', multiplier: 1.55 },
-  { key: 'very', title: 'Very Active', subtitle: 'Hard exercise 6-7 days/week', multiplier: 1.725 },
+  { key: 'sedentary', title: 'Sedentary', subtitle: 'Little to no exercise' },
+  { key: 'light', title: 'Light', subtitle: 'Exercise 1-3 days/week' },
+  { key: 'moderate', title: 'Moderate', subtitle: 'Exercise 3-5 days/week' },
+  { key: 'very', title: 'Very Active', subtitle: 'Hard exercise 6-7 days/week' },
 ];
 
 const tdeeSchema = z.object({
@@ -52,23 +53,40 @@ function toPositiveNumber(value: string) {
   return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
 }
 
-function calculateTdee(values: TdeeFormValues) {
+type TdeeResult = {
+  maintenance: number;
+  /** null when the minor gate applies — a cut is never surfaced for under-18s. */
+  deficit: number | null;
+  leanGain: number;
+  minor: boolean;
+};
+
+function calculateTdeeResult(values: TdeeFormValues): TdeeResult | null {
   const age = toPositiveNumber(values.age);
   const heightCm = toPositiveNumber(values.heightCm);
   const weightKg = toPositiveNumber(values.weightKg);
   if (!age || !heightCm || !weightKg) return null;
 
-  const sexOffset = values.sex === 'male' ? 5 : -161;
-  const bmr = 10 * weightKg + 6.25 * heightCm - 5 * age + sexOffset;
-  const activity = ACTIVITY_OPTIONS.find((option) => option.key === values.activityLevel);
-  const maintenance = Math.round(bmr * (activity?.multiplier ?? 1.2));
+  // Route ALL BMR/TDEE math through the safety-critical source of truth (CLAUDE.md rule 6)
+  // instead of a divergent inline formula that bypassed the sex-aware calorie floor.
+  const base = {
+    activityLevel: values.activityLevel,
+    age,
+    heightCm,
+    sex: values.sex,
+    weightKg,
+  } as const;
+  const maintenance = calculateCalorieTargets({ ...base, goal: 'maintain' });
+  const deficit = calculateCalorieTargets({ ...base, goal: 'lose' });
+  const gain = calculateCalorieTargets({ ...base, goal: 'gain' });
+  if (!maintenance || !gain) return null;
 
+  const minor = isMinor(age);
   return {
-    bmr: Math.round(bmr),
-    maintenance,
-    lightCut: Math.max(1200, maintenance - 250),
-    deficit: Math.max(1200, maintenance - 500),
-    leanGain: maintenance + 250,
+    maintenance: maintenance.dailyCalories,
+    deficit: minor ? null : (deficit?.dailyCalories ?? null),
+    leanGain: gain.dailyCalories,
+    minor,
   };
 }
 
@@ -109,12 +127,12 @@ function TdeeCalculatorModal({ open, onClose }: { open: boolean; onClose: () => 
       activityLevel: 'moderate',
     },
   });
-  const [result, setResult] = React.useState<ReturnType<typeof calculateTdee>>(null);
+  const [result, setResult] = React.useState<TdeeResult | null>(null);
   const sex = watch('sex');
   const activityLevel = watch('activityLevel');
 
   const onSubmit = (values: TdeeFormValues) => {
-    setResult(calculateTdee(values));
+    setResult(calculateTdeeResult(values));
   };
 
   return (
@@ -132,7 +150,7 @@ function TdeeCalculatorModal({ open, onClose }: { open: boolean; onClose: () => 
               <View>
                 <Text className="text-foreground text-lg font-bold">TDEE Calculator</Text>
                 <Text className="text-muted-foreground mt-1 text-xs">
-                  Estimate daily calories for anyone.
+                  Estimate your daily calories (cm / kg).
                 </Text>
               </View>
               <Pressable
@@ -243,12 +261,18 @@ function TdeeCalculatorModal({ open, onClose }: { open: boolean; onClose: () => 
                 <View className="bg-primary/10 rounded-md p-4">
                   <Text className="text-primary text-sm font-bold">Estimated calories</Text>
                   <View className="mt-3 gap-2">
-                    <ResultRow label="BMR" value={result.bmr} />
                     <ResultRow label="Maintenance" value={result.maintenance} emphasized />
-                    <ResultRow label="Light deficit" value={result.lightCut} />
-                    <ResultRow label="Deficit" value={result.deficit} />
+                    {result.deficit != null ? (
+                      <ResultRow label="Deficit (cut)" value={result.deficit} />
+                    ) : null}
                     <ResultRow label="Lean gain" value={result.leanGain} />
                   </View>
+                  {result.minor ? (
+                    <Text className="text-muted-foreground mt-3 text-xs leading-4">
+                      Under 18 ka pa? Focus muna sa maintain + healthy habits — hindi muna cut,
+                      bestie. 💚
+                    </Text>
+                  ) : null}
                 </View>
               ) : null}
 

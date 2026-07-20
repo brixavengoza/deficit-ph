@@ -1,6 +1,6 @@
 import { ChoiceModal } from '@/components/profile/choice-modal';
 import StaticRow from '@/components/profile/static-row';
-import { UNITS_OPTIONS, type Units } from '@/lib/profile-settings-mock';
+import { UNITS_OPTIONS, type Units } from '@/lib/profile-settings-options';
 import { Scale } from 'lucide-react-native';
 import React from 'react';
 import { useProfileBundleStore } from '@/stores/use-profile-bundle-store';

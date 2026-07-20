@@ -4,17 +4,17 @@ import React from 'react';
 import { View } from 'react-native';
 
 export default function Index() {
-  const [route, setRoute] = React.useState<'/onboarding/step-1' | '/dashboard' | null>(null);
+  const [route, setRoute] = React.useState<'/welcome' | '/dashboard' | null>(null);
 
   React.useEffect(() => {
     let isMounted = true;
     void getInitialAppRoute()
       .then((nextRoute) => {
-        if (isMounted) setRoute(nextRoute);
+        if (isMounted) setRoute(nextRoute === '/dashboard' ? '/dashboard' : '/welcome');
       })
       .catch((error) => {
         console.error('[Index.getInitialAppRoute]', error);
-        if (isMounted) setRoute('/onboarding/step-1');
+        if (isMounted) setRoute('/welcome');
       });
 
     return () => {

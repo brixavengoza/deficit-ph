@@ -2,6 +2,7 @@ import { Button } from '@/components/ui/button';
 import { Icon } from '@/components/ui/icon';
 import { Text } from '@/components/ui/text';
 import { useUpsertUserFoodMutation } from '@/hooks/use-trackk-query';
+import { getNutritionScanCapability } from '@/lib/ai-capability';
 import { scanNutritionLabel, uploadNutritionLabelImage } from '@/lib/food-label-scanner';
 import { formatNumberGrouped } from '@/lib/number-format';
 import type { NutritionLabelDraft } from '@/lib/nutrition-label-parser';
@@ -26,10 +27,13 @@ function valueParam(value: number) {
   return Number.isFinite(value) ? String(value) : '0';
 }
 
-function scanFallbackMessage(error: unknown, fallback: string) {
+function describeScanError(error: unknown, fallback: string) {
   const message = error instanceof Error ? error.message : fallback;
+  // Availability is now checked PROACTIVELY before the scanner mounts, so a throw here is
+  // a runtime failure (ineligible hardware/OS at call time, or a parse miss) — not the
+  // "feature missing" case. This branch stays only as a defensive fallback.
   if (message.includes('available on iOS') || message.includes('custom dev build')) {
-    return 'Scan Label is optional and is not available on this build. You can still create and log the food manually.';
+    return 'Hindi available ang Scan Label sa device na ito. You can still create and log the food manually.';
   }
   return message;
 }
@@ -44,6 +48,9 @@ export default function ScanLabelScreen() {
   const [error, setError] = React.useState<string | null>(null);
   const upsertFoodMutation = useUpsertUserFoodMutation();
   const isWorking = activeAction != null || isSaving;
+  // Proactive, synchronous capability check — decide BEFORE mounting the camera so we
+  // never show a viewfinder that can only ever throw on this platform/build.
+  const scanCapability = React.useMemo(() => getNutritionScanCapability(), []);
 
   const startScan = React.useCallback(async () => {
     setActiveAction('scan');
@@ -53,7 +60,7 @@ export default function ScanLabelScreen() {
       setUploadedImageUri(null);
       setDraft(result);
     } catch (scanError) {
-      setError(scanFallbackMessage(scanError, 'Unable to scan nutrition label.'));
+      setError(describeScanError(scanError, 'Unable to scan nutrition label.'));
       console.error('[ScanLabelScreen.startScan]', scanError);
     } finally {
       setActiveAction(null);
@@ -87,7 +94,7 @@ export default function ScanLabelScreen() {
       setUploadedImageUri(imageUri);
       setDraft(result);
     } catch (uploadError) {
-      setError(scanFallbackMessage(uploadError, 'Unable to upload nutrition label.'));
+      setError(describeScanError(uploadError, 'Unable to upload nutrition label.'));
       console.error('[ScanLabelScreen.uploadImage]', uploadError);
     } finally {
       setActiveAction(null);
@@ -150,6 +157,50 @@ export default function ScanLabelScreen() {
       setIsSaving(false);
     }
   }, [draft, upsertFoodMutation]);
+
+  if (scanCapability.tier === 'unavailable') {
+    const unavailableCopy =
+      scanCapability.reason === 'unsupported-platform'
+        ? 'Ang Scan Label ay para sa iPhone na may custom build. Pwede mo pa ring i-create at i-log ang food nang manu-mano.'
+        : 'Hindi naka-enable ang scanner sa build na ito. Pwede mo pa ring i-create at i-log ang food nang manu-mano.';
+    return (
+      <>
+        <Stack.Screen options={{ headerShown: false }} />
+        <View className="bg-background flex-1">
+          <View
+            className="bg-background flex-row items-center px-4 pb-3"
+            style={{ paddingTop: insets.top + 10 }}>
+            <Pressable
+              className="h-10 w-10 items-center justify-center rounded-full"
+              onPress={() => router.back()}>
+              <Icon as={ArrowLeft} className="text-foreground size-5" />
+            </Pressable>
+            <Text className="text-foreground flex-1 pr-10 text-center text-lg font-bold">
+              Scan Label
+            </Text>
+          </View>
+
+          <View className="flex-1 items-center justify-center gap-4 px-8">
+            <View className="bg-primary/10 h-16 w-16 items-center justify-center rounded-full">
+              <Icon as={Sparkles} className="text-primary size-7" />
+            </View>
+            <Text className="text-foreground text-center text-lg font-bold">
+              Scan Label is not available here
+            </Text>
+            <Text className="text-muted-foreground text-center text-sm leading-5">
+              {unavailableCopy}
+            </Text>
+            <Button
+              className="mt-1 rounded-md"
+              onPress={() => router.replace('/dashboard/add-custom-food')}>
+              <Icon as={Pencil} className="text-primary-foreground size-4" />
+              <Text className="text-primary-foreground">Create Custom Food</Text>
+            </Button>
+          </View>
+        </View>
+      </>
+    );
+  }
 
   return (
     <>

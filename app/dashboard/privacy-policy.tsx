@@ -13,7 +13,7 @@ import {
   UserCheck,
 } from 'lucide-react-native';
 import React from 'react';
-import { Linking, Pressable, ScrollView, Share, View } from 'react-native';
+import { Alert, Linking, Pressable, ScrollView, Share, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 function SectionCard({
@@ -71,7 +71,12 @@ export default function PrivacyPolicyScreen() {
   }
 
   function handleEmailPress() {
-    Linking.openURL('mailto:privacy@deficitph.com').catch(() => {});
+    Linking.openURL('mailto:privacy@deficitph.com').catch(() => {
+      Alert.alert(
+        'No email app found',
+        'Email us directly at privacy@deficitph.com from any device with a mail app set up.'
+      );
+    });
   }
 
   return (

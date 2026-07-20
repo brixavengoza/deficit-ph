@@ -1,0 +1,24 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "permissions": {
+    "allow": [
+      "Bash(npm run typecheck)",
+      "Bash(npm run test)",
+      "Bash(npm run test:nutrition-parser)",
+      "Bash(npm run release:check)",
+      "Bash(node scripts/test-nutrition-label-parser.mjs)",
+      "Bash(npx tsc --noEmit)",
+      "Bash(git status)",
+      "Bash(git status:*)",
+      "Bash(git diff:*)",
+      "Bash(git log:*)",
+      "Read",
+      "Grep",
+      "Glob"
+    ],
+    "deny": [
+      "Read(./.env)",
+      "Read(./.env.*)"
+    ]
+  }
+}

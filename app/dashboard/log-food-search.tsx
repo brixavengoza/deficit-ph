@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Icon } from '@/components/ui/icon';
 import { Input } from '@/components/ui/input';
 import { Text } from '@/components/ui/text';
+import { getNutritionScanCapability } from '@/lib/ai-capability';
 import { getFoodEmoji } from '@/lib/food-emoji';
 import { formatNumberGrouped } from '@/lib/number-format';
 import {
@@ -12,7 +13,7 @@ import {
   useFoodsQuery,
 } from '@/hooks/use-trackk-query';
 import { useRouter } from 'expo-router';
-import { ArrowLeft, ChevronRight, PencilLine, Plus, Search } from 'lucide-react-native';
+import { ArrowLeft, ChevronRight, PencilLine, Plus, ScanLine, Search } from 'lucide-react-native';
 import React from 'react';
 import { Keyboard, KeyboardAvoidingView, Platform, Pressable, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -108,6 +109,9 @@ function useKeyboardHeight() {
 export default function LogFoodSearchScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  // Sync capability gate: only offer the scanner where the native module can actually run,
+  // so Android/web users never see an entry point that dead-ends.
+  const scannerAvailable = React.useMemo(() => getNutritionScanCapability().tier !== 'unavailable', []);
   const inputRef = React.useRef<TextInput>(null);
   const navigateTimeoutRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
   const [query, setQuery] = React.useState('');
@@ -139,7 +143,19 @@ export default function LogFoodSearchScreen() {
     for (const item of loggedFoods) {
       const key = item.foodName.trim().toLowerCase();
       if (byName.has(key)) continue;
-      byName.set(key, { id: item.id, name: item.foodName, kcalPer100g: item.kcalPer100g });
+      // Carry the real per-100g macros from the log snapshot — building recents with only
+      // name + kcal made handleSelectFood pass "0" for every macro, silently zeroing them.
+      byName.set(key, {
+        id: item.id,
+        name: item.foodName,
+        kcalPer100g: item.kcalPer100g,
+        proteinPer100g: item.proteinPer100g,
+        carbsPer100g: item.carbsPer100g,
+        fatsPer100g: item.fatsPer100g,
+        fiberPer100g: item.fiberPer100g,
+        sugarPer100g: item.sugarPer100g,
+        sodiumMgPer100g: item.sodiumMgPer100g,
+      });
     }
     return Array.from(byName.values()).slice(0, 8);
   }, [loggedFoods]);
@@ -398,6 +414,16 @@ export default function LogFoodSearchScreen() {
               <Icon as={PencilLine} className="text-primary-foreground size-4" />
               <Text>Create Food</Text>
             </Button>
+            {scannerAvailable ? (
+              <Button
+                size="sm"
+                variant="outline"
+                className="h-10 flex-1 rounded-md"
+                onPress={() => router.push('/dashboard/scan-label')}>
+                <Icon as={ScanLine} className="text-foreground size-4" />
+                <Text>Scan Label</Text>
+              </Button>
+            ) : null}
           </View>
         </View>
 

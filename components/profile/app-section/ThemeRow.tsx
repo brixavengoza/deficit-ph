@@ -1,6 +1,6 @@
 import { ChoiceModal } from '@/components/profile/choice-modal';
 import StaticRow from '@/components/profile/static-row';
-import { THEME_OPTIONS, type ThemeMode } from '@/lib/profile-settings-mock';
+import { THEME_OPTIONS, type ThemeMode } from '@/lib/profile-settings-options';
 import { MoonStar } from 'lucide-react-native';
 import React from 'react';
 import { Uniwind } from 'uniwind';

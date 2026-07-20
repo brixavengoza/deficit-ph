@@ -15,6 +15,12 @@ type SavedFoodListItem = {
   id: string;
   name: string;
   kcalPer100g: number;
+  proteinPer100g: number;
+  carbsPer100g: number;
+  fatsPer100g: number;
+  fiberPer100g: number;
+  sugarPer100g: number;
+  sodiumMgPer100g: number;
 };
 
 function SavedFoodRow({
@@ -62,6 +68,12 @@ export default function SavedFoodsScreen() {
       id: item.id,
       name: item.name,
       kcalPer100g: item.kcalPer100g,
+      proteinPer100g: item.proteinPer100g,
+      carbsPer100g: item.carbsPer100g,
+      fatsPer100g: item.fatsPer100g,
+      fiberPer100g: item.fiberPer100g,
+      sugarPer100g: item.sugarPer100g,
+      sodiumMgPer100g: item.sodiumMgPer100g,
     }));
 
     if (!normalizedQuery) return mapped;
@@ -74,6 +86,13 @@ export default function SavedFoodsScreen() {
       params: {
         foodName: food.name,
         kcalPer100g: String(food.kcalPer100g),
+        // Carry the real macros through — passing only name + kcal fabricated them downstream.
+        proteinPer100g: String(food.proteinPer100g),
+        carbsPer100g: String(food.carbsPer100g),
+        fatsPer100g: String(food.fatsPer100g),
+        fiberPer100g: String(food.fiberPer100g),
+        sugarPer100g: String(food.sugarPer100g),
+        sodiumMgPer100g: String(food.sodiumMgPer100g),
       },
     });
   }, []);

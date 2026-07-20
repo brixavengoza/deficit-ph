@@ -28,7 +28,6 @@ export default function OnboardingStepTwoScreen() {
 
   const onNext = () => {
     if (!canProceed) return;
-    console.log('[onboarding step 2]', { activityLevel: level });
     router.push('/onboarding/step-3');
   };
 
