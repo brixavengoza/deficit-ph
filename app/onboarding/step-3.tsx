@@ -123,7 +123,6 @@ export default function OnboardingStepThreeScreen() {
           {GOALS.map((item) => {
             const selected = goal === item.key;
             const GoalIcon = item.icon;
-            const isRecommended = goalSafety.recommendedGoal === item.key;
 
             return (
               <Button
@@ -155,13 +154,6 @@ export default function OnboardingStepThreeScreen() {
                       }>
                       {item.title}
                     </Text>
-                    {isRecommended ? (
-                      <View className="bg-primary/15 rounded-full px-2 py-0.5">
-                        <Text className="text-primary text-[10px] font-bold tracking-wide uppercase">
-                          Recommended for you
-                        </Text>
-                      </View>
-                    ) : null}
                   </View>
                   <Text className="text-muted-foreground text-left text-sm">{item.subtitle}</Text>
                 </View>

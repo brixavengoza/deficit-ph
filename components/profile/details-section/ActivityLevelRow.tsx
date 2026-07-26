@@ -33,6 +33,7 @@ export default function ActivityLevelRow() {
         open={activeModal === 'activity'}
         selected={activityLevel}
         options={ACTIVITY_LEVEL_OPTIONS}
+        optionLayout="list"
         optionDescriptions={ACTIVITY_LEVEL_DESCRIPTIONS}
         onClose={() => setActiveModal(null)}
         onSelect={(value) => {

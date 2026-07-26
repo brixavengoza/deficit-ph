@@ -7,7 +7,6 @@ export const personalInfoSchema = z.object({
     .trim()
     .min(1, 'Username is required')
     .regex(/^[a-zA-Z0-9._-]+$/, 'Use letters, numbers, dot, underscore, or dash'),
-  email: z.string().trim().email('Enter a valid email'),
 });
 
 export const bodyMeasurementsSchema = z.object({

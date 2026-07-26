@@ -16,15 +16,9 @@ export default function DashboardProgressScreen() {
   const progressQuery = useProgressQuery();
   const addWeightMutation = useAddWeightMutation();
   const [weightModalOpen, setWeightModalOpen] = React.useState(false);
-  const [weightInput, setWeightInput] = React.useState(
-    String(progressQuery.data?.weight.currentKg ?? '85.0')
-  );
+  // Blank by default — the user is logging a NEW weigh-in, not editing the current one.
+  const [weightInput, setWeightInput] = React.useState('');
   const [chartDragging, setChartDragging] = React.useState(false);
-
-  React.useEffect(() => {
-    if (progressQuery.data?.weight.currentKg == null) return;
-    setWeightInput(String(progressQuery.data.weight.currentKg));
-  }, [progressQuery.data?.weight.currentKg]);
 
   const onSaveWeight = async (weightKg: number) => {
     try {
@@ -74,7 +68,10 @@ export default function DashboardProgressScreen() {
           startKg={progress.weight.startKg}
           currentKg={progress.weight.currentKg}
           lostKg={progress.weight.lostKg}
-          onOpenLogWeight={() => setWeightModalOpen(true)}
+          onOpenLogWeight={() => {
+            setWeightInput('');
+            setWeightModalOpen(true);
+          }}
           onChartDragStateChange={setChartDragging}
         />
         <AdherenceOverviewCard
@@ -93,6 +90,7 @@ export default function DashboardProgressScreen() {
       <WeightLogModal
         open={weightModalOpen}
         value={weightInput}
+        previousKg={progress.weight.currentKg}
         isSaving={addWeightMutation.isPending}
         onChangeValue={setWeightInput}
         onClose={() => setWeightModalOpen(false)}

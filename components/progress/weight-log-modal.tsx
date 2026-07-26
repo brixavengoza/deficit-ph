@@ -11,6 +11,7 @@ type WeightUnit = 'kg' | 'lbs';
 type WeightLogModalProps = {
   open: boolean;
   value: string;
+  previousKg?: number | null;
   isSaving?: boolean;
   onChangeValue: (value: string) => void;
   onClose: () => void;
@@ -20,6 +21,7 @@ type WeightLogModalProps = {
 export function WeightLogModal({
   open,
   value,
+  previousKg = null,
   isSaving = false,
   onChangeValue,
   onClose,
@@ -70,7 +72,7 @@ export function WeightLogModal({
             </View>
 
             <View className="mb-4">
-              <Text className="text-foreground mb-2 text-sm font-semibold">Current Weight</Text>
+              <Text className="text-foreground mb-2 text-sm font-semibold">Today&apos;s Weight</Text>
               <View className="relative justify-center">
                 <Input
                   value={value}
@@ -83,6 +85,13 @@ export function WeightLogModal({
                   {unit}
                 </Text>
               </View>
+              {previousKg != null ? (
+                <Text className="text-muted-foreground mt-1.5 text-xs">
+                  Previous:{' '}
+                  {unit === 'lbs' ? (previousKg / 0.45359237).toFixed(1) : previousKg.toFixed(1)}{' '}
+                  {unit}
+                </Text>
+              ) : null}
               {error ? <Text className="text-destructive mt-1 text-xs">{error}</Text> : null}
             </View>
 

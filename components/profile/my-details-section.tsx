@@ -4,6 +4,7 @@ import { View } from 'react-native';
 import PersonalInfoCollapsibleRow from './details-section/PersonalInfoCollapsibleRow';
 import ActivityLevelRow from './details-section/ActivityLevelRow';
 import BodyMeasurementsCollapsibleRow from './details-section/BodyMeasurementsCollapsibleRow';
+import GoalRow from './details-section/GoalRow';
 
 export default function MyDetailsSection() {
   return (
@@ -17,6 +18,7 @@ export default function MyDetailsSection() {
         <PersonalInfoCollapsibleRow />
         <BodyMeasurementsCollapsibleRow />
         <ActivityLevelRow />
+        <GoalRow />
       </View>
     </View>
   );

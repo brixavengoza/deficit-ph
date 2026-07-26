@@ -48,6 +48,7 @@ export default function BodyMeasurementsCollapsibleRow() {
   const saveBodyMeasurements = async (values: BodyMeasurementsValues) => {
     await saveBodyToDb(values);
     form.reset(values);
+    setOpen(false);
   };
 
   return (
@@ -99,26 +100,26 @@ export default function BodyMeasurementsCollapsibleRow() {
             />
             <FieldError message={form.formState.errors.weight?.message} />
           </View>
-        </View>
 
-        <View>
-          <Text className="text-foreground mb-1 text-xs font-semibold">
-            Goal Weight ({units === 'Metric' ? 'kg' : 'lb'})
-          </Text>
-          <Controller
-            control={form.control}
-            name="goalWeight"
-            render={({ field }) => (
-              <Input
-                value={field.value}
-                onChangeText={field.onChange}
-                onBlur={field.onBlur}
-                keyboardType="decimal-pad"
-                className="bg-input-bg h-11 rounded-md"
-              />
-            )}
-          />
-          <FieldError message={form.formState.errors.goalWeight?.message} />
+          <View className="flex-1">
+            <Text className="text-foreground mb-1 text-xs font-semibold">
+              Goal ({units === 'Metric' ? 'kg' : 'lb'})
+            </Text>
+            <Controller
+              control={form.control}
+              name="goalWeight"
+              render={({ field }) => (
+                <Input
+                  value={field.value}
+                  onChangeText={field.onChange}
+                  onBlur={field.onBlur}
+                  keyboardType="decimal-pad"
+                  className="bg-input-bg h-11 rounded-md"
+                />
+              )}
+            />
+            <FieldError message={form.formState.errors.goalWeight?.message} />
+          </View>
         </View>
 
         <Button

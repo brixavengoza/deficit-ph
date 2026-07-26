@@ -2,6 +2,7 @@ import {
   loadProfileBundle,
   updateActivityLevel,
   updateBodyMeasurements,
+  updateGoal,
   updateNotifications,
   updatePersonalInfo,
   updateProfilePhoto,
@@ -21,6 +22,7 @@ const DEFAULT_BUNDLE: ProfileBundle = {
   weight: '',
   goalWeight: '',
   activityLevel: 'Moderate',
+  goal: 'Lose Weight',
   units: 'Metric',
   theme: 'Auto',
   notifications: true,
@@ -39,7 +41,6 @@ type ProfileBundleState = {
   savePersonalInfo: (values: {
     fullName: string;
     username: string;
-    email: string;
   }) => Promise<void>;
   saveProfilePhoto: (profilePhotoUri: string) => Promise<void>;
   saveBodyMeasurements: (values: {
@@ -48,6 +49,7 @@ type ProfileBundleState = {
     goalWeight: string;
   }) => Promise<void>;
   saveActivityLevel: (value: ProfileBundle['activityLevel']) => Promise<void>;
+  saveGoal: (value: ProfileBundle['goal']) => Promise<void>;
   saveUnits: (value: ProfileBundle['units']) => Promise<void>;
   saveTheme: (value: ProfileBundle['theme']) => Promise<void>;
   saveNotifications: (value: boolean) => Promise<void>;
@@ -139,6 +141,21 @@ export const useProfileBundleStore = create<ProfileBundleState>((set, get) => ({
     } catch (error) {
       set({
         error: error instanceof Error ? error.message : 'Failed to save activity level.',
+        isSaving: false,
+      });
+      throw error;
+    }
+  },
+
+  saveGoal: async (value) => {
+    set({ isSaving: true, error: null });
+    try {
+      await updateGoal(value);
+      const bundle = await loadProfileBundle();
+      set({ bundle, isSaving: false, hasLoaded: true });
+    } catch (error) {
+      set({
+        error: error instanceof Error ? error.message : 'Failed to save goal.',
         isSaving: false,
       });
       throw error;

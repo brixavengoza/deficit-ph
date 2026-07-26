@@ -13,21 +13,22 @@ import { useProfileBundleStore } from '@/stores/use-profile-bundle-store';
 
 export default function PersonalInfoCollapsibleRow() {
   const [open, setOpen] = React.useState(false);
-  const { fullName, username, email } = useProfileBundleStore((state) => state.bundle);
+  const { fullName, username } = useProfileBundleStore((state) => state.bundle);
   const savePersonalInfoToDb = useProfileBundleStore((state) => state.savePersonalInfo);
   const form = useForm<PersonalInfoValues>({
     resolver: zodResolver(personalInfoSchema),
     mode: 'onChange',
-    defaultValues: { fullName: '', username: '', email: '' },
+    defaultValues: { fullName: '', username: '' },
   });
 
   React.useEffect(() => {
-    form.reset({ fullName, username, email });
-  }, [email, form, fullName, username]);
+    form.reset({ fullName, username });
+  }, [form, fullName, username]);
 
   const savePersonalInfo = async (values: PersonalInfoValues) => {
     await savePersonalInfoToDb(values);
     form.reset(values);
+    setOpen(false);
   };
 
   return (
@@ -71,25 +72,6 @@ export default function PersonalInfoCollapsibleRow() {
             )}
           />
           <FieldError message={form.formState.errors.username?.message} />
-        </View>
-
-        <View>
-          <Text className="text-foreground mb-1 text-xs font-semibold">Email</Text>
-          <Controller
-            control={form.control}
-            name="email"
-            render={({ field }) => (
-              <Input
-                value={field.value}
-                onChangeText={field.onChange}
-                onBlur={field.onBlur}
-                keyboardType="email-address"
-                autoCapitalize="none"
-                className="bg-input-bg h-11 rounded-md"
-              />
-            )}
-          />
-          <FieldError message={form.formState.errors.email?.message} />
         </View>
 
         <Button

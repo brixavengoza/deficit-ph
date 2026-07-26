@@ -22,6 +22,18 @@ type AppUnits = 'Metric' | 'Imperial';
 type AppTheme = 'Auto' | 'Light' | 'Dark';
 type AppActivity = 'Sedentary' | 'Light' | 'Moderate' | 'Very Active';
 type AppGoal = 'lose' | 'maintain' | 'gain';
+type AppGoalLabel = 'Lose Weight' | 'Maintain Weight' | 'Gain Weight';
+
+const GOAL_TO_DB: Record<AppGoalLabel, AppGoal> = {
+  'Lose Weight': 'lose',
+  'Maintain Weight': 'maintain',
+  'Gain Weight': 'gain',
+};
+const GOAL_FROM_DB: Record<AppGoal, AppGoalLabel> = {
+  lose: 'Lose Weight',
+  maintain: 'Maintain Weight',
+  gain: 'Gain Weight',
+};
 type AppMeal = 'Breakfast' | 'Lunch' | 'Dinner' | 'Snack';
 
 type DbActivity = 'sedentary' | 'light' | 'moderate' | 'very';
@@ -78,6 +90,7 @@ export type ProfileBundle = {
   weight: string;
   goalWeight: string;
   activityLevel: AppActivity;
+  goal: AppGoalLabel;
   units: AppUnits;
   theme: AppTheme;
   notifications: boolean;
@@ -815,6 +828,7 @@ export async function loadProfileBundle(): Promise<ProfileBundle> {
           : '',
     goalWeight: goals?.goal_weight_kg != null ? String(goals.goal_weight_kg) : '',
     activityLevel: ACTIVITY_FROM_DB[preferences?.activity_level ?? 'moderate'],
+    goal: GOAL_FROM_DB[goals?.goal ?? 'lose'],
     units: UNITS_FROM_DB[preferences?.units ?? 'metric'],
     theme: THEME_FROM_DB[preferences?.theme ?? 'auto'],
     notifications: preferences?.notifications_enabled !== 0,
@@ -826,22 +840,15 @@ export async function loadProfileBundle(): Promise<ProfileBundle> {
 export async function updatePersonalInfo(values: {
   fullName: string;
   username: string;
-  email: string;
 }) {
   const db = await getDb();
   await db.runAsync(
     `UPDATE profile
      SET full_name = ?,
          username = ?,
-         email = ?,
          updated_at = ?
      WHERE id = 1`,
-    [
-      values.fullName.trim(),
-      values.username.trim(),
-      values.email.trim().toLowerCase(),
-      new Date().toISOString(),
-    ]
+    [values.fullName.trim(), values.username.trim(), new Date().toISOString()]
   );
 }
 
@@ -920,6 +927,17 @@ export async function updateActivityLevel(level: AppActivity) {
     new Date().toISOString(),
   ]);
   await refreshCalorieTargets(db, { activityLevel: ACTIVITY_TO_DB[level] });
+}
+
+// Changing the goal re-derives the (safety-gated) calorie target for the new goal. The goal
+// enum is stored as chosen; refreshCalorieTargets still floors an unsafe cut per the guardrail.
+export async function updateGoal(value: AppGoalLabel) {
+  const db = await getDb();
+  await db.runAsync('UPDATE user_goals SET goal = ?, updated_at = ? WHERE id = 1', [
+    GOAL_TO_DB[value],
+    new Date().toISOString(),
+  ]);
+  await refreshCalorieTargets(db);
 }
 
 function mapFoodRow(row: FoodRow): SavedFoodModel {

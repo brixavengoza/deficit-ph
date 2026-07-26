@@ -33,7 +33,8 @@ function WeightJourneyChart({
   const points = series.map((value, index) => {
     const x = index * step;
     const t = (value - min) / range;
-    const y = plotTop + t * (plotBottom - plotTop);
+    // SVG y grows downward, so invert: the HIGHER weight sits at plotTop, the lower at plotBottom.
+    const y = plotBottom - t * (plotBottom - plotTop);
     return { x, y };
   });
 

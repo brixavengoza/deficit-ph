@@ -13,11 +13,14 @@
       "resizeMode": "contain",
       "backgroundColor": "#22C55E"
     },
-    "assetBundlePatterns": ["**/*"],
+    "assetBundlePatterns": [
+      "**/*"
+    ],
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.trackk.minimal",
       "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false,
         "NSCameraUsageDescription": "trackk uses the camera to scan nutrition labels and take profile photos.",
         "NSPhotoLibraryUsageDescription": "trackk uses your photo library so you can upload nutrition label images and choose profile photos."
       }
@@ -51,6 +54,13 @@
     ],
     "experiments": {
       "typedRoutes": true
-    }
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "3bd251c5-8cf9-4142-9982-bdeb54c5141d"
+      }
+    },
+    "owner": "brixavengoza"
   }
 }

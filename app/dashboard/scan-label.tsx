@@ -237,30 +237,28 @@ export default function ScanLabelScreen() {
             }}
           />
 
-          <View
-            className="bg-background/95 absolute right-4 left-4 flex-row items-center gap-4 rounded-md p-4"
-            style={{ bottom: Math.max(insets.bottom + 132, 148) }}>
-            <View className="bg-primary/15 h-12 w-12 items-center justify-center rounded-md">
-              <Icon as={Utensils} className="text-primary size-6" />
+          {activeAction || draft ? (
+            <View
+              className="bg-background/95 absolute right-4 left-4 flex-row items-center gap-4 rounded-md p-4"
+              style={{ top: Math.max(insets.top + 64, 80) }}>
+              <View className="bg-primary/15 h-12 w-12 items-center justify-center rounded-md">
+                <Icon as={Utensils} className="text-primary size-6" />
+              </View>
+              <View className="flex-1">
+                <Text className="text-foreground text-sm font-bold">
+                  {activeAction === 'upload'
+                    ? 'Reading image...'
+                    : activeAction === 'scan'
+                      ? 'Scanning...'
+                      : 'Food detected'}
+                </Text>
+                <Text className="text-muted-foreground mt-0.5 text-xs">
+                  {draft ? 'Review the nutrition draft before saving' : 'Hold steady...'}
+                </Text>
+              </View>
+              <Icon as={LoaderCircle} className="text-primary size-5" />
             </View>
-            <View className="flex-1">
-              <Text className="text-foreground text-sm font-bold">
-                {activeAction === 'upload'
-                  ? 'Reading image...'
-                  : activeAction === 'scan'
-                    ? 'Opening scanner...'
-                    : draft
-                      ? 'Label detected'
-                      : 'Auto-detecting...'}
-              </Text>
-              <Text className="text-muted-foreground mt-0.5 text-xs">
-                {draft
-                  ? 'Review the nutrition draft before saving'
-                  : 'Searching database for nutritional info'}
-              </Text>
-            </View>
-            <Icon as={LoaderCircle} className="text-primary size-5" />
-          </View>
+          ) : null}
 
           {error ? (
             <View className="bg-background/95 absolute top-4 right-4 left-4 rounded-md px-4 py-3">
