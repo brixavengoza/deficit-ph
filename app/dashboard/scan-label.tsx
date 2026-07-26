@@ -371,7 +371,7 @@ function ScannerViewfinder({
         <View className="absolute inset-0 items-center justify-center gap-4 bg-black px-8">
           <Text className="text-center text-lg font-bold text-white">Camera access needed</Text>
           <Text className="text-center text-sm leading-5 text-white/70">
-            Allow camera access so Deficit PH can scan food and nutrition labels.
+            Allow camera access so trackk can scan food and nutrition labels.
           </Text>
           <Button className="mt-2" disabled={disabled} onPress={onRequestCameraPermission}>
             <Text>Allow Camera</Text>

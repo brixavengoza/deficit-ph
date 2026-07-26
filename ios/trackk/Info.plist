@@ -52,9 +52,9 @@
 		<string>$(PRODUCT_BUNDLE_IDENTIFIER).expo.index_route</string>
 	</array>
 	<key>NSCameraUsageDescription</key>
-	<string>Deficit PH uses the camera to scan nutrition labels for food logging.</string>
+	<string>trackk uses the camera to scan nutrition labels for food logging.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
-	<string>Deficit PH uses your photo library so you can upload nutrition label photos for food logging.</string>
+	<string>trackk uses your photo library so you can upload nutrition label photos for food logging.</string>
 	<key>RCTNewArchEnabled</key>
     <true/>
     <key>UILaunchStoryboardName</key>

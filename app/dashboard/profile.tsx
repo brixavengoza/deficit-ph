@@ -36,7 +36,7 @@ export default function DashboardProfileScreen() {
           <AccountSection />
 
           <View className="items-center pb-8">
-            <Text className="text-[10px] text-slate-400">Deficit PH Version {appVersion}</Text>
+            <Text className="text-[10px] text-slate-400">trackk Version {appVersion}</Text>
           </View>
         </View>
       </ScrollView>

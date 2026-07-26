@@ -63,7 +63,7 @@ export default function PrivacyPolicyScreen() {
     try {
       await Share.share({
         message:
-          'DeficitPH Privacy Policy\n\nThis policy explains how your health and account data is handled in the app.',
+          'trackk Privacy Policy\n\nThis policy explains how your health and account data is handled in the app.',
       });
     } catch {
       // noop: user cancelled or share is unavailable
@@ -123,7 +123,7 @@ export default function PrivacyPolicyScreen() {
           </View>
 
           <Text className="text-muted-foreground text-sm leading-5">
-            This screen explains what Deficit PH saves on your device and why it is needed for the
+            This screen explains what trackk saves on your device and why it is needed for the
             calorie tracking experience.
           </Text>
 

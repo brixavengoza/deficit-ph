@@ -50,7 +50,7 @@ export default function WelcomeScreen() {
 
           <View className="mt-4 mb-12 items-center px-6">
             <Text className="text-center text-[42px] font-extrabold tracking-tight text-white">
-              Deficit PH
+              trackk
             </Text>
             <Text className="mt-2 max-w-xs text-center text-base leading-6 font-semibold text-white/90">
               Hit your macros, and stay consistent
