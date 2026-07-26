@@ -40,7 +40,6 @@ function LogFoodRow({
     });
   }, [item.id]);
 
-  console.log('test');
   const renderRightActions = React.useCallback(
     () => (
       <View className="flex-row">
