@@ -1,6 +1,7 @@
 import { AdherenceOverviewCard } from '@/components/progress/adherence-overview-card';
 import { StreakCard } from '@/components/progress/streak-card';
 import { WeeklyIntakeCard } from '@/components/progress/weekly-intake-card';
+import { WeeklyMacrosCard } from '@/components/progress/weekly-macros-card';
 import { WeeklySummaryCard } from '@/components/progress/weekly-summary-card';
 import { WeightJourneyCard } from '@/components/progress/weight-journey-card';
 import { WeightLogModal } from '@/components/progress/weight-log-modal';
@@ -58,6 +59,15 @@ export default function DashboardProgressScreen() {
           days={progress.weeklyIntake.days.map((day) => ({ label: day.label, kcal: day.kcal }))}
           goalKcal={progress.weeklyIntake.goalKcal}
           avgKcal={progress.weeklyIntake.avgKcal}
+        />
+        <WeeklyMacrosCard
+          proteinTargetG={progress.weeklyMacros.proteinTargetG}
+          carbsTargetG={progress.weeklyMacros.carbsTargetG}
+          fatTargetG={progress.weeklyMacros.fatTargetG}
+          avgProteinG={progress.weeklyMacros.avgProteinG}
+          avgCarbsG={progress.weeklyMacros.avgCarbsG}
+          avgFatG={progress.weeklyMacros.avgFatG}
+          loggedDayCount={progress.weeklyMacros.loggedDayCount}
         />
         <WeightJourneyCard
           series={progress.weight.series}

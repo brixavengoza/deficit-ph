@@ -402,8 +402,18 @@ export default function LogFoodSearchScreen() {
           </View>
 
           <View className="mt-3 flex-row gap-2">
+            {scannerAvailable ? (
+              <Button
+                size="sm"
+                className="h-10 flex-1 rounded-md"
+                onPress={() => router.push('/dashboard/scan-label')}>
+                <Icon as={ScanLine} className="text-primary-foreground size-4" />
+                <Text>Scan Label</Text>
+              </Button>
+            ) : null}
             <Button
               size="sm"
+              variant="outline"
               className="h-10 flex-1 rounded-md"
               onPress={() =>
                 router.push({
@@ -411,19 +421,9 @@ export default function LogFoodSearchScreen() {
                   params: query.trim() ? { foodName: query.trim() } : undefined,
                 })
               }>
-              <Icon as={PencilLine} className="text-primary-foreground size-4" />
+              <Icon as={PencilLine} className="text-foreground size-4" />
               <Text>Create Food</Text>
             </Button>
-            {scannerAvailable ? (
-              <Button
-                size="sm"
-                variant="outline"
-                className="h-10 flex-1 rounded-md"
-                onPress={() => router.push('/dashboard/scan-label')}>
-                <Icon as={ScanLine} className="text-foreground size-4" />
-                <Text>Scan Label</Text>
-              </Button>
-            ) : null}
           </View>
         </View>
 

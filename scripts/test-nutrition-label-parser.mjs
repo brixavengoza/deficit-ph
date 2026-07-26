@@ -124,6 +124,58 @@ const fixtures = [
       sodiumMgPer100g: 551.7,
     },
   },
+  {
+    name: 'android ml kit single-column blocks with no-space units',
+    rawText: `
+      Piattos
+      Nutrition Facts
+      Serving Size 30 g
+      Servings Per Container 8
+      Calories 150
+      Total Fat 8g
+      Sodium 210mg
+      Total Carbohydrate 18g
+      Dietary Fiber 1g
+      Sugars 6g
+      Protein 5g
+    `,
+    expected: {
+      servingSizeLabel: '30 g',
+      caloriesPer100g: 500,
+      proteinPer100g: 16.7,
+      carbsPer100g: 60,
+      fatsPer100g: 26.7,
+      fiberPer100g: 3.3,
+      sugarPer100g: 20,
+      sodiumMgPer100g: 700,
+    },
+  },
+  {
+    name: 'android ml kit two-column table with per 100 g',
+    rawText: `
+      Chippy
+      NUTRITION FACTS
+      Serving Size 28 g
+      Per Serving Per 100 g
+      Energy 140 kcal 490 kcal
+      Protein 2 g 7 g
+      Total Fat 7 g 25 g
+      Total Carbohydrate 17 g 60 g
+      Dietary Fiber 1 g 3.5 g
+      Sugars 2 g 7 g
+      Sodium 180 mg 630 mg
+    `,
+    expected: {
+      servingSizeLabel: '28 g',
+      caloriesPer100g: 490,
+      proteinPer100g: 7,
+      carbsPer100g: 60,
+      fatsPer100g: 25,
+      fiberPer100g: 3.5,
+      sugarPer100g: 7,
+      sodiumMgPer100g: 630,
+    },
+  },
 ];
 
 function assertClose(actual, expected, label) {

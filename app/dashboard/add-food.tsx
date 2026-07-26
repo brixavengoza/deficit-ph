@@ -245,13 +245,6 @@ export default function AddFoodScreen() {
   const summaryChipClass = isDarkMode ? 'bg-white/10' : 'bg-card/70';
   const summaryTrackClass = isDarkMode ? 'bg-white/10' : 'bg-primary/15';
 
-  const handleSelectMeal = React.useCallback(
-    (nextMeal: MealOption) => {
-      setValue('meal', nextMeal, { shouldValidate: true });
-    },
-    [setValue]
-  );
-
   const handleLogFood = React.useCallback(
     async (values: AddFoodFormValues) => {
       setIsSubmitting(true);
@@ -501,20 +494,24 @@ export default function AddFoodScreen() {
               <Controller
                 control={control}
                 name="meal"
-                render={({ field: { value } }) => (
-                  <View className="bg-background-subtle flex-row rounded-md p-1">
+                render={({ field: { onChange, value } }) => (
+                  <View className="flex-row gap-2">
                     {MEAL_OPTIONS.map((option) => {
                       const active = value === option;
                       return (
                         <Pressable
                           key={option}
-                          onPress={() => handleSelectMeal(option)}
-                          className={`flex-1 rounded-md px-2 py-3 ${active ? 'bg-primary' : ''}`}>
+                          onPress={() => onChange(option)}
+                          style={({ pressed }) => [{ opacity: pressed ? 0.7 : 1 }]}
+                          className={`flex-1 items-center rounded-md border px-1 py-3 ${
+                            active ? 'border-primary bg-primary' : 'border-border bg-background-subtle'
+                          }`}>
                           <Text
+                            numberOfLines={1}
                             className={
                               active
-                                ? 'text-center text-sm font-semibold text-white'
-                                : 'text-muted-foreground text-center text-sm font-medium'
+                                ? 'text-center text-[13px] font-bold text-white'
+                                : 'text-foreground text-center text-[13px] font-medium'
                             }>
                             {option}
                           </Text>

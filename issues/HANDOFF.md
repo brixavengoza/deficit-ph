@@ -1,38 +1,49 @@
 # Handoff — deficit-ph "finish line" push
 
 **Last updated:** 2026-07-21 (end of the session that did the food-database rebuild,
-app audit, bug fixes, and backend/monetization/AI architecture pass)
+app audit, bug fixes, and backend/monetization/AI architecture pass — updated same day
+once Brix made the final call on §1)
 
 **Read this file first** if you're picking this up in a new session/context. It tells you
-what happened, what's true right now, and what's genuinely still open. Everything below is
-**uncommitted** — nothing from this session has been `git commit`ed yet (see "Repo state").
+what happened, what's true right now, and what's genuinely still open. The code changes
+described in §2 were committed and pushed to `main` on 2026-07-21 (commit `970da84`,
+"Fix silent nutrition data corruption, expand Filipino food coverage"). This handoff file
+itself, and the local `entitlements` table removal called for in §1, were NOT part of that
+commit — check `git status` when you resume.
 
 ---
 
-## 1. The single most important open question — ASK THE USER BEFORE BUILDING MORE
+## 1. Monetization model — DECIDED 2026-07-21: paid-upfront
 
-We designed and partly built a **free-download + one-time in-app-purchase unlock** model
-(RevenueCat, an `entitlements` table, a 5-free-recipes cap). Then the user pushed back:
-should we instead go **fully paid-upfront** (pay before download, so there's no
-entitlement/paywall system needed at all — everyone with the app already paid), or **ship v1
-with no monetization at all** (recipes/catalog/AI all free, decide payment later once there's
-real usage)?
+**Brix's final call: paid-upfront.** The app is a one-time purchase made *before* download
+(the store's own paywall — App Store/Play Store charge the user at install time), not a free
+download with an in-app unlock. This was decided after weighing the alternative (free
+download + one-time IAP via RevenueCat, which is what §2's architecture pass originally built
+toward) — Claude's recommendation had been free-download/no-monetization-in-v1 for
+reach/growth reasons, but Brix chose paid-upfront specifically to avoid the IAP/entitlement
+system entirely. This is final; don't re-litigate it or re-suggest free-with-IAP unless Brix
+raises it again himself.
 
-My recommendation (given to the user, not yet confirmed): **free-to-download, no
-monetization in v1.** Reasoning: the distribution channel is the founder's wife's Facebook
-following (price-sensitive, non-technical, "lacks nutrition knowledge") — paid-upfront apps
-get dramatically fewer installs, which fights the whole point of that channel. Dropping
-RevenueCat via "no monetization yet" gets the same simplicity paid-upfront would give
-(no entitlement table, no webhook, no paywall UX) without sacrificing the free-download
-growth advantage. The alternative — free download but still gate recipes without RevenueCat —
-is actually *more* work, not less, since you'd need your own receipt-verification server to
-make the cap a real backstop instead of just client-side (spoofable) trust.
-
-**The user has not confirmed which way to go.** This blocks: whether to keep or strip the
-`entitlements` table / publish-cap trigger from `supabase/migrations/0001_...sql`, whether to
-build any paywall UI at all, and whether recipe creation needs a "5 free" limit in the first
-place. Everything else in this document is written to be valid regardless of the answer —
-but don't build recipe-limit/paywall UI until this is settled.
+**What this means concretely, now settled:**
+- **No RevenueCat, no IAP code, no entitlement/paywall UI at all.** Anyone who has the app
+  already paid — there's nothing to verify or gate in-app.
+- **`supabase/migrations/0001_backend_recipes_catalog_entitlements.sql` needs the
+  `entitlements` table and the `recipes_enforce_publish_cap` trigger (+ its call site) removed
+  before this migration is ever applied.** Everything else in that file (catalog_foods,
+  recipes, recipe_ingredients, recipe_reports, blocked_users, and their RLS policies) still
+  applies as designed — recipes are still shared/visible-to-everyone and still need
+  moderation/anti-spam protections regardless of payment model, none of that changes.
+- **No "5 free recipes" cap** — with no free tier to protect, there's no reason to limit
+  recipe creation at all. Drop that concept from any future recipe-create UX.
+- **Auth can likely be even lighter than originally planned.** The architect's original
+  anonymous-first auth design (silent, automatic identity, upgraded only when publishing a
+  recipe) was already not about payment — it was for recipe authorship + moderation
+  accountability. That reasoning is unchanged and still applies; there's just one less reason
+  (protecting a paywall) to ever prompt for a "real" identity at all. The app may never need a
+  visible sign-in screen.
+- **Still open, needs Brix specifically (not buildable by an agent):** the actual price point,
+  and App Store Connect / Play Console configuration to set the app as paid-upfront rather
+  than free (this is store-side config, not app code).
 
 ---
 
@@ -100,9 +111,11 @@ Sugar" — also fixed).
   before — real data-loss risk for any future non-additive migration, closed now).
 - New **separate** local tables: `catalog_foods` (future sync target for the backend food
   catalog — deliberately NOT merged into the existing `foods` table, since SQLite can't
-  `ALTER` a `CHECK` constraint without a destructive rebuild), `entitlements` (cache-only,
-  no network code wired yet), `recipe_drafts` (so a future offline/failed recipe publish
-  doesn't lose typed input).
+  `ALTER` a `CHECK` constraint without a destructive rebuild), `recipe_drafts` (so a future
+  offline/failed recipe publish doesn't lose typed input). A local `entitlements` cache table
+  was also added this session for the free+IAP model then under consideration — per §1's
+  paid-upfront decision this is now dead weight and should just be deleted from
+  `lib/local-data.ts`, not migrated or reused for anything.
 - `lib/ai-capability.ts` — a typed capability contract (`isNutritionScannerLinked()`,
   `getNutritionScanCapability()`, `getPlannerCapability()`) meant to be reused by the future
   meal/workout planner screens, not just the scanner.
@@ -112,10 +125,10 @@ Sugar" — also fixed).
   **Written but NOT applied to any live database** — there is no Supabase project connected
   to this app right now. Two real bugs the confidence-auditor found in it (an approved
   recipe getting locked out of soft-delete; a race condition in the publish-cap trigger under
-  concurrent requests) were fixed in the file directly after the audit. If the "no
-  monetization in v1" direction is confirmed, the `entitlements` table and the
-  `recipes_enforce_publish_cap` trigger in this file should probably be stripped out before
-  it's ever applied.
+  concurrent requests) were fixed in the file directly after the audit. Per §1's paid-upfront
+  decision, the `entitlements` table and the `recipes_enforce_publish_cap` trigger (+ its
+  trigger registration) in this file are now dead weight and MUST be removed before this
+  migration is ever applied — everything else in the file still stands.
 
 ### Confirmed, not touched this session
 
@@ -152,49 +165,44 @@ feature error out → rejection risk) and must always hard-hide rather than show
 
 ---
 
-## 4. What's next, in order
+## 4. What's next, in order (paid-upfront path — §1 is decided, build against this)
 
-1. **Get the monetization-model answer from the user** (§1). This gates everything else
-   about recipes/paywall — don't build recipe-limit UI or wire up the SQL migration until
-   it's settled.
-2. **Visually verify today's changes on a real device or a machine with an actual display**
-   — this was the one verification step this environment couldn't do. Priority checks: edit
-   a logged food and confirm macros don't change; switch to Imperial units and round-trip a
-   body-measurement edit; confirm the TDEE calculator hides the deficit row for an under-18
-   profile; confirm "Scan Label" only appears on a build where the native module is linked.
-3. **Decide whether to commit today's work.** Nothing is committed yet — it's all sitting in
-   the working tree (`git status` shows 19 modified files, several new files, one deletion).
-   Consider committing in logical chunks (food-db expansion / bug fixes / architecture
-   scaffolding) rather than one giant commit, but that's a style call, not a correctness one.
-4. **Once the monetization question is settled**, the actual next build phase is whichever
-   of these the answer points to:
-   - **If free + no monetization in v1:** provision a real Supabase project, apply a
-     (possibly entitlement-stripped) version of `supabase/migrations/0001_...sql`, build the
-     recipe browse/create/detail screens (implementer's draft recommended reusing
-     `app/dashboard/add-custom-food.tsx`'s ingredient-builder as the base), wire
-     `lib/ai-capability.ts` into the free rule-based "Smart Planner" (deterministic,
-     template-based meal/workout suggestions using `utils/calorie-targets.ts` + the food
-     catalog — works on every device, no AI/network required, and can genuinely ship before
-     any backend work since it's pure local logic).
-   - **If paid-upfront:** same as above but delete the `entitlements` table and publish-cap
-     trigger from the migration first; decide App Store/Play pricing; no IAP code needed at
-     all since the store's own paywall-before-download is the only gate.
-   - **If free + IAP without RevenueCat:** hardest path — needs a custom receipt-verification
-     server (Apple App Store Server API / Google Play Developer API) to make the recipe cap a
-     real backstop instead of client-trust; not recommended unless there's a specific reason
-     to avoid RevenueCat's SDK itself (bundle size, one privacy-manifest entry) that outweighs
-     building your own validation service.
-5. **Other still-open product decisions** (from the synthesis pass, none blocking, but needed
-   before the recipes/backend feature actually ships): auth provider set (email/OTP only vs.
-   + Google/Apple — note: adding Google forces offering Sign-in-with-Apple too per store
-   policy); recipes nav placement (a segment inside the existing Log tab was recommended over
-   a 5th tab-bar icon, since the tab bar's FAB has no spare slot without breaking its current
-   one-tap logging shortcut); a real teen (13–17) UGC posting policy (the "13+
-   self-attestation" idea turned out to be meaningless — onboarding already requires 13+ to
-   even reach the dashboard, so re-checking it at publish time blocks nobody; needs an actual
-   answer, not reused onboarding data); whether the free "Smart Planner" and the future paid
+1. **Visually verify today's already-shipped changes on a real device or a machine with an
+   actual display** — this was the one verification step this environment couldn't do.
+   Priority checks: edit a logged food and confirm macros don't change; switch to Imperial
+   units and round-trip a body-measurement edit; confirm the TDEE calculator hides the
+   deficit row for an under-18 profile; confirm "Scan Label" only appears on a build where
+   the native module is linked.
+2. **Strip the now-dead entitlement pieces** per §1/§2: delete the `entitlements`
+   table + `recipes_enforce_publish_cap` function/trigger from
+   `supabase/migrations/0001_backend_recipes_catalog_entitlements.sql`, and delete the local
+   `entitlements` SQLite table added to `lib/local-data.ts` this session. Neither was ever
+   wired to any network code, so both are clean deletions, not migrations.
+3. **Provision a real Supabase project** (region choice matters for PH data residency — needs
+   Brix's own account, not buildable by an agent), then apply the cleaned-up migration.
+4. **Build the recipe browse/create/detail screens**, now with no free-tier limit or paywall
+   UI anywhere in the flow. The implementer's draft recommended reusing
+   `app/dashboard/add-custom-food.tsx`'s ingredient-builder as the base rather than a new form
+   from scratch.
+5. **Wire `lib/ai-capability.ts` into a free rule-based "Smart Planner"** — deterministic,
+   template-based meal/workout suggestions using `utils/calorie-targets.ts` + the food
+   catalog. Works on every device, needs no network/AI, and can genuinely ship *before* any
+   backend work since it's pure local logic — good candidate to build first or in parallel
+   with the Supabase provisioning above.
+6. **Brix needs to: pick the actual price, and configure App Store Connect / Play Console as
+   a paid app** (not free-with-IAP) — pure store-side config, not something buildable here.
+7. **Other still-open product decisions** (none blocking, but needed before the
+   recipes/backend feature actually ships): auth provider set (email/OTP only vs. +
+   Google/Apple — note: adding Google forces offering Sign-in-with-Apple too per store
+   policy; also note per §1 that auth may never need a visible screen at all now); recipes
+   nav placement (a segment inside the existing Log tab was recommended over a 5th tab-bar
+   icon, since the tab bar's FAB has no spare slot without breaking its current one-tap
+   logging shortcut); a real teen (13–17) UGC posting policy (the "13+ self-attestation" idea
+   turned out to be meaningless — onboarding already requires 13+ to even reach the
+   dashboard, so re-checking it at publish time blocks nobody; needs an actual answer, not
+   reused onboarding data); whether the free "Smart Planner" and the future generative
    "AI Planner" get visually/copy-wise distinguished everywhere (recommended: always, since
-   most of the audience is on Android/older iPhones and will only ever see the free tier —
+   most of the audience is on Android/older iPhones and will only ever see the Smart Planner —
    never market "AI" in a way that overpromises what most users will actually get).
 
 ---
@@ -209,9 +217,9 @@ feature error out → rejection risk) and must always hard-hide rather than show
   the moment a backend ships), a UGC EULA with a zero-tolerance clause + takedown SLA (Apple
   1.2), and (if Supabase infra isn't PH-hosted) a PH Data Privacy Act (RA 10173) cross-border
   disclosure.
-- **Supabase project creation + region choice**, **App Store Connect / Play Console setup**,
-  and (if the free+IAP path is chosen) **a RevenueCat account** — all need the user's own
-  accounts/credentials, not something buildable in-session.
+- **Supabase project creation + region choice** and **App Store Connect / Play Console setup
+  as a paid app** — both need Brix's own accounts/credentials, not something buildable
+  in-session. No RevenueCat account needed given the §1 paid-upfront decision.
 
 ---
 
@@ -222,7 +230,7 @@ feature error out → rejection risk) and must always hard-hide rather than show
   monetization/backend question is settled and any backend work actually starts.
 - `.claude/skills/orchestrate/SKILL.md` — the pipeline used to produce this session's
   architecture work; re-run it for any future whole-feature/high-stakes push.
-- Claude Code memory (if you have access to it in this session) has three entries from this
-  work: `project_monetization_and_architecture_v2.md`, `project_prd_conflict_2026_07.md`,
-  `user_context_brix.md` — the first one needs a mental update, since it currently states
-  "one-time purchase only" as settled when it's actually back under discussion (see §1).
+- Claude Code memory (if you have access to it in this session) has entries from this work:
+  `project_handoff_pointer.md` (points back here), `project_monetization_and_architecture_v2.md`
+  (updated same day to reflect the §1 paid-upfront decision), `project_prd_conflict_2026_07.md`,
+  `user_context_brix.md` — all should already be current as of this file's last-updated date.

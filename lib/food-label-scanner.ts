@@ -1,4 +1,4 @@
-import { NativeModules, Platform } from 'react-native';
+import { NativeModules } from 'react-native';
 
 import type { NutritionLabelDraft } from '@/lib/nutrition-label-parser';
 
@@ -12,8 +12,10 @@ type NativeFoodLabelScanner = {
 const nativeScanner = NativeModules.FoodLabelScanner as NativeFoodLabelScanner | undefined;
 
 export async function scanNutritionLabel(): Promise<NutritionLabelDraft> {
-  if (Platform.OS !== 'ios' || !nativeScanner?.scanNutritionLabel) {
-    throw new Error('Nutrition label scanning is available on iOS with a custom dev build.');
+  // Platform-agnostic: works wherever a native `FoodLabelScanner` module exposing this method is
+  // linked (iOS live VisionKit scan today; an Android module can register the same method name).
+  if (!nativeScanner || typeof nativeScanner.scanNutritionLabel !== 'function') {
+    throw new Error('Live nutrition-label scanning needs a custom dev build with the scanner module.');
   }
 
   const result = await nativeScanner.scanNutritionLabel();
@@ -21,8 +23,10 @@ export async function scanNutritionLabel(): Promise<NutritionLabelDraft> {
 }
 
 export async function uploadNutritionLabelImage(imageUri: string): Promise<NutritionLabelDraft> {
-  if (Platform.OS !== 'ios' || !nativeScanner?.recognizeNutritionLabelImage) {
-    throw new Error('Nutrition label upload is available on iOS with a custom dev build.');
+  // Reads nutrition text from a still image. iOS uses Vision OCR; an Android module can register
+  // the same method backed by ML Kit Text Recognition, feeding the same shared parser.
+  if (!nativeScanner || typeof nativeScanner.recognizeNutritionLabelImage !== 'function') {
+    throw new Error('Nutrition-label reading needs a custom dev build with the scanner module.');
   }
 
   const result = await nativeScanner.recognizeNutritionLabelImage(imageUri);

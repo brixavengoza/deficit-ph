@@ -2,7 +2,13 @@ import * as SQLite from 'expo-sqlite';
 
 import { SEED_FOODS } from '@/lib/local-seed-foods';
 import { formatTimeLabelFromDate, parseTimeLabelToDate } from '@/utils/add-food-utils';
-import { calculateCalorieTargets } from '@/utils/calorie-targets';
+import {
+  calculateCalorieTargets,
+  deriveMacrosFromCalories,
+  resolveTargetRecompute,
+  validateCustomMacroGrams,
+  validateManualCalorieGoal,
+} from '@/utils/calorie-targets';
 import { evaluateGoalSafety } from '@/utils/health-guardrails';
 import { heightInputToCm, weightInputToKg } from '@/utils/units';
 
@@ -10,7 +16,7 @@ import { heightInputToCm, weightInputToKg } from '@/utils/units';
 // table rebuild (e.g. widening a CHECK) via the additive helpers below. Any rebuild must
 // live in a versioned branch that runs inside a transaction, verifies row-count before
 // DROP, and bumps this constant.
-const SCHEMA_VERSION = 1;
+const SCHEMA_VERSION = 3;
 
 type AppUnits = 'Metric' | 'Imperial';
 type AppTheme = 'Auto' | 'Light' | 'Dark';
@@ -187,6 +193,8 @@ type GoalsRow = {
   protein_target_g: number | null;
   carbs_target_g: number | null;
   fat_target_g: number | null;
+  macro_target_mode: string | null;
+  calorie_goal_mode: string | null;
 };
 
 type FoodRow = {
@@ -409,19 +417,6 @@ async function openAndPrepareDb() {
 
     CREATE INDEX IF NOT EXISTS catalog_foods_search_idx ON catalog_foods(name COLLATE NOCASE);
 
-    -- Local entitlement CACHE ONLY. Truth is derived from the store receipt on every
-    -- launch (Transaction.currentEntitlements / queryPurchases) and reconciled in.
-    -- Runtime policy (correctness + data-loss red-team): never REVOKE on a transient
-    -- error — only GRANT on positive proof, and never gate solely on this local row.
-    CREATE TABLE IF NOT EXISTS entitlements (
-      id INTEGER PRIMARY KEY CHECK (id = 1),
-      unlocked INTEGER NOT NULL DEFAULT 0,
-      product_id TEXT,
-      source TEXT,
-      last_verified_at TEXT,
-      updated_at TEXT NOT NULL DEFAULT (datetime('now'))
-    );
-
     -- Recipe drafts: client-generated UUID (stable across publish retries) + status.
     -- A draft is cleared ONLY after a server ack, so a mid-flight failure never loses input.
     CREATE TABLE IF NOT EXISTS recipe_drafts (
@@ -439,9 +434,9 @@ async function openAndPrepareDb() {
   await db.runAsync('INSERT OR IGNORE INTO profile (id) VALUES (1)');
   await db.runAsync('INSERT OR IGNORE INTO user_preferences (id) VALUES (1)');
   await db.runAsync('INSERT OR IGNORE INTO user_goals (id) VALUES (1)');
-  await db.runAsync('INSERT OR IGNORE INTO entitlements (id) VALUES (1)');
   await ensureProfileColumns(db);
   await ensureNutritionColumns(db);
+  await ensureGoalsColumns(db);
   await seedLocalFoods(db);
   await stampSchemaVersion(db);
 
@@ -485,6 +480,16 @@ async function ensureNutritionColumns(db: SQLite.SQLiteDatabase) {
 async function ensureProfileColumns(db: SQLite.SQLiteDatabase) {
   await ensureColumn(db, 'profile', 'profile_photo_uri', 'TEXT');
   await ensureColumn(db, 'profile', 'sex', 'TEXT');
+}
+
+async function ensureGoalsColumns(db: SQLite.SQLiteDatabase) {
+  // SCHEMA_VERSION 2: macro-target mode. 'auto' = derived 30/40/30 (existing behaviour,
+  // overwritten on recompute); 'custom' = user-owned absolute gram targets preserved
+  // across weight/activity/goal recomputes. Additive, defaulted — no data loss.
+  await ensureColumn(db, 'user_goals', 'macro_target_mode', "TEXT NOT NULL DEFAULT 'auto'");
+  // SCHEMA_VERSION 3: calorie-goal mode. 'auto' = derived + safety-gated (existing behaviour);
+  // 'manual' = user-set daily calorie goal preserved across recomputes (still floored on save).
+  await ensureColumn(db, 'user_goals', 'calorie_goal_mode', "TEXT NOT NULL DEFAULT 'auto'");
 }
 
 async function seedLocalFoods(db: SQLite.SQLiteDatabase) {
@@ -591,22 +596,146 @@ async function refreshCalorieTargets(
 
   if (!targets) return;
 
+  // Which of the two user-ownable dimensions (calorie goal, macro targets) to recompute is
+  // decided by the pure, unit-tested resolveTargetRecompute. A null field = user-owned = keep.
+  const recompute = resolveTargetRecompute({
+    calorieMode: goals?.calorie_goal_mode === 'manual' ? 'manual' : 'auto',
+    macroMode: goals?.macro_target_mode === 'custom' ? 'custom' : 'auto',
+    derivedCalories: targets.dailyCalories,
+    storedCalories: toNumber(goals?.daily_calorie_goal),
+  });
+
+  const sets: string[] = [];
+  const params: (number | string)[] = [];
+  if (recompute.dailyCalorieGoal != null) {
+    sets.push('daily_calorie_goal = ?');
+    params.push(recompute.dailyCalorieGoal);
+  }
+  if (recompute.protein != null && recompute.carbs != null && recompute.fat != null) {
+    sets.push('protein_target_g = ?', 'carbs_target_g = ?', 'fat_target_g = ?');
+    params.push(recompute.protein, recompute.carbs, recompute.fat);
+  }
+  if (sets.length === 0) return; // both dimensions user-owned — nothing to recompute
+
+  sets.push('updated_at = ?');
+  params.push(new Date().toISOString());
+  await db.runAsync(`UPDATE user_goals SET ${sets.join(', ')} WHERE id = 1`, params);
+}
+
+export type MacroTargetMode = 'auto' | 'custom';
+export type CalorieGoalMode = 'auto' | 'manual';
+
+export type MacroTargetsModel = {
+  mode: MacroTargetMode;
+  calorieGoalMode: CalorieGoalMode;
+  dailyCalorieGoal: number;
+  proteinTargetG: number;
+  carbsTargetG: number;
+  fatTargetG: number;
+};
+
+export async function fetchMacroTargets(): Promise<MacroTargetsModel> {
+  const db = await getDb();
+  const goals = await db.getFirstAsync<GoalsRow>('SELECT * FROM user_goals WHERE id = 1');
+  return {
+    mode: goals?.macro_target_mode === 'custom' ? 'custom' : 'auto',
+    calorieGoalMode: goals?.calorie_goal_mode === 'manual' ? 'manual' : 'auto',
+    dailyCalorieGoal: Math.max(1200, toNumber(goals?.daily_calorie_goal) || 2000),
+    proteinTargetG: Math.max(0, toNumber(goals?.protein_target_g)),
+    carbsTargetG: Math.max(0, toNumber(goals?.carbs_target_g)),
+    fatTargetG: Math.max(0, toNumber(goals?.fat_target_g)),
+  };
+}
+
+/**
+ * Set a manual daily calorie goal (validated to the safety floor) and switch to 'manual' mode
+ * so recomputes won't overwrite it. Auto macros are re-derived from the new goal here directly
+ * (no body-stat dependency); custom macros are left untouched.
+ */
+export async function setManualCalorieGoal(input: number | string): Promise<MacroTargetsModel> {
+  const validation = validateManualCalorieGoal(input);
+  if (!validation.ok) throw new Error(validation.error);
+
+  const db = await getDb();
+  const goals = await db.getFirstAsync<GoalsRow>('SELECT macro_target_mode FROM user_goals WHERE id = 1');
+  const now = new Date().toISOString();
+
+  if (goals?.macro_target_mode === 'custom') {
+    await db.runAsync(
+      `UPDATE user_goals
+       SET daily_calorie_goal = ?, calorie_goal_mode = 'manual', updated_at = ?
+       WHERE id = 1`,
+      [validation.value, now]
+    );
+  } else {
+    const macros = deriveMacrosFromCalories(validation.value);
+    await db.runAsync(
+      `UPDATE user_goals
+       SET daily_calorie_goal = ?, calorie_goal_mode = 'manual',
+           protein_target_g = ?, carbs_target_g = ?, fat_target_g = ?, updated_at = ?
+       WHERE id = 1`,
+      [validation.value, macros.protein, macros.carbs, macros.fat, now]
+    );
+  }
+
+  return fetchMacroTargets();
+}
+
+/** Return the calorie goal to the derived + safety-gated value. */
+export async function revertCalorieGoalToAuto(): Promise<MacroTargetsModel> {
+  const db = await getDb();
+  await db.runAsync(
+    "UPDATE user_goals SET calorie_goal_mode = 'auto', updated_at = ? WHERE id = 1",
+    [new Date().toISOString()]
+  );
+  await refreshCalorieTargets(db);
+  return fetchMacroTargets();
+}
+
+/**
+ * Persist user-owned gram macro targets and switch to 'custom' mode. Validates defensively
+ * (never trusts the UI). Deliberately does NOT touch daily_calorie_goal — calories stay
+ * derived + safety-gated.
+ */
+export async function setCustomMacroTargets(input: {
+  proteinG: number | string;
+  carbsG: number | string;
+  fatG: number | string;
+}): Promise<MacroTargetsModel> {
+  const validation = validateCustomMacroGrams(input);
+  if (!validation.ok) {
+    throw new Error('Enter valid macro targets (whole grams, 0 or higher).');
+  }
+
+  const db = await getDb();
   await db.runAsync(
     `UPDATE user_goals
-     SET daily_calorie_goal = ?,
-         protein_target_g = ?,
+     SET protein_target_g = ?,
          carbs_target_g = ?,
          fat_target_g = ?,
+         macro_target_mode = 'custom',
          updated_at = ?
      WHERE id = 1`,
     [
-      targets.dailyCalories,
-      targets.protein,
-      targets.carbs,
-      targets.fat,
+      validation.value.proteinG,
+      validation.value.carbsG,
+      validation.value.fatG,
       new Date().toISOString(),
     ]
   );
+
+  return fetchMacroTargets();
+}
+
+/** Return to the automatic 30/40/30 split, restoring derived macros immediately. */
+export async function revertMacroTargetsToAuto(): Promise<MacroTargetsModel> {
+  const db = await getDb();
+  await db.runAsync(
+    "UPDATE user_goals SET macro_target_mode = 'auto', updated_at = ? WHERE id = 1",
+    [new Date().toISOString()]
+  );
+  await refreshCalorieTargets(db);
+  return fetchMacroTargets();
 }
 
 export async function completeOnboarding(input: OnboardingSubmitInput) {
@@ -1230,6 +1359,15 @@ export type ProgressSnapshot = {
     avgKcal: number;
     days: Array<{ localDay: string; label: string; kcal: number }>;
   };
+  weeklyMacros: {
+    proteinTargetG: number;
+    carbsTargetG: number;
+    fatTargetG: number;
+    avgProteinG: number;
+    avgCarbsG: number;
+    avgFatG: number;
+    loggedDayCount: number;
+  };
   adherence: {
     calorieHitRate: number;
     hydrationHitRate: number;
@@ -1501,6 +1639,18 @@ export async function fetchProgressSnapshot(): Promise<ProgressSnapshot> {
       ? Math.round(weeklyCalories.reduce((sum, value) => sum + value, 0) / weeklyCalories.length)
       : 0;
 
+  // Average macros over LOGGED days only (not the raw 7) so untracked days don't drag the
+  // average down and mislead. Zero logged days => zero averages.
+  const loggedMacroDays = weeklyDays.filter((day) => day.totalKcal > 0);
+  const macroDenom = Math.max(loggedMacroDays.length, 1);
+  const avgProteinG = Math.round(
+    loggedMacroDays.reduce((sum, day) => sum + day.proteinG, 0) / macroDenom
+  );
+  const avgCarbsG = Math.round(
+    loggedMacroDays.reduce((sum, day) => sum + day.carbsG, 0) / macroDenom
+  );
+  const avgFatG = Math.round(loggedMacroDays.reduce((sum, day) => sum + day.fatG, 0) / macroDenom);
+
   const calorieHits = weeklyDays.filter((day) => {
     if (day.totalKcal <= 0) return false;
     const ratio = day.totalKcal / home.goalKcal;
@@ -1532,6 +1682,15 @@ export async function fetchProgressSnapshot(): Promise<ProgressSnapshot> {
         label: weekdayShortFromKey(day.localDay),
         kcal: Math.round(day.totalKcal),
       })),
+    },
+    weeklyMacros: {
+      proteinTargetG: home.proteinTargetG,
+      carbsTargetG: home.carbsTargetG,
+      fatTargetG: home.fatTargetG,
+      avgProteinG,
+      avgCarbsG,
+      avgFatG,
+      loggedDayCount: loggedMacroDays.length,
     },
     adherence: {
       calorieHitRate: clampPercent((calorieHits / Math.max(weeklyDays.length, 1)) * 100),

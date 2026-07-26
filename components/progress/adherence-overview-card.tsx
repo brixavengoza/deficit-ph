@@ -1,6 +1,6 @@
 import { Icon } from '@/components/ui/icon';
 import { Text } from '@/components/ui/text';
-import { Droplets, Flame, Scale } from 'lucide-react-native';
+import { Droplets, Flame, Scale, type LucideIcon } from 'lucide-react-native';
 import { View } from 'react-native';
 
 function ProgressRow({
@@ -14,7 +14,7 @@ function ProgressRow({
   label: string;
   value: number;
   colorClass: string;
-  icon: any;
+  icon: LucideIcon;
   chipClass: string;
   barClass: string;
 }) {

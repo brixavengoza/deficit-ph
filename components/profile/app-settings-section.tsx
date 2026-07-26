@@ -1,3 +1,5 @@
+import CalorieGoalRow from '@/components/profile/app-section/CalorieGoalRow';
+import MacroTargetsRow from '@/components/profile/app-section/MacroTargetsRow';
 import TdeeCalculatorRow from '@/components/profile/app-section/TdeeCalculatorRow';
 import ThemeRow from '@/components/profile/app-section/ThemeRow';
 import { Text } from '@/components/ui/text';
@@ -14,6 +16,8 @@ export function AppSettingsSection() {
 
       <View className="divide-border divide-y">
         <ThemeRow />
+        <CalorieGoalRow />
+        <MacroTargetsRow />
         <TdeeCalculatorRow />
       </View>
     </View>

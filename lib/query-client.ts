@@ -19,4 +19,5 @@ export const queryKeys = {
   foodLogsForDay: (localDay: string) => ['food-logs', localDay] as const,
   homeDashboard: (dayCount: number) => ['home-dashboard', dayCount] as const,
   progress: ['progress'] as const,
+  macroTargets: ['macro-targets'] as const,
 };

@@ -9,8 +9,10 @@ import {
   useFoodLogsForDayQuery,
   useHomeDashboardQuery,
 } from '@/hooks/use-trackk-query';
+import { getNutritionScanCapability } from '@/lib/ai-capability';
 import { getFoodEmoji } from '@/lib/food-emoji';
 import { formatNumberGrouped } from '@/lib/number-format';
+import { targetProgressPct } from '@/utils/calorie-targets';
 import { router, Stack } from 'expo-router';
 import {
   BookOpenText,
@@ -19,6 +21,7 @@ import {
   PencilLine,
   Plus,
   Scale,
+  ScanLine,
   Search,
   Utensils,
 } from 'lucide-react-native';
@@ -82,28 +85,44 @@ function QuickAction({
 function MacroTotal({
   isDarkMode,
   label,
+  target,
   tone,
   value,
 }: {
   isDarkMode: boolean;
   label: string;
+  target: number;
   tone: PromptTone;
   value: number;
 }) {
-  const dotClass = tone === 'info' ? 'bg-info' : tone === 'warning' ? 'bg-warning' : 'bg-primary';
+  const barClass = tone === 'info' ? 'bg-info' : tone === 'warning' ? 'bg-warning' : 'bg-primary';
   const labelClass = isDarkMode ? 'text-white/65' : 'text-muted-foreground';
   const valueClass = isDarkMode ? 'text-white' : 'text-foreground';
+  const mutedClass = isDarkMode ? 'text-white/45' : 'text-muted-foreground';
   const tileClass = isDarkMode ? 'bg-white/10' : 'bg-card/70';
+  const trackClass = isDarkMode ? 'bg-white/10' : 'bg-primary/15';
+
+  // Targets always reach the dashboard, but degrade to grams-only if one is missing/zero.
+  const hasTarget = target > 0;
+  const progress = targetProgressPct(value, target);
 
   return (
     <View className={`${tileClass} flex-1 rounded-md px-3 py-3`}>
       <View className="flex-row items-center gap-1.5">
-        <View className={`h-2 w-2 rounded-full ${dotClass}`} />
+        <View className={`h-2 w-2 rounded-full ${barClass}`} />
         <Text className={`${labelClass} text-[10px] font-bold uppercase`}>{label}</Text>
       </View>
-      <Text className={`${valueClass} mt-1 text-base font-black`}>
-        {formatNumberGrouped(value)}g
-      </Text>
+      <View className="mt-1 flex-row items-baseline gap-0.5">
+        <Text className={`${valueClass} text-base font-black`}>{formatNumberGrouped(value)}</Text>
+        <Text className={`${mutedClass} text-[11px] font-semibold`}>
+          {hasTarget ? `/ ${formatNumberGrouped(target)}g` : 'g'}
+        </Text>
+      </View>
+      {hasTarget ? (
+        <View className={`${trackClass} mt-2 h-1.5 overflow-hidden rounded-full`}>
+          <View className={`${barClass} h-full rounded-full`} style={{ width: `${progress}%` }} />
+        </View>
+      ) : null}
     </View>
   );
 }
@@ -121,10 +140,12 @@ function CalorieHero({
   goalKcal: number;
   isDarkMode: boolean;
   remainingKcal: number;
-  macroTotals: { label: string; tone: PromptTone; value: number }[];
+  macroTotals: { label: string; target: number; tone: PromptTone; value: number }[];
 }) {
   const ringProgress = Math.max(0, Math.min(1, calorieProgress / 100));
   const strokeDashoffset = CALORIE_RING_CIRCUMFERENCE * (1 - ringProgress);
+  // Hard-hide the scan shortcut on devices where the scanner can't run (never show-then-fail).
+  const scannerAvailable = React.useMemo(() => getNutritionScanCapability().tier !== 'unavailable', []);
   const heroClass = isDarkMode ? 'bg-surface-dark' : 'bg-primary/10';
   const titleClass = isDarkMode ? 'text-primary' : 'text-primary-dark';
   const valueClass = isDarkMode ? 'text-white' : 'text-foreground';
@@ -200,13 +221,26 @@ function CalorieHero({
         ))}
       </View>
 
-      <Button
-        size="lg"
-        className="mt-5 h-13 rounded-md"
-        onPress={() => router.push('/dashboard/log-food-search')}>
-        <Icon as={Plus} className="text-primary-foreground size-5" />
-        <Text className="text-primary-foreground text-base font-extrabold">Log Food</Text>
-      </Button>
+      <View className="mt-5 flex-row gap-2">
+        <Button
+          size="lg"
+          className="h-13 flex-1 rounded-md"
+          onPress={() => router.push('/dashboard/log-food-search')}>
+          <Icon as={Plus} className="text-primary-foreground size-5" />
+          <Text className="text-primary-foreground text-base font-extrabold">Log Food</Text>
+        </Button>
+        {scannerAvailable ? (
+          <Button
+            size="lg"
+            variant="outline"
+            className="border-primary/40 h-13 rounded-md px-4"
+            accessibilityLabel="Scan food or nutrition label"
+            onPress={() => router.push('/dashboard/scan-label')}>
+            <Icon as={ScanLine} className="text-primary size-5" />
+            <Text className="text-primary text-base font-extrabold">Scan</Text>
+          </Button>
+        ) : null}
+      </View>
     </View>
   );
 }
@@ -258,16 +292,19 @@ export default function DashboardScreen() {
     {
       label: 'Protein',
       value: todaySummary?.proteinG ?? 0,
+      target: homeDashboard.data?.proteinTargetG ?? 0,
       tone: 'primary' as const,
     },
     {
       label: 'Carbs',
       value: todaySummary?.carbsG ?? 0,
+      target: homeDashboard.data?.carbsTargetG ?? 0,
       tone: 'info' as const,
     },
     {
       label: 'Fat',
       value: todaySummary?.fatG ?? 0,
+      target: homeDashboard.data?.fatTargetG ?? 0,
       tone: 'warning' as const,
     },
   ];

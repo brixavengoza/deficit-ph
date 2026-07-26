@@ -24,7 +24,7 @@ import { NativeModules, Platform } from 'react-native';
 
 export type AiFeature = 'nutrition-scan' | 'meal-planner' | 'workout-planner';
 
-export type AiCapabilityTier = 'generative' | 'template' | 'unavailable';
+export type AiCapabilityTier = 'generative' | 'ocr' | 'template' | 'unavailable';
 
 export type AiUnavailableReason =
   | 'available'
@@ -55,37 +55,46 @@ const nativeScanner = NativeModules.FoodLabelScanner as NativeFoodLabelScanner |
  * Screens should call this BEFORE rendering any camera UI.
  */
 export function isNutritionScannerLinked(): boolean {
-  return Platform.OS === 'ios' && typeof nativeScanner?.scanNutritionLabel === 'function';
+  // Cross-platform: true wherever a native `FoodLabelScanner` module is linked (iOS today,
+  // Android once its ML Kit module registers). Either capability — live scan or still-image
+  // read — counts as "the scanner is available on this build".
+  return (
+    typeof nativeScanner?.scanNutritionLabel === 'function' ||
+    typeof nativeScanner?.recognizeNutritionLabelImage === 'function'
+  );
 }
 
 /**
  * Synchronous capability for the nutrition scanner. Safe to call in render.
  *
- * The scanner is a FREE feature, so module linkage on iOS is a sufficient gate today:
- * an ineligible device (old iOS / no Apple Intelligence) still fails safe at call time
- * with a typed error and the screen shows the manual-entry fallback.
+ * The scanner is a FREE feature, so native-module linkage (iOS or Android) is a sufficient gate
+ * today: an ineligible device still fails safe at call time with a typed error and the screen
+ * shows the manual-entry fallback.
  */
 export function getNutritionScanCapability(): AiCapability {
-  if (Platform.OS !== 'ios') {
-    return {
-      feature: 'nutrition-scan',
-      tier: 'unavailable',
-      generativeAvailable: false,
-      reason: 'unsupported-platform',
-    };
-  }
   if (!isNutritionScannerLinked()) {
+    // Mobile builds without the native module report `module-not-linked` (a custom dev build
+    // adds it); web and any other platform can never link it, so they are `unsupported-platform`.
+    const reason: AiUnavailableReason =
+      Platform.OS === 'ios' || Platform.OS === 'android'
+        ? 'module-not-linked'
+        : 'unsupported-platform';
     return {
       feature: 'nutrition-scan',
       tier: 'unavailable',
       generativeAvailable: false,
-      reason: 'module-not-linked',
+      reason,
     };
   }
+
+  // iOS parses the OCR'd label text with Apple FoundationModels (generative); Android reads the
+  // label with ML Kit OCR + the shared TS parser (classic on-device ML). Both surface the same
+  // scanner UI and the same editable draft, so callers only need to branch on `unavailable`.
+  const isGenerative = Platform.OS === 'ios';
   return {
     feature: 'nutrition-scan',
-    tier: 'generative',
-    generativeAvailable: true,
+    tier: isGenerative ? 'generative' : 'ocr',
+    generativeAvailable: isGenerative,
     reason: 'available',
   };
 }

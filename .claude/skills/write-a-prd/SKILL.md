@@ -8,7 +8,7 @@ description: Create a rigorous product requirements document by gathering a deta
 Research and resolve the proposed feature with the user, then write the finished PRD to `issues/prd.md`. Skip a workflow step only when it adds no useful information or its outcome is already established.
 
 ## Workflow
-
+`
 1. Obtain a long, detailed description of the problem and any potential solution ideas. If the current conversation or a supplied artifact already provides enough detail, summarize the understood proposal and continue. Otherwise, ask the user for that description and stop until they answer.
 2. Explore the relevant repository before asking detailed design questions. Inspect code, configuration, documentation, schemas, tests, and established patterns to verify the user's assertions and understand the current state. Answer discoverable factual questions through research rather than asking the user.
 3. Interview the user relentlessly until reaching a shared understanding:
