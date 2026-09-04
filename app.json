@@ -23,7 +23,8 @@
         "ITSAppUsesNonExemptEncryption": false,
         "NSCameraUsageDescription": "trackk uses the camera to scan nutrition labels and take profile photos.",
         "NSPhotoLibraryUsageDescription": "trackk uses your photo library so you can upload nutrition label images and choose profile photos."
-      }
+      },
+      "usesAppleSignIn": true
     },
     "android": {
       "edgeToEdgeEnabled": true,
@@ -50,7 +51,10 @@
         }
       ],
       "@react-native-community/datetimepicker",
-      "expo-sqlite"
+      "expo-sqlite",
+      "expo-secure-store",
+      "expo-web-browser",
+      "expo-apple-authentication"
     ],
     "experiments": {
       "typedRoutes": true

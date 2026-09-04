@@ -12,8 +12,16 @@ import { Icon } from '@/components/ui/icon';
 import { Input } from '@/components/ui/input';
 import { Text } from '@/components/ui/text';
 import { formatNumberGrouped } from '@/lib/number-format';
-import { calculateCalorieTargets } from '@/utils/calorie-targets';
+import { useProfileBundleStore } from '@/stores/use-profile-bundle-store';
+import { calculateCalorieTargets, calculateTdee } from '@/utils/calorie-targets';
 import { isMinor } from '@/utils/health-guardrails';
+import {
+  heightCmToDisplay,
+  heightInputToCm,
+  weightInputToKg,
+  weightKgToDisplay,
+  type MeasurementUnits,
+} from '@/utils/units';
 
 type Sex = 'male' | 'female';
 type ActivityLevel = 'sedentary' | 'light' | 'moderate' | 'very';
@@ -29,31 +37,65 @@ const ACTIVITY_OPTIONS: Array<{
   { key: 'very', title: 'Very Active', subtitle: 'Hard exercise 6-7 days/week' },
 ];
 
-const tdeeSchema = z.object({
-  sex: z.enum(['male', 'female']),
-  age: z
-    .string()
-    .min(1, 'Enter age.')
-    .refine((value) => toPositiveNumber(value) != null, 'Enter a valid age.'),
-  heightCm: z
-    .string()
-    .min(1, 'Enter height.')
-    .refine((value) => toPositiveNumber(value) != null, 'Enter a valid height.'),
-  weightKg: z
-    .string()
-    .min(1, 'Enter weight.')
-    .refine((value) => toPositiveNumber(value) != null, 'Enter a valid weight.'),
-  activityLevel: z.enum(['sedentary', 'light', 'moderate', 'very']),
-});
+const APP_ACTIVITY_TO_LEVEL: Record<string, ActivityLevel> = {
+  Sedentary: 'sedentary',
+  Light: 'light',
+  Moderate: 'moderate',
+  'Very Active': 'very',
+};
 
-type TdeeFormValues = z.infer<typeof tdeeSchema>;
+// Same canonical bounds as onboarding (lib/onboarding-form.ts), checked AFTER converting
+// the typed value to metric — so an Imperial user typing 150 (lb) is validated as ~68 kg,
+// never mistaken for 150 kg. The unit-blind version of this modal computed on raw Imperial
+// numbers, inflating results by ~10%+ for those users.
+const AGE_MIN = 13;
+const AGE_MAX = 100;
+const HEIGHT_CM_MIN = 100;
+const HEIGHT_CM_MAX = 250;
+const WEIGHT_KG_MIN = 30;
+const WEIGHT_KG_MAX = 300;
 
-function toPositiveNumber(value: string) {
-  const parsed = Number(value);
-  return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
+function buildTdeeSchema(units: MeasurementUnits) {
+  const heightUnit = units === 'Imperial' ? 'in' : 'cm';
+  const weightUnit = units === 'Imperial' ? 'lb' : 'kg';
+  const heightMin = Math.round(heightCmToDisplay(HEIGHT_CM_MIN, units));
+  const heightMax = Math.round(heightCmToDisplay(HEIGHT_CM_MAX, units));
+  const weightMin = Math.round(weightKgToDisplay(WEIGHT_KG_MIN, units));
+  const weightMax = Math.round(weightKgToDisplay(WEIGHT_KG_MAX, units));
+
+  return z.object({
+    sex: z.enum(['male', 'female']),
+    age: z
+      .string()
+      .min(1, 'Enter age.')
+      .refine((value) => {
+        const parsed = Number(value);
+        return Number.isFinite(parsed) && parsed >= AGE_MIN && parsed <= AGE_MAX;
+      }, `Enter an age between ${AGE_MIN} and ${AGE_MAX}.`),
+    height: z
+      .string()
+      .min(1, 'Enter height.')
+      .refine((value) => {
+        const cm = heightInputToCm(Number(value), units);
+        return Number.isFinite(cm) && cm >= HEIGHT_CM_MIN && cm <= HEIGHT_CM_MAX;
+      }, `Enter a height between ${heightMin} and ${heightMax} ${heightUnit}.`),
+    weight: z
+      .string()
+      .min(1, 'Enter weight.')
+      .refine((value) => {
+        const kg = weightInputToKg(Number(value), units);
+        return Number.isFinite(kg) && kg >= WEIGHT_KG_MIN && kg <= WEIGHT_KG_MAX;
+      }, `Enter a weight between ${weightMin} and ${weightMax} ${weightUnit}.`),
+    activityLevel: z.enum(['sedentary', 'light', 'moderate', 'very']),
+  });
 }
 
+type TdeeFormValues = z.infer<ReturnType<typeof buildTdeeSchema>>;
+
 type TdeeResult = {
+  /** Raw Mifflin-St Jeor TDEE — the honest answer to "what is my TDEE?". */
+  tdee: number;
+  /** Safety-gated daily targets, exactly what the app would store for this body. */
   maintenance: number;
   /** null when the minor gate applies — a cut is never surfaced for under-18s. */
   deficit: number | null;
@@ -61,14 +103,12 @@ type TdeeResult = {
   minor: boolean;
 };
 
-function calculateTdeeResult(values: TdeeFormValues): TdeeResult | null {
-  const age = toPositiveNumber(values.age);
-  const heightCm = toPositiveNumber(values.heightCm);
-  const weightKg = toPositiveNumber(values.weightKg);
-  if (!age || !heightCm || !weightKg) return null;
+function calculateTdeeResult(values: TdeeFormValues, units: MeasurementUnits): TdeeResult | null {
+  const age = Number(values.age);
+  const heightCm = heightInputToCm(Number(values.height), units);
+  const weightKg = weightInputToKg(Number(values.weight), units);
 
-  // Route ALL BMR/TDEE math through the safety-critical source of truth (CLAUDE.md rule 6)
-  // instead of a divergent inline formula that bypassed the sex-aware calorie floor.
+  // Route ALL BMR/TDEE math through the safety-critical source of truth (CLAUDE.md rule 6).
   const base = {
     activityLevel: values.activityLevel,
     age,
@@ -76,13 +116,15 @@ function calculateTdeeResult(values: TdeeFormValues): TdeeResult | null {
     sex: values.sex,
     weightKg,
   } as const;
+  const tdee = calculateTdee(base);
   const maintenance = calculateCalorieTargets({ ...base, goal: 'maintain' });
   const deficit = calculateCalorieTargets({ ...base, goal: 'lose' });
   const gain = calculateCalorieTargets({ ...base, goal: 'gain' });
-  if (!maintenance || !gain) return null;
+  if (tdee == null || !maintenance || !gain) return null;
 
   const minor = isMinor(age);
   return {
+    tdee,
     maintenance: maintenance.dailyCalories,
     deficit: minor ? null : (deficit?.dailyCalories ?? null),
     leanGain: gain.dailyCalories,
@@ -110,30 +152,76 @@ export default function TdeeCalculatorRow() {
 }
 
 function TdeeCalculatorModal({ open, onClose }: { open: boolean; onClose: () => void }) {
+  const ensureLoaded = useProfileBundleStore((state) => state.ensureLoaded);
+  const bundle = useProfileBundleStore((state) => state.bundle);
+  const units: MeasurementUnits = bundle.units;
+  const heightSuffix = units === 'Imperial' ? 'in' : 'cm';
+  const weightSuffix = units === 'Imperial' ? 'lb' : 'kg';
+
+  React.useEffect(() => {
+    void ensureLoaded();
+  }, [ensureLoaded]);
+
+  const schema = React.useMemo(() => buildTdeeSchema(units), [units]);
+  // Prefill from the saved profile (stored metric -> the user's display units) so the
+  // calculator answers with THEIR numbers by default instead of a blank form.
+  const prefill = React.useMemo<TdeeFormValues>(() => {
+    const heightCm = Number(bundle.height);
+    const weightKg = Number(bundle.weight);
+    return {
+      sex: 'male',
+      age: bundle.age || '',
+      height:
+        Number.isFinite(heightCm) && heightCm > 0
+          ? String(Math.round(heightCmToDisplay(heightCm, units) * 10) / 10)
+          : '',
+      weight:
+        Number.isFinite(weightKg) && weightKg > 0
+          ? String(Math.round(weightKgToDisplay(weightKg, units) * 10) / 10)
+          : '',
+      activityLevel: APP_ACTIVITY_TO_LEVEL[bundle.activityLevel] ?? 'moderate',
+    };
+  }, [bundle.activityLevel, bundle.age, bundle.height, bundle.weight, units]);
+
   const {
     control,
     handleSubmit,
+    reset,
     setValue,
     watch,
     formState: { errors },
   } = useForm<TdeeFormValues>({
-    resolver: zodResolver(tdeeSchema),
+    resolver: zodResolver(schema),
     mode: 'onChange',
-    defaultValues: {
-      sex: 'male',
-      age: '',
-      heightCm: '',
-      weightKg: '',
-      activityLevel: 'moderate',
-    },
+    defaultValues: prefill,
   });
   const [result, setResult] = React.useState<TdeeResult | null>(null);
   const sex = watch('sex');
   const activityLevel = watch('activityLevel');
 
+  React.useEffect(() => {
+    if (!open) return;
+    reset(prefill);
+    setResult(null);
+  }, [open, prefill, reset]);
+
   const onSubmit = (values: TdeeFormValues) => {
-    setResult(calculateTdeeResult(values));
+    setResult(calculateTdeeResult(values, units));
   };
+
+  // The lose target is floored for safety (1,200 kcal for women, 1,500 for men, never
+  // above maintenance) — when the floor bites, say so instead of showing a "deficit"
+  // that silently isn't 500 kcal.
+  const deficitNote = React.useMemo(() => {
+    if (!result || result.minor || result.deficit == null) return null;
+    if (result.deficit >= result.tdee) {
+      return 'Your TDEE is already low, so cutting further is not safe. The app keeps you at maintenance instead. Focus on protein and movement.';
+    }
+    if (result.tdee - result.deficit < 500) {
+      return `For safety, your cut will not go below ${formatNumberGrouped(result.deficit)} kcal, so the deficit is smaller than the usual 500 kcal.`;
+    }
+    return null;
+  }, [result]);
 
   return (
     <Modal visible={open} transparent animationType="fade" onRequestClose={onClose}>
@@ -150,7 +238,7 @@ function TdeeCalculatorModal({ open, onClose }: { open: boolean; onClose: () => 
               <View>
                 <Text className="text-foreground text-lg font-bold">TDEE Calculator</Text>
                 <Text className="text-muted-foreground mt-1 text-xs">
-                  Estimate your daily calories (cm / kg).
+                  Estimate your daily calories ({heightSuffix} / {weightSuffix}).
                 </Text>
               </View>
               <Pressable
@@ -202,19 +290,19 @@ function TdeeCalculatorModal({ open, onClose }: { open: boolean; onClose: () => 
               />
               <CalculatorInput
                 control={control}
-                name="heightCm"
+                name="height"
                 label="Height"
-                placeholder="170"
-                suffix="cm"
-                error={errors.heightCm?.message}
+                placeholder={units === 'Imperial' ? '67' : '170'}
+                suffix={heightSuffix}
+                error={errors.height?.message}
               />
               <CalculatorInput
                 control={control}
-                name="weightKg"
+                name="weight"
                 label="Weight"
-                placeholder="70"
-                suffix="kg"
-                error={errors.weightKg?.message}
+                placeholder={units === 'Imperial' ? '154' : '70'}
+                suffix={weightSuffix}
+                error={errors.weight?.message}
               />
 
               <View>
@@ -261,16 +349,30 @@ function TdeeCalculatorModal({ open, onClose }: { open: boolean; onClose: () => 
                 <View className="bg-primary/10 rounded-md p-4">
                   <Text className="text-primary text-sm font-bold">Estimated calories</Text>
                   <View className="mt-3 gap-2">
-                    <ResultRow label="Maintenance" value={result.maintenance} emphasized />
+                    <ResultRow label="Your TDEE (maintenance)" value={result.tdee} emphasized />
+                    {result.maintenance !== result.tdee ? (
+                      <ResultRow label="Maintain target (app)" value={result.maintenance} />
+                    ) : null}
                     {result.deficit != null ? (
                       <ResultRow label="Deficit (cut)" value={result.deficit} />
                     ) : null}
                     <ResultRow label="Lean gain" value={result.leanGain} />
                   </View>
+                  {result.maintenance !== result.tdee ? (
+                    <Text className="text-muted-foreground mt-3 text-xs leading-4">
+                      Your actual TDEE is {formatNumberGrouped(result.tdee)} kcal, but the app
+                      will not set a target below 1,200 kcal, for safety.
+                    </Text>
+                  ) : null}
+                  {deficitNote ? (
+                    <Text className="text-muted-foreground mt-3 text-xs leading-4">
+                      {deficitNote}
+                    </Text>
+                  ) : null}
                   {result.minor ? (
                     <Text className="text-muted-foreground mt-3 text-xs leading-4">
-                      Under 18 ka pa? Focus muna sa maintain + healthy habits — hindi muna cut,
-                      bestie. 💚
+                      Under 18? Focus on maintaining and building healthy habits rather than
+                      cutting. 💚
                     </Text>
                   ) : null}
                 </View>
@@ -299,7 +401,7 @@ function CalculatorInput({
   error,
 }: {
   control: ReturnType<typeof useForm<TdeeFormValues>>['control'];
-  name: 'age' | 'heightCm' | 'weightKg';
+  name: 'age' | 'height' | 'weight';
   label: string;
   placeholder: string;
   suffix: string;

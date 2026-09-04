@@ -70,10 +70,10 @@ export default function OnboardingStepThreeScreen() {
     if (!goalSafety.block) return null;
     if (goalSafety.recommendedGoal === 'maintain') {
       // Minor: fail-safe path.
-      return "Since minor ka pa, hindi muna pwede ang weight-loss goal para sa safety mo. Piliin natin ang Maintain — healthy pa rin 'yan, promise. 💚";
+      return 'Since you are under 18, a weight-loss goal is not available, for your safety. Choose Maintain instead. That is still a healthy option. 💚';
     }
     // Underweight adult → recommend gain.
-    return 'Nasa healthy-low range ka, so hindi muna weight loss ang move ngayon. Try mo ang Gain para sa strength — pumili lang ng ibang goal para makatuloy. 💪';
+    return 'You are in the healthy-low range, so weight loss is not the right move right now. Try Gain for strength, or pick another goal to continue. 💪';
   }, [goalSafety.block, goalSafety.recommendedGoal]);
 
   const onNext = async () => {
@@ -218,8 +218,8 @@ export default function OnboardingStepThreeScreen() {
             </View>
 
             <Text className="text-foreground/60 mt-4 text-center text-xs leading-4">
-              Estimate lang &apos;to, hindi medical advice — gabay lang para sa journey mo. Listen ka
-              pa rin sa katawan mo, ha? 💚
+              This is an estimate, not medical advice. It is a guide for your journey, so keep
+              listening to your body. 💚
             </Text>
           </View>
         ) : null}

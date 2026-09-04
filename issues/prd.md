@@ -87,8 +87,10 @@ interface.
 - **Tier 2 (Phase 2, flagship-only):** generative dish→macros via Apple Foundation Models
   (iOS 26 / Apple-Intelligence hardware) and, where viable, Android Gemini Nano / AICore.
   Hard-hidden on ineligible devices.
-- **No cloud, no backend, no network calls.** Fully offline; privacy label stays "Data Not
-  Collected." This reaffirms the app's existing non-negotiable local-first rule.
+- **No cloud, no backend, no network calls FOR SCANNING.** All OCR and classification stay
+  on-device. (Scoped 2026-09-04: the APP as a whole is no longer offline-only, since auth
+  and shared foods now use Supabase. The scanner itself must still never need a network,
+  and the privacy label must reflect the account data the app now collects.)
 
 **On-device AI capability layer (extend the existing capability module).** Owns the single typed
 contract for what THIS device can do: OCR availability, food/not-food classification availability,

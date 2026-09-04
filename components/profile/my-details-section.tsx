@@ -1,7 +1,6 @@
 import { Text } from '@/components/ui/text';
 import React from 'react';
 import { View } from 'react-native';
-import PersonalInfoCollapsibleRow from './details-section/PersonalInfoCollapsibleRow';
 import ActivityLevelRow from './details-section/ActivityLevelRow';
 import BodyMeasurementsCollapsibleRow from './details-section/BodyMeasurementsCollapsibleRow';
 import GoalRow from './details-section/GoalRow';
@@ -15,7 +14,6 @@ export default function MyDetailsSection() {
         </Text>
       </View>
       <View className="divide-border divide-y">
-        <PersonalInfoCollapsibleRow />
         <BodyMeasurementsCollapsibleRow />
         <ActivityLevelRow />
         <GoalRow />

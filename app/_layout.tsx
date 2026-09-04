@@ -6,13 +6,14 @@ import { QueryClientProvider } from '@tanstack/react-query';
 import { ThemeProvider } from '@react-navigation/native';
 import { PortalHost } from '@rn-primitives/portal';
 import * as SplashScreen from 'expo-splash-screen';
-import { Stack } from 'expo-router';
+import { Stack, useRouter, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import * as React from 'react';
 import { View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { Uniwind, useUniwind } from 'uniwind';
+import { useAuthStore } from '@/stores/use-auth-store';
 import { useProfileBundleStore } from '@/stores/use-profile-bundle-store';
 import { Button } from '@/components/ui/button';
 import { Text } from '@/components/ui/text';
@@ -26,20 +27,63 @@ void SplashScreen.preventAutoHideAsync().catch((error) => {
   console.warn('[splash] preventAutoHideAsync skipped', error);
 });
 
+
+/**
+ * Route guard. Login is REQUIRED at app start, so an unauthenticated session is bounced
+ * to /auth/login from ANY route, not just the index. Guarding only the index would let a
+ * deep link walk straight into the dashboard.
+ *
+ * The one exception is password recovery: that session IS signed in, but must land on
+ * the new-password screen rather than the dashboard.
+ */
+function useAuthGuard() {
+  const router = useRouter();
+  const segments = useSegments();
+  const status = useAuthStore((state) => state.status);
+  const isRecovering = useAuthStore((state) => state.isRecovering);
+
+  React.useEffect(() => {
+    if (status === 'loading') return;
+
+    const inAuthGroup = segments[0] === 'auth';
+    // 'unconfigured' is treated as signed-out on purpose: the login screen surfaces the
+    // exact missing-env-var message, which beats a blank screen nobody can diagnose.
+    const needsSignIn = status === 'signed-out' || status === 'unconfigured';
+
+    if (needsSignIn && !inAuthGroup) {
+      router.replace('/auth/login');
+      return;
+    }
+    if (status === 'signed-in' && isRecovering && segments[1] !== 'reset-password') {
+      router.replace('/auth/reset-password');
+      return;
+    }
+    if (status === 'signed-in' && !isRecovering && inAuthGroup) {
+      router.replace('/');
+    }
+  }, [isRecovering, router, segments, status]);
+}
+
 export default function RootLayout() {
   const { theme } = useUniwind();
   const preferredTheme = useProfileBundleStore((state) => state.bundle.theme);
   const hasLoadedProfile = useProfileBundleStore((state) => state.hasLoaded);
   const profileLoadError = useProfileBundleStore((state) => state.error);
   const ensureLoaded = useProfileBundleStore((state) => state.ensureLoaded);
+  const initializeAuth = useAuthStore((state) => state.initialize);
+  const authStatus = useAuthStore((state) => state.status);
   const refreshProfile = useProfileBundleStore((state) => state.refresh);
   const [appIsReady, setAppIsReady] = React.useState(false);
   const hasHiddenSplash = React.useRef(false);
 
+  useAuthGuard();
+
   React.useEffect(() => {
     async function prepare() {
       try {
-        await ensureLoaded();
+        // Restore the session from the keychain alongside the local profile, so the
+        // splash covers both and the guard never sees a half-initialised state.
+        await Promise.all([ensureLoaded(), initializeAuth()]);
         // Keep splash visible briefly for brand exposure and smoother transition.
         await new Promise((resolve) => setTimeout(resolve, 500));
       } finally {
@@ -48,7 +92,7 @@ export default function RootLayout() {
     }
 
     void prepare();
-  }, [ensureLoaded]);
+  }, [ensureLoaded, initializeAuth]);
 
   React.useEffect(() => {
     if (!hasLoadedProfile) return;
@@ -60,7 +104,8 @@ export default function RootLayout() {
   }, [hasLoadedProfile, preferredTheme]);
 
   React.useEffect(() => {
-    if (!appIsReady || !hasLoadedProfile || hasHiddenSplash.current) return;
+    if (!appIsReady || !hasLoadedProfile || authStatus === 'loading') return;
+    if (hasHiddenSplash.current) return;
 
     hasHiddenSplash.current = true;
     try {
@@ -70,9 +115,9 @@ export default function RootLayout() {
     } catch (error) {
       console.warn('[splash] hide skipped', error);
     }
-  }, [appIsReady, hasLoadedProfile]);
+  }, [appIsReady, authStatus, hasLoadedProfile]);
 
-  if (!appIsReady || !hasLoadedProfile) {
+  if (!appIsReady || !hasLoadedProfile || authStatus === 'loading') {
     return null;
   }
 

@@ -1,14 +1,5 @@
 import z from 'zod';
 
-export const personalInfoSchema = z.object({
-  fullName: z.string().trim().min(1, 'Full name is required'),
-  username: z
-    .string()
-    .trim()
-    .min(1, 'Username is required')
-    .regex(/^[a-zA-Z0-9._-]+$/, 'Use letters, numbers, dot, underscore, or dash'),
-});
-
 export const bodyMeasurementsSchema = z.object({
   height: z
     .string()
@@ -27,5 +18,4 @@ export const bodyMeasurementsSchema = z.object({
     .refine((v) => Number.isFinite(Number(v)) && Number(v) > 0, 'Enter a valid goal weight'),
 });
 
-export type PersonalInfoValues = z.infer<typeof personalInfoSchema>;
 export type BodyMeasurementsValues = z.infer<typeof bodyMeasurementsSchema>;

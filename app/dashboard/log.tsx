@@ -13,6 +13,7 @@ type FoodItem = {
   id: string;
   name: string;
   portion: string;
+  macros: string;
   kcal: number;
 };
 
@@ -76,6 +77,7 @@ function LogFoodRow({
             <View className="flex-1">
               <Text className="text-foreground text-base font-medium">{item.name}</Text>
               <Text className="text-muted-foreground mt-0.5 text-sm">{item.portion}</Text>
+              <Text className="text-muted-foreground mt-0.5 text-xs">{item.macros}</Text>
             </View>
           </View>
           <Text className="text-primary text-base font-bold">{item.kcal}</Text>
@@ -87,6 +89,15 @@ function LogFoodRow({
 
 function formatKcal(value: number) {
   return new Intl.NumberFormat('en-US').format(value);
+}
+
+// Group by LOCAL day — a UTC slice files a 2 AM Manila snack under yesterday and makes
+// this screen disagree with the dashboard/cart, which both use local day keys.
+function localDayKey(date: Date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
 }
 
 export default function DashboardLogScreen() {
@@ -103,14 +114,13 @@ export default function DashboardLogScreen() {
     const grouped = new Map<string, FoodSection>();
 
     for (const item of loggedFoods) {
-      const key = item.consumedAtIso.slice(0, 10);
+      const key = localDayKey(new Date(item.consumedAtIso));
       const dateLabel = new Intl.DateTimeFormat('en-US', {
         weekday: 'short',
         month: 'short',
         day: 'numeric',
       }).format(new Date(item.consumedAtIso));
-      const title =
-        key === new Date().toISOString().slice(0, 10) ? `Today, ${dateLabel}` : dateLabel;
+      const title = key === localDayKey(new Date()) ? `Today, ${dateLabel}` : dateLabel;
 
       if (!grouped.has(key)) {
         grouped.set(key, { title, totalKcal: 0, data: [] });
@@ -122,6 +132,7 @@ export default function DashboardLogScreen() {
         id: item.id,
         name: item.foodName,
         portion: `${item.quantity} ${item.unit} • ${item.meal} • ${item.logTime}`,
+        macros: `P ${formatKcal(item.proteinGrams)}g • C ${formatKcal(item.carbsGrams)}g • F ${formatKcal(item.fatsGrams)}g`,
         kcal: item.totalKcal,
       });
     }

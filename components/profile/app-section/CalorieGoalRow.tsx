@@ -42,7 +42,7 @@ export default function CalorieGoalRow() {
   const macroTargets = useMacroTargetsQuery();
   const goalValue = macroTargets.data
     ? `${formatNumberGrouped(macroTargets.data.dailyCalorieGoal)} kcal`
-    : '—';
+    : '--';
 
   return (
     <>
@@ -188,8 +188,8 @@ function CalorieGoalModal({ open, onClose }: { open: boolean; onClose: () => voi
                     </View>
                   </View>
                   <Text className="text-muted-foreground text-xs leading-4">
-                    Auto-computed base sa age, height, weight, activity, at goal mo — safety-gated
-                    para hindi bumaba sa healthy minimum. Tap Manual para i-set ang sarili mong goal.
+                    Auto-computed from your age, height, weight, activity and goal, with a safety
+                    floor so it never drops below a healthy minimum. Tap Manual to set your own.
                   </Text>
                 </View>
               ) : (
@@ -220,8 +220,8 @@ function CalorieGoalModal({ open, onClose }: { open: boolean; onClose: () => voi
                     <FieldError message={errors.dailyCalories?.message} />
                   </View>
                   <Text className="text-muted-foreground text-xs leading-4">
-                    Minimum {formatNumberGrouped(MIN_MANUAL_CALORIE_GOAL)} kcal para sa safety. Auto
-                    macros (kung naka-auto) mag-a-adjust base dito.
+                    Minimum {formatNumberGrouped(MIN_MANUAL_CALORIE_GOAL)} kcal for safety. Auto
+                    macros, if enabled, will adjust to match.
                   </Text>
 
                   <Button

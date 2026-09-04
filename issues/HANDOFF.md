@@ -1,8 +1,6 @@
 # Handoff — deficit-ph "finish line" push
 
-**Last updated:** 2026-07-21 (end of the session that did the food-database rebuild,
-app audit, bug fixes, and backend/monetization/AI architecture pass — updated same day
-once Brix made the final call on §1)
+**Last updated:** 2026-08-13 (user-feedback fix session — see §0)
 
 **Read this file first** if you're picking this up in a new session/context. It tells you
 what happened, what's true right now, and what's genuinely still open. The code changes
@@ -10,6 +8,98 @@ described in §2 were committed and pushed to `main` on 2026-07-21 (commit `970d
 "Fix silent nutrition data corruption, expand Filipino food coverage"). This handoff file
 itself, and the local `entitlements` table removal called for in §1, were NOT part of that
 commit — check `git status` when you resume.
+
+---
+
+## 0. 2026-08-13 session — five user-reported issues (uncommitted, check `git status`)
+
+Brix relayed five user reports; root causes were traced with three parallel explorers and
+fixed (all local code, `npm run release:check` green; no visual verification — same
+no-display environment caveat as §3):
+
+1. **"No macros showing after logging food"** — root cause: `add-custom-food.tsx` had NO
+   protein/carbs/fat inputs, so every user-created food stored 0 macros; nothing displayed
+   per-entry macros anywhere; whole-gram rounding zeroed small portions; the manual
+   recipe-ingredient save wiped same-named foods' macros to 0 via the name-keyed upsert.
+   Fixed: optional macro inputs (scan-prefilled) + recipe-calculator macro totals; per-entry
+   P/C/F lines on dashboard/history/cart rows; 1-decimal macro rounding at write; new
+   `saveUserFoodIfMissing` for ingredients (never overwrites existing foods).
+2. **"TDEE calculator not accurate"** — Mifflin-St Jeor core was correct; the modal was
+   unit-blind (Imperial numbers computed as metric, ~+11%), showed the 1200-floored
+   maintain target as "TDEE", had no range validation, and weight logs never recomputed
+   the stored target. Fixed: `calculateTdee` (raw TDEE) exported and displayed; modal is
+   unit-aware + range-validated (onboarding bounds) + prefilled from the profile; floor
+   situations now get explanatory Taglish notes; the "three different numbers" bug was
+   fixed by making the READ paths (`fetchMacroTargets`, `fetchHomeDashboardSnapshot`)
+   display the stored goal as-is instead of re-inflating it to 1200 (a lose target must
+   never exceed maintenance — enforced by a 14k-combination invariant sweep in
+   `scripts/test-calorie-targets.mjs`); `addWeightLog` now validates 30–300 kg and calls
+   `refreshCalorieTargets`; `WeightLogModal` defaults its kg/lbs toggle from the Units
+   preference; profile stats row converts kg→lb.
+3. **"Add servings sa log food"** — `foods.serving_grams` + `catalog_foods.serving_grams`
+   (SCHEMA_VERSION 4, additive), parsed from labels like "1 can (155g)" when the column is
+   null (volume-only labels deliberately return null — no density guessing);
+   serving label + grams forwarded through search/saved-foods params into `add-food`,
+   which defaults to `1 serving` when a real weight exists, shows "1 serving = Xg", and
+   has 0.5/1/2/3 quick chips. Logs need no schema change (`quantity`+`grams_equivalent`).
+4. **"Log food visible to other users"** — needs the backend; wrote
+   `issues/community-foods-prd.md` (v1 = share custom foods with pre-moderation, reusing
+   the reviewed recipes RLS machinery). The Supabase **Trackk** project
+   (`fxqurlhvtbpmydwmfpzc`, ap-southeast-1) was found paused, **restored, and confirmed
+   empty**. Also executed §4 step 2: entitlements table + publish-cap trigger deleted from
+   migration 0001 (the local SQLite `entitlements` table was already gone). §8 of the PRD
+   lists the decisions only Brix can make (moderation ops, attribution, teen UGC policy).
+5. **"Log done (after logging all food)"** — logging no longer dumps you on the dashboard
+   per item: `add-food` now `router.dismissTo`'s back to the search screen, which gained a
+   persistent day-summary bar ("N na-log today • X kcal"), a review bottom-sheet (the
+   previously-unwired `LoggedFoodsCartModal`, now with local-time day keys + per-row
+   macros), and a **Done** button that returns to the dashboard.
+
+Also fixed on the way: editing an entry before the logs query resolved created a bogus
+"Selected Food" duplicate (submit now waits, and a settled-but-missing entry shows
+"Entry not found" instead of loading forever); new `scripts/test-calorie-targets.mjs`
+(39 checks: TDEE/floor math + lose≤maintenance invariant sweep, Imperial conversion,
+serving-label parsing, serving scaling) wired into `npm test` and `release:check`.
+
+An adversarial red-team pass then ran over the whole diff; its confirmed findings were
+fixed in the same session: the first version of the ≥1200 clamp (which could label a
+surplus as a cut) reverted in favor of the read-path fix above; unit switching in
+add-food now converts the current amount instead of keeping the raw number (the
+"1 serving → grams = 1 g" trap); one-entry weight capped at 10 kg gramsEquivalent;
+`upsertUserFoodByName` now COALESCEs serving label/grams so re-saving a scanned food
+can't silently shrink its serving; `updateFoodLog` preserves the entry's original DAY
+(editing yesterday's meal was moving it to today); `log.tsx` groups by local day (was
+UTC); recipe-calculator macros only auto-fill when every weighed ingredient has real
+macro data; scan-label forwards serving info; profile zustand bundle refreshes after a
+weigh-in. Accepted-as-documented (low severity): serving weight not recovered when
+editing an entry logged in grams then switched to servings (fallback hint shows); tiny
+rounding drift when re-logging fractional servings from Recents.
+
+**Still needs a human on a real device:** none of this has been visually verified (same
+no-display environment as §3) — priority taps: create a custom food with macros and see
+the dashboard rings move; log "2 servings" of a "(155g)"-labelled food; the log →
+land-on-search → Done loop from every entry point (search, saved, custom, scan);
+Imperial TDEE calculator; Imperial weigh-in.
+
+**Next-build queue lives in `issues/TODO.md`** (added same day): community foods per
+Brix's simplified direction, making the label scanner work on all devices, and replacing
+the fake-camera → real-camera double flow with one live auto-detecting scanner screen.
+
+**Scanner overhaul SHIPPED same day (2026-08-13, later session; uncommitted):** the
+universal OCR tier is implemented — Android gets ML Kit via
+`@infinitered/react-native-mlkit-text-recognition` (excluded from the iOS build through
+`expo.autolinking.apple.exclude`; iOS keeps zero-cost Apple Vision), `lib/ocr.ts` is the
+unified OCR surface, `resolveScanDraft` merges the optional Apple-Intelligence draft
+over the deterministic parser per field (the Swift bridge now resolves with `rawText`
+instead of rejecting when Apple Intelligence is unavailable — previously most iPhones
+threw away good OCR text), and `scan-label.tsx` is ONE real camera with a silent 1.4 s
+auto-detect loop gated by `isPlausibleNutritionDraft` plus a manual capture fallback.
+The old `DataScannerViewController` double-camera modal is out of the flow. All gates
+green (`release:check`; parser suite +13 checks, capability jest suite rewritten, 10
+tests). **A new EAS custom dev build is REQUIRED** for the native pieces (new Swift
+method + Android module); the changes are OTA-safe against old builds (they degrade to
+the previous behavior, nothing worse). Nothing camera-related is visually verified —
+device checklist in `issues/TODO.md` §3.
 
 ---
 
@@ -122,8 +212,13 @@ Sugar" — also fixed).
 - `supabase/migrations/0001_backend_recipes_catalog_entitlements.sql` — a full, reviewed
   Postgres/RLS schema (catalog_foods, recipes, recipe_ingredients, recipe_reports,
   blocked_users, entitlements) with moderation-abuse and anti-spam protections baked in.
-  **Written but NOT applied to any live database** — there is no Supabase project connected
-  to this app right now. Two real bugs the confidence-auditor found in it (an approved
+  **STATUS CHANGED 2026-09-04: a Supabase project WAS always connected, and the
+  schema is now applied.** This paragraph's original claim ("not applied, no project
+  connected") was wrong: project `fxqurlhvtbpmydwmfpzc` already held the full May 2026
+  cloud schema plus 329 seed foods and 1 real account. The recipes design in this file
+  remains DEFERRED and unapplied (parked at
+  `supabase/migrations/DEFERRED_community_recipes.sql.draft`), but food sharing, auth
+  profiles and account deletion are live. See `supabase/migrations/README.md`.
   recipe getting locked out of soft-delete; a race condition in the publish-cap trigger under
   concurrent requests) were fixed in the file directly after the audit. Per §1's paid-upfront
   decision, the `entitlements` table and the `recipes_enforce_publish_cap` trigger (+ its
@@ -226,7 +321,8 @@ feature error out → rejection risk) and must always hard-hide rather than show
 ## 6. Where else to look
 
 - `CLAUDE.md` — project rules, non-negotiables, the publish-readiness gate. Still accurate
-  except non-negotiable rule #1 ("no Supabase, fully offline") will need updating once the
+  except non-negotiable rule #1, which was REWRITTEN on 2026-09-04 (Supabase is now used
+  for auth + shared foods; SQLite still owns everything a user logs). Note it was
   monetization/backend question is settled and any backend work actually starts.
 - `.claude/skills/orchestrate/SKILL.md` — the pipeline used to produce this session's
   architecture work; re-run it for any future whole-feature/high-stakes push.

@@ -9,6 +9,10 @@ RCT_EXTERN_METHOD(recognizeNutritionLabelImage:(NSString *)imageUri
                   resolver:(RCTPromiseResolveBlock)resolve
                   rejecter:(RCTPromiseRejectBlock)reject)
 
+RCT_EXTERN_METHOD(recognizeText:(NSString *)imageUri
+                  resolver:(RCTPromiseResolveBlock)resolve
+                  rejecter:(RCTPromiseRejectBlock)reject)
+
 + (BOOL)requiresMainQueueSetup
 {
   return YES;

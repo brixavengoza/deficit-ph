@@ -26,7 +26,7 @@ execFileSync(
   { stdio: 'inherit' }
 );
 
-const { parseNutritionLabelText } = await import(
+const { isPlausibleNutritionDraft, parseNutritionLabelText, resolveScanDraft } = await import(
   pathToFileURL(path.join(outDir, 'nutrition-label-parser.js')).href
 );
 
@@ -195,4 +195,118 @@ for (const fixture of fixtures) {
   }
 }
 
-console.log(`Nutrition parser fixtures passed: ${fixtures.length}`);
+// --- resolveScanDraft: parser fallback when no generative draft ---
+let extraChecks = 0;
+const tunaText = fixtures[0].rawText;
+
+// No native draft at all -> pure parser result (the universal tier).
+const fallbackDraft = resolveScanDraft(tunaText);
+assertClose(fallbackDraft.caloriesPer100g, 70, 'fallback uses parser calories');
+assertClose(fallbackDraft.proteinPer100g, 16, 'fallback uses parser protein');
+assert.equal(fallbackDraft.rawText, tunaText, 'fallback keeps rawText');
+extraChecks += 3;
+
+// A finite generative value wins per FIELD; missing fields fall back to the parser.
+const mergedDraft = resolveScanDraft(tunaText, {
+  foodName: 'Century Tuna Flakes in Oil',
+  caloriesPer100g: 72,
+  proteinPer100g: Number.NaN, // invalid -> parser value survives
+});
+assert.equal(mergedDraft.foodName, 'Century Tuna Flakes in Oil', 'native food name wins');
+assertClose(mergedDraft.caloriesPer100g, 72, 'native calories win');
+assertClose(mergedDraft.proteinPer100g, 16, 'NaN native protein falls back to parser');
+assertClose(mergedDraft.sodiumMgPer100g, 270, 'unlisted fields fall back to parser');
+extraChecks += 4;
+
+// A negative native value is invalid and must not survive the merge.
+const negativeDraft = resolveScanDraft(tunaText, { fatsPer100g: -3 });
+assertClose(negativeDraft.fatsPer100g, 0, 'negative native value rejected');
+extraChecks += 1;
+
+// --- isPlausibleNutritionDraft: the live auto-detect gate ---
+assert.equal(
+  isPlausibleNutritionDraft(parseNutritionLabelText(tunaText)),
+  true,
+  'real label parse is plausible'
+);
+assert.equal(
+  isPlausibleNutritionDraft(parseNutritionLabelText('Total due 250.00 Cash 500.00 Change 250.00')),
+  false,
+  'a receipt is not plausible'
+);
+assert.equal(
+  isPlausibleNutritionDraft({
+    ...fallbackDraft,
+    caloriesPer100g: 1500, // beyond pure fat — impossible per 100g
+  }),
+  false,
+  'impossible calories rejected'
+);
+assert.equal(
+  isPlausibleNutritionDraft({
+    ...fallbackDraft,
+    proteinPer100g: 130, // heavier than the food itself
+  }),
+  false,
+  'impossible macro rejected'
+);
+assert.equal(
+  isPlausibleNutritionDraft({
+    ...fallbackDraft,
+    caloriesPer100g: 0,
+  }),
+  false,
+  'zero calories rejected'
+);
+extraChecks += 5;
+
+// --- inferFoodName: reject packaging junk that is not the product name ---
+// Regression: a real device scan produced the food name "04 09 26 18 18 23" from the
+// date stamp printed above the nutrition table.
+const nameCases = [
+  {
+    label: 'date stamp above the table is not a name',
+    rawText: '04 09 26 18 18 23\nNutrition Facts\nServing Size 30 g\nCalories 150\nProtein 5g',
+    expected: 'Scanned Food',
+  },
+  {
+    label: 'real product name is kept',
+    rawText: 'Century Tuna Flakes in Oil\nEXP 04/09/26\nNutrition Facts\nServing Size 56g\nCalories 90',
+    expected: 'Century Tuna Flakes in Oil',
+  },
+  {
+    label: 'skips a leading date and finds the name below it',
+    rawText: '04 09 26\nLucky Me Pancit Canton\nNutrition Facts\nCalories 300',
+    expected: 'Lucky Me Pancit Canton',
+  },
+  {
+    label: 'barcode digits rejected',
+    rawText: '4800016641503\nNutrition Facts\nCalories 150',
+    expected: 'Scanned Food',
+  },
+  {
+    label: 'expiry line rejected even with letters',
+    rawText: 'EXP 04 09 26\nNutrition Facts\nCalories 150',
+    expected: 'Scanned Food',
+  },
+  {
+    label: 'lot code rejected',
+    rawText: 'LOT A1234B\nNutrition Facts\nCalories 150',
+    expected: 'Scanned Food',
+  },
+  {
+    label: 'net weight line is not a name',
+    rawText: 'NET WT 60g\nChippy Barbecue\nNutrition Facts\nCalories 150',
+    expected: 'Chippy Barbecue',
+  },
+];
+
+for (const testCase of nameCases) {
+  const parsed = parseNutritionLabelText(testCase.rawText);
+  assert.equal(parsed.foodName, testCase.expected, `food name: ${testCase.label}`);
+  extraChecks += 1;
+}
+
+console.log(
+  `Nutrition parser fixtures passed: ${fixtures.length} (+${extraChecks} scan-draft checks)`
+);

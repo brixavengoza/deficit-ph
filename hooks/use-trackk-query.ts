@@ -11,6 +11,7 @@ import {
   insertFoodLog,
   revertCalorieGoalToAuto,
   revertMacroTargetsToAuto,
+  saveUserFoodIfMissing,
   searchFoodsByName,
   setCustomMacroTargets,
   setManualCalorieGoal,
@@ -19,6 +20,7 @@ import {
   upsertUserFoodByName,
 } from '@/lib/local-data';
 import { queryKeys } from '@/lib/query-client';
+import { useProfileBundleStore } from '@/stores/use-profile-bundle-store';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 export function useFoodsQuery() {
@@ -88,6 +90,8 @@ function invalidateAllAnalytics(client: ReturnType<typeof useQueryClient>) {
   void client.invalidateQueries({ queryKey: queryKeys.foods });
   void client.invalidateQueries({ queryKey: queryKeys.progress });
   void client.invalidateQueries({ queryKey: ['home-dashboard'] });
+  // A weigh-in recomputes the derived calorie/macro targets — keep the settings row fresh.
+  void client.invalidateQueries({ queryKey: queryKeys.macroTargets });
 }
 
 function invalidateMacroTargets(client: ReturnType<typeof useQueryClient>) {
@@ -140,7 +144,12 @@ export function useAddWeightMutation() {
   const client = useQueryClient();
   return useMutation({
     mutationFn: (weightKg: number) => addWeightLog(weightKg),
-    onSuccess: () => invalidateAllAnalytics(client),
+    onSuccess: () => {
+      invalidateAllAnalytics(client);
+      // Weight + derived calorie goal also live in the zustand profile bundle, which has
+      // no query-cache invalidation path — refresh it or Profile shows stale numbers.
+      void useProfileBundleStore.getState().refresh();
+    },
   });
 }
 
@@ -148,6 +157,14 @@ export function useUpsertUserFoodMutation() {
   const client = useQueryClient();
   return useMutation({
     mutationFn: upsertUserFoodByName,
+    onSuccess: () => invalidateAllAnalytics(client),
+  });
+}
+
+export function useSaveUserFoodIfMissingMutation() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: saveUserFoodIfMissing,
     onSuccess: () => invalidateAllAnalytics(client),
   });
 }

@@ -4,8 +4,12 @@ import { Button } from '@/components/ui/button';
 import { Icon } from '@/components/ui/icon';
 import { Input } from '@/components/ui/input';
 import { Text } from '@/components/ui/text';
-import { useCommonFoodsQuery, useFoodSearchQuery } from '@/hooks/use-trackk-query';
-import { useUpsertUserFoodMutation } from '@/hooks/use-trackk-query';
+import {
+  useCommonFoodsQuery,
+  useFoodSearchQuery,
+  useSaveUserFoodIfMissingMutation,
+  useUpsertUserFoodMutation,
+} from '@/hooks/use-trackk-query';
 import { SavedFoodModel } from '@/lib/local-data';
 import {
   convertRecipeQuantityToGrams,
@@ -41,6 +45,22 @@ import { z } from 'zod';
 import { formatNumberGrouped } from '@/lib/number-format';
 
 const MAX_CUSTOM_FOOD_NUMERIC_INPUT = 5000;
+const MAX_MACRO_PER_100G_INPUT = 100;
+
+// Optional macro field: empty = unknown (stored as 0), but anything typed must be a
+// sane grams-per-100g value. Without these inputs every custom food stored 0 macros,
+// which is why "no macros after logging" was the top user report.
+function optionalMacroField(label: string) {
+  return z
+    .string()
+    .trim()
+    .refine((value) => value === '' || !Number.isNaN(Number(value)), 'Enter a valid number')
+    .refine((value) => value === '' || Number(value) >= 0, 'Must be 0 or higher')
+    .refine(
+      (value) => value === '' || Number(value) <= MAX_MACRO_PER_100G_INPUT,
+      `${label} per 100g cannot exceed ${MAX_MACRO_PER_100G_INPUT}g`
+    );
+}
 
 const addCustomFoodSchema = z.object({
   foodName: z.string().trim().min(2, 'Enter a food name'),
@@ -54,9 +74,17 @@ const addCustomFoodSchema = z.object({
       (value) => Number(value) <= MAX_CUSTOM_FOOD_NUMERIC_INPUT,
       `Must be ${MAX_CUSTOM_FOOD_NUMERIC_INPUT} or lower`
     ),
+  proteinPer100g: optionalMacroField('Protein'),
+  carbsPer100g: optionalMacroField('Carbs'),
+  fatsPer100g: optionalMacroField('Fat'),
 });
 
 type AddCustomFoodFormValues = z.infer<typeof addCustomFoodSchema>;
+
+function macroValueToNumber(value: string): number {
+  const parsed = Number(value);
+  return value.trim() !== '' && Number.isFinite(parsed) && parsed >= 0 ? parsed : 0;
+}
 
 const RECIPE_UNIT_OPTIONS: RecipeIngredientUnitOption[] = ['g', 'ml', 'tsp', 'tbsp', 'cup'];
 
@@ -70,7 +98,7 @@ type RecipeIngredient = {
   name: string;
 };
 
-type NumericFieldName = 'caloriesPer100g';
+type NumericFieldName = 'caloriesPer100g' | 'proteinPer100g' | 'carbsPer100g' | 'fatsPer100g';
 type IngredientFoodPickerProps = {
   commonFoods: SavedFoodModel[];
   onClose: () => void;
@@ -284,6 +312,7 @@ export default function AddCustomFoodScreen() {
   const commonFoodsQuery = useCommonFoodsQuery();
   const foodSearchQuery = useFoodSearchQuery(normalizedFoodPickerQuery);
   const upsertFoodMutation = useUpsertUserFoodMutation();
+  const saveFoodIfMissingMutation = useSaveUserFoodIfMissingMutation();
   const isSubmitting = submittingAction != null;
   const incomingNutrition = React.useMemo(
     () => ({
@@ -316,6 +345,10 @@ export default function AddCustomFoodScreen() {
     defaultValues: {
       foodName: firstParam(params.foodName) ?? '',
       caloriesPer100g: firstParam(params.caloriesPer100g) ?? '',
+      // Prefill from a scanned label when present; user can correct before saving.
+      proteinPer100g: firstParam(params.proteinPer100g) ?? '',
+      carbsPer100g: firstParam(params.carbsPer100g) ?? '',
+      fatsPer100g: firstParam(params.fatsPer100g) ?? '',
     },
   });
 
@@ -355,15 +388,46 @@ export default function AddCustomFoodScreen() {
   const recipeTotals = React.useMemo(() => {
     let totalCalories = 0;
     let totalWeight = 0;
+    let totalProteinG = 0;
+    let totalCarbsG = 0;
+    let totalFatsG = 0;
+    let weightedCount = 0;
+    let matchedCount = 0;
 
     for (const ingredient of recipeIngredients) {
       totalCalories += ingredient.calories;
       totalWeight += ingredient.gramsEquivalent;
+      if (ingredient.gramsEquivalent > 0) {
+        weightedCount += 1;
+        if (ingredient.matchedFood) {
+          matchedCount += 1;
+          const scale = ingredient.gramsEquivalent / 100;
+          totalProteinG += ingredient.matchedFood.proteinPer100g * scale;
+          totalCarbsG += ingredient.matchedFood.carbsPer100g * scale;
+          totalFatsG += ingredient.matchedFood.fatsPer100g * scale;
+        }
+      }
     }
 
     const caloriesPer100g = totalWeight > 0 ? Math.round((totalCalories / totalWeight) * 100) : 0;
+    // Auto-fill macros ONLY when every weighed ingredient has real macro data — a manual
+    // ingredient contributes calories but UNKNOWN macros, so a partial fill would pair
+    // full calories with a fraction of the macros (e.g. 500 kcal shown as 11% macros).
+    const hasMacroData = weightedCount > 0 && matchedCount === weightedCount;
+    const per100 = (grams: number) =>
+      totalWeight > 0
+        ? Math.min(roundTo((grams / totalWeight) * 100, 1), MAX_MACRO_PER_100G_INPUT)
+        : 0;
 
-    return { caloriesPer100g, totalCalories, totalWeight };
+    return {
+      caloriesPer100g,
+      totalCalories,
+      totalWeight,
+      hasMacroData,
+      proteinPer100g: per100(totalProteinG),
+      carbsPer100g: per100(totalCarbsG),
+      fatsPer100g: per100(totalFatsG),
+    };
   }, [recipeIngredients]);
 
   const addIngredient = React.useCallback(() => {
@@ -442,12 +506,14 @@ export default function AddCustomFoodScreen() {
 
   const applyRecipeCalories = React.useCallback(() => {
     if (recipeTotals.caloriesPer100g <= 0) return;
-    setValue('caloriesPer100g', String(recipeTotals.caloriesPer100g), {
-      shouldDirty: true,
-      shouldTouch: true,
-      shouldValidate: true,
-    });
-  }, [recipeTotals.caloriesPer100g, setValue]);
+    const applyOptions = { shouldDirty: true, shouldTouch: true, shouldValidate: true };
+    setValue('caloriesPer100g', String(recipeTotals.caloriesPer100g), applyOptions);
+    if (recipeTotals.hasMacroData) {
+      setValue('proteinPer100g', String(recipeTotals.proteinPer100g), applyOptions);
+      setValue('carbsPer100g', String(recipeTotals.carbsPer100g), applyOptions);
+      setValue('fatsPer100g', String(recipeTotals.fatsPer100g), applyOptions);
+    }
+  }, [recipeTotals, setValue]);
 
   const handleSaveCustomFood = React.useCallback(
     async (values: AddCustomFoodFormValues, shouldLogToday: boolean) => {
@@ -467,7 +533,9 @@ export default function AddCustomFoodScreen() {
           }));
 
         for (const ingredient of manualIngredientsToSave) {
-          await upsertFoodMutation.mutateAsync({
+          // Insert-if-missing: this path only knows calories (macros are UNKNOWN, not 0),
+          // so it must never overwrite a same-named saved food that has real macros.
+          await saveFoodIfMissingMutation.mutateAsync({
             name: ingredient.name,
             kcalPer100g: ingredient.kcalPer100g,
             proteinPer100g: 0,
@@ -476,20 +544,21 @@ export default function AddCustomFoodScreen() {
             fiberPer100g: 0,
             sugarPer100g: 0,
             sodiumMgPer100g: 0,
-            servingSizeLabel: '100g',
           });
         }
 
         const savedFood = await upsertFoodMutation.mutateAsync({
           name: values.foodName.trim(),
           kcalPer100g: Number(values.caloriesPer100g),
-          proteinPer100g: incomingNutrition.proteinPer100g,
-          carbsPer100g: incomingNutrition.carbsPer100g,
-          fatsPer100g: incomingNutrition.fatsPer100g,
+          proteinPer100g: macroValueToNumber(values.proteinPer100g),
+          carbsPer100g: macroValueToNumber(values.carbsPer100g),
+          fatsPer100g: macroValueToNumber(values.fatsPer100g),
           fiberPer100g: incomingNutrition.fiberPer100g,
           sugarPer100g: incomingNutrition.sugarPer100g,
           sodiumMgPer100g: incomingNutrition.sodiumMgPer100g,
-          servingSizeLabel: '100g',
+          // No serving label is passed on purpose: leaving it undefined preserves an
+          // existing food's real serving info (e.g. a scanned "1 can (155g)") — a
+          // hardcoded '100g' here silently destroyed it and changed logged portions.
         });
 
         if (shouldLogToday) {
@@ -518,7 +587,7 @@ export default function AddCustomFoodScreen() {
         setSubmittingAction(null);
       }
     },
-    [incomingNutrition, recipeIngredients, setError, upsertFoodMutation]
+    [incomingNutrition, recipeIngredients, saveFoodIfMissingMutation, setError, upsertFoodMutation]
   );
 
   const previewCalories = Number(watch('caloriesPer100g') || 0);
@@ -757,6 +826,20 @@ export default function AddCustomFoodScreen() {
                     ~{formatNumberGrouped(recipeTotals.caloriesPer100g)} kcal
                   </Text>
                 </View>
+                {recipeTotals.hasMacroData ? (
+                  <View className="flex-row items-center justify-between">
+                    <Text className="text-muted-foreground text-sm">Macros per 100g</Text>
+                    <Text className="text-foreground text-sm font-bold">
+                      P {recipeTotals.proteinPer100g}g • C {recipeTotals.carbsPer100g}g • F{' '}
+                      {recipeTotals.fatsPer100g}g
+                    </Text>
+                  </View>
+                ) : recipeTotals.totalWeight > 0 ? (
+                  <Text className="text-muted-foreground text-xs leading-4">
+                    A manual ingredient has no macro data, so only calories will be applied.
+                    Type the macros below if you know them.
+                  </Text>
+                ) : null}
               </View>
               <Text className="text-muted-foreground mt-3 text-xs leading-5">
                 Formula: total calories / total weight x 100
@@ -768,13 +851,13 @@ export default function AddCustomFoodScreen() {
                 className="mt-3 h-11 rounded-md"
                 disabled={recipeTotals.caloriesPer100g <= 0}
                 onPress={applyRecipeCalories}>
-                <Text>Use Recipe Calories</Text>
+                <Text>{recipeTotals.hasMacroData ? 'Use Recipe Nutrition' : 'Use Recipe Calories'}</Text>
               </Button>
             </View>
           </View>
 
           <Text className="text-muted-foreground text-center text-sm font-semibold tracking-[1.2px] uppercase">
-            Final Calories
+            Final Nutrition
           </Text>
 
           <View className="gap-4">
@@ -785,6 +868,44 @@ export default function AddCustomFoodScreen() {
               label="Calories per 100g (kcal)"
               maxValue={100000}
             />
+            <View className="gap-1.5">
+              <Text className="text-foreground px-1 text-[15px] font-medium">
+                Macros per 100g (optional)
+              </Text>
+              <Text className="text-muted-foreground px-1 text-xs leading-4">
+                Add protein, carbs and fat so this food shows up in your macro rings. Skip it
+                if you do not know them.
+              </Text>
+            </View>
+            <View className="flex-row gap-3">
+              <View className="flex-1">
+                <NumericField
+                  control={control}
+                  errors={errors}
+                  name="proteinPer100g"
+                  label="Protein (g)"
+                  maxValue={MAX_MACRO_PER_100G_INPUT}
+                />
+              </View>
+              <View className="flex-1">
+                <NumericField
+                  control={control}
+                  errors={errors}
+                  name="carbsPer100g"
+                  label="Carbs (g)"
+                  maxValue={MAX_MACRO_PER_100G_INPUT}
+                />
+              </View>
+              <View className="flex-1">
+                <NumericField
+                  control={control}
+                  errors={errors}
+                  name="fatsPer100g"
+                  label="Fat (g)"
+                  maxValue={MAX_MACRO_PER_100G_INPUT}
+                />
+              </View>
+            </View>
           </View>
         </View>
 

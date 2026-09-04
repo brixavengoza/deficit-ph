@@ -1,61 +1,49 @@
-import { NativeModules } from 'react-native';
+import { NativeModules, Platform } from 'react-native';
 
-import type { NutritionLabelDraft } from '@/lib/nutrition-label-parser';
+import {
+  resolveScanDraft,
+  type NutritionLabelDraft,
+} from '@/lib/nutrition-label-parser';
+import { recognizeTextFromImage } from '@/lib/ocr';
+
+/**
+ * Tiered nutrition-label reading.
+ *
+ * - `readNutritionLabelQuick` — OCR + the deterministic parser. Works on EVERY device
+ *   with an OCR path (all supported iPhones via Apple Vision; Android via ML Kit). Fast
+ *   enough for the live auto-detect loop.
+ * - `readNutritionLabelImage` — the full read: on iOS it additionally asks the native
+ *   bridge for an Apple-Intelligence draft (iOS 26 + eligible hardware) and merges it
+ *   over the parser result; everywhere else (and whenever the generative tier fails)
+ *   it degrades to the quick path. The scan NEVER fails just because the generative
+ *   tier is unavailable — that bug hid the scanner's output from most devices.
+ */
+
+type ScanResultPayload = {
+  rawText: string;
+  draft?: Partial<NutritionLabelDraft>;
+  /** Set by the native side when the generative parse failed but OCR succeeded. */
+  generativeError?: string;
+};
 
 type NativeFoodLabelScanner = {
-  scanNutritionLabel: () => Promise<{ rawText: string; draft?: Partial<NutritionLabelDraft> }>;
-  recognizeNutritionLabelImage: (
-    imageUri: string
-  ) => Promise<{ rawText: string; draft?: Partial<NutritionLabelDraft> }>;
+  recognizeNutritionLabelImage?: (imageUri: string) => Promise<ScanResultPayload>;
 };
 
 const nativeScanner = NativeModules.FoodLabelScanner as NativeFoodLabelScanner | undefined;
 
-export async function scanNutritionLabel(): Promise<NutritionLabelDraft> {
-  // Platform-agnostic: works wherever a native `FoodLabelScanner` module exposing this method is
-  // linked (iOS live VisionKit scan today; an Android module can register the same method name).
-  if (!nativeScanner || typeof nativeScanner.scanNutritionLabel !== 'function') {
-    throw new Error('Live nutrition-label scanning needs a custom dev build with the scanner module.');
-  }
-
-  const result = await nativeScanner.scanNutritionLabel();
-  return parseScannerResult(result);
+export async function readNutritionLabelQuick(imageUri: string): Promise<NutritionLabelDraft> {
+  const rawText = await recognizeTextFromImage(imageUri);
+  return resolveScanDraft(rawText);
 }
 
-export async function uploadNutritionLabelImage(imageUri: string): Promise<NutritionLabelDraft> {
-  // Reads nutrition text from a still image. iOS uses Vision OCR; an Android module can register
-  // the same method backed by ML Kit Text Recognition, feeding the same shared parser.
-  if (!nativeScanner || typeof nativeScanner.recognizeNutritionLabelImage !== 'function') {
-    throw new Error('Nutrition-label reading needs a custom dev build with the scanner module.');
+export async function readNutritionLabelImage(imageUri: string): Promise<NutritionLabelDraft> {
+  if (
+    Platform.OS === 'ios' &&
+    typeof nativeScanner?.recognizeNutritionLabelImage === 'function'
+  ) {
+    const result = await nativeScanner.recognizeNutritionLabelImage(imageUri);
+    return resolveScanDraft(result.rawText, result.draft ?? null);
   }
-
-  const result = await nativeScanner.recognizeNutritionLabelImage(imageUri);
-  return parseScannerResult(result);
-}
-
-function parseScannerResult(result: {
-  rawText: string;
-  draft?: Partial<NutritionLabelDraft>;
-}): NutritionLabelDraft {
-  if (!result.draft) {
-    throw new Error('Apple Intelligence did not return a nutrition draft.');
-  }
-
-  return {
-    foodName: result.draft.foodName ?? 'Scanned Food',
-    servingSizeLabel: result.draft.servingSizeLabel ?? '1 serving',
-    caloriesPer100g: numberOrZero(result.draft.caloriesPer100g),
-    proteinPer100g: numberOrZero(result.draft.proteinPer100g),
-    carbsPer100g: numberOrZero(result.draft.carbsPer100g),
-    fatsPer100g: numberOrZero(result.draft.fatsPer100g),
-    fiberPer100g: numberOrZero(result.draft.fiberPer100g),
-    sugarPer100g: numberOrZero(result.draft.sugarPer100g),
-    sodiumMgPer100g: numberOrZero(result.draft.sodiumMgPer100g),
-    confidence: numberOrZero(result.draft.confidence),
-    rawText: result.rawText,
-  };
-}
-
-function numberOrZero(value: number | undefined) {
-  return Number.isFinite(value) ? Number(value) : 0;
+  return readNutritionLabelQuick(imageUri);
 }

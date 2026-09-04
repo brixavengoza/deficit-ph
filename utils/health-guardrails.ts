@@ -165,7 +165,7 @@ export function evaluateGoalSafety(input: {
         block: false,
         warning:
           input.goal === 'lose'
-            ? 'Nasa healthy weight range ka na, bestie! Okay lang mag-cut, pero gentle lang ha — Maintain is a solid choice din para sustainable. 💚'
+            ? 'You are already in a healthy weight range. Cutting is fine, but keep it gentle. Maintain is also a solid, sustainable choice. 💚'
             : null,
         bmiCategory,
       };

@@ -15,10 +15,19 @@ import { useUniwind } from 'uniwind';
 type LoggedFoodsCartModalProps = {
   open: boolean;
   onClose: () => void;
+  /** Called when the user taps Done — the caller decides where to navigate. */
+  onDone?: () => void;
   dayKey?: string;
 };
 
-export function LoggedFoodsCartModal({ open, onClose, dayKey }: LoggedFoodsCartModalProps) {
+function localDayKey(date = new Date()) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+export function LoggedFoodsCartModal({ open, onClose, onDone, dayKey }: LoggedFoodsCartModalProps) {
   const sheetRef = React.useRef<{ open: () => void; close: () => void } | null>(null);
   const insets = useSafeAreaInsets();
   const { theme } = useUniwind();
@@ -27,12 +36,16 @@ export function LoggedFoodsCartModal({ open, onClose, dayKey }: LoggedFoodsCartM
   const { height: windowHeight } = useWindowDimensions();
   const logsQuery = useFoodLogsQuery();
   const deleteLogMutation = useDeleteFoodLogMutation();
-  const targetDayKey = dayKey ?? new Date().toISOString().slice(0, 10);
+  // Compare in LOCAL time — an ISO (UTC) slice selects the wrong day in PH (UTC+8) after 4 PM.
+  const targetDayKey = dayKey ?? localDayKey();
   const loggedFoods = React.useMemo(
-    () => (logsQuery.data ?? []).filter((item) => item.consumedAtIso.slice(0, 10) === targetDayKey),
+    () =>
+      (logsQuery.data ?? []).filter(
+        (item) => localDayKey(new Date(item.consumedAtIso)) === targetDayKey
+      ),
     [logsQuery.data, targetDayKey]
   );
-  const [isSavingToDb, setIsSavingToDb] = React.useState(false);
+  const [isClearing, setIsClearing] = React.useState(false);
 
   const totalItems = loggedFoods.length;
   const totalKcal = React.useMemo(
@@ -56,9 +69,13 @@ export function LoggedFoodsCartModal({ open, onClose, dayKey }: LoggedFoodsCartM
     return Math.max(MIN_HEIGHT, Math.min(MAX_HEIGHT, estimated));
   }, [insets.bottom, loggedFoods.length, windowHeight]);
 
-  const handleSaveToDb = React.useCallback(async () => {
+  const handleDone = React.useCallback(() => {
+    if (onDone) {
+      onDone();
+      return;
+    }
     onClose();
-  }, [onClose]);
+  }, [onClose, onDone]);
 
   const handleEditItem = React.useCallback(
     (entryId: string) => {
@@ -72,14 +89,14 @@ export function LoggedFoodsCartModal({ open, onClose, dayKey }: LoggedFoodsCartM
   );
 
   const handleClearAll = React.useCallback(async () => {
-    setIsSavingToDb(true);
+    setIsClearing(true);
     try {
       await Promise.all(loggedFoods.map((entry) => deleteLogMutation.mutateAsync(entry.id)));
       onClose();
     } catch (error) {
       console.error('[LoggedFoodsCartModal.handleClearAll]', error);
     } finally {
-      setIsSavingToDb(false);
+      setIsClearing(false);
     }
   }, [deleteLogMutation, loggedFoods, onClose]);
 
@@ -114,7 +131,7 @@ export function LoggedFoodsCartModal({ open, onClose, dayKey }: LoggedFoodsCartM
         {loggedFoods.length === 0 ? (
           <View className="bg-background-subtle rounded-md px-4 py-6">
             <Text className="text-foreground text-center text-base font-semibold">
-              Wala pang logged food
+              No food logged yet
             </Text>
             <Text className="text-muted-foreground mt-1 px-10 text-center text-sm">
               Add food first, then review and edit here before saving.
@@ -136,7 +153,10 @@ export function LoggedFoodsCartModal({ open, onClose, dayKey }: LoggedFoodsCartM
                   {item.quantity} {item.unit} • {item.meal} • {item.logTime}
                 </Text>
                 <Text className="text-primary mt-1 text-xs font-semibold">
-                  {item.totalKcal} kcal
+                  {formatNumberGrouped(item.totalKcal)} kcal • P{' '}
+                  {formatNumberGrouped(item.proteinGrams, { maximumFractionDigits: 1 })}g • C{' '}
+                  {formatNumberGrouped(item.carbsGrams, { maximumFractionDigits: 1 })}g • F{' '}
+                  {formatNumberGrouped(item.fatsGrams, { maximumFractionDigits: 1 })}g
                 </Text>
               </View>
             </View>
@@ -181,20 +201,20 @@ export function LoggedFoodsCartModal({ open, onClose, dayKey }: LoggedFoodsCartM
         <Button
           variant="outline"
           className="h-11 flex-1"
-          disabled={!loggedFoods.length}
+          disabled={!loggedFoods.length || isClearing}
           onPress={() => {
             void handleClearAll();
           }}>
           <Icon as={Trash2} className="text-foreground size-4" />
-          <Text>Clear all</Text>
+          <Text>{isClearing ? 'Clearing...' : 'Clear all'}</Text>
         </Button>
 
         <Button
           variant="default"
           className="h-11 flex-1"
-          disabled={!loggedFoods.length || isSavingToDb || deleteLogMutation.isPending}
-          onPress={handleSaveToDb}>
-          <Text>{isSavingToDb ? 'Saving...' : 'Done'}</Text>
+          disabled={!loggedFoods.length || isClearing || deleteLogMutation.isPending}
+          onPress={handleDone}>
+          <Text>Done</Text>
         </Button>
       </View>
     </View>

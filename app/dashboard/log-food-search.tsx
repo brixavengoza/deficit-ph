@@ -1,4 +1,5 @@
 import { FlashList } from '@shopify/flash-list';
+import { LoggedFoodsCartModal } from '@/components/log/LoggedFoodsCartModal';
 import { Button } from '@/components/ui/button';
 import { Icon } from '@/components/ui/icon';
 import { Input } from '@/components/ui/input';
@@ -13,7 +14,15 @@ import {
   useFoodsQuery,
 } from '@/hooks/use-trackk-query';
 import { useRouter } from 'expo-router';
-import { ArrowLeft, ChevronRight, PencilLine, Plus, ScanLine, Search } from 'lucide-react-native';
+import {
+  ArrowLeft,
+  Check,
+  ChevronRight,
+  PencilLine,
+  Plus,
+  ScanLine,
+  Search,
+} from 'lucide-react-native';
 import React from 'react';
 import { Keyboard, KeyboardAvoidingView, Platform, Pressable, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -28,6 +37,8 @@ type SearchFood = {
   fiberPer100g?: number;
   sugarPer100g?: number;
   sodiumMgPer100g?: number;
+  servingSizeLabel?: string;
+  servingGrams?: number;
 };
 
 type SearchRow =
@@ -115,6 +126,7 @@ export default function LogFoodSearchScreen() {
   const inputRef = React.useRef<TextInput>(null);
   const navigateTimeoutRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
   const [query, setQuery] = React.useState('');
+  const [isCartOpen, setIsCartOpen] = React.useState(false);
   const keyboardHeight = useKeyboardHeight();
   const debouncedQuery = useDebouncedValue(query, 250);
   const foodsQuery = useFoodsQuery();
@@ -127,6 +139,10 @@ export default function LogFoodSearchScreen() {
   const searchResults = foodSearchQuery.data ?? [];
   const loggedFoods = logsQuery.data ?? [];
   const listBottomPadding = keyboardHeight > 0 ? 20 : 12;
+  const todayTotalKcal = React.useMemo(
+    () => loggedFoods.reduce((sum, item) => sum + item.totalKcal, 0),
+    [loggedFoods]
+  );
 
   React.useEffect(() => {
     const id = setTimeout(() => {
@@ -145,6 +161,11 @@ export default function LogFoodSearchScreen() {
       if (byName.has(key)) continue;
       // Carry the real per-100g macros from the log snapshot — building recents with only
       // name + kcal made handleSelectFood pass "0" for every macro, silently zeroing them.
+      // A log made in servings carries its own per-serving weight in the snapshot.
+      const perServing =
+        item.unit === 'servings' && item.quantity > 0
+          ? item.gramsEquivalent / item.quantity
+          : undefined;
       byName.set(key, {
         id: item.id,
         name: item.foodName,
@@ -155,6 +176,10 @@ export default function LogFoodSearchScreen() {
         fiberPer100g: item.fiberPer100g,
         sugarPer100g: item.sugarPer100g,
         sodiumMgPer100g: item.sodiumMgPer100g,
+        servingGrams:
+          perServing != null && Number.isFinite(perServing) && perServing > 0
+            ? perServing
+            : undefined,
       });
     }
     return Array.from(byName.values()).slice(0, 8);
@@ -172,6 +197,8 @@ export default function LogFoodSearchScreen() {
         fiberPer100g: food.fiberPer100g,
         sugarPer100g: food.sugarPer100g,
         sodiumMgPer100g: food.sodiumMgPer100g,
+        servingSizeLabel: food.servingSizeLabel,
+        servingGrams: food.servingGrams,
       })),
     [seedFoods]
   );
@@ -190,6 +217,8 @@ export default function LogFoodSearchScreen() {
         fiberPer100g: food.fiberPer100g,
         sugarPer100g: food.sugarPer100g,
         sodiumMgPer100g: food.sodiumMgPer100g,
+        servingSizeLabel: food.servingSizeLabel,
+        servingGrams: food.servingGrams,
       })),
     [searchResults]
   );
@@ -245,6 +274,8 @@ export default function LogFoodSearchScreen() {
                 fiberPer100g: food.fiberPer100g,
                 sugarPer100g: food.sugarPer100g,
                 sodiumMgPer100g: food.sodiumMgPer100g,
+                servingSizeLabel: food.servingSizeLabel,
+                servingGrams: food.servingGrams,
               },
             })),
           ]
@@ -302,6 +333,10 @@ export default function LogFoodSearchScreen() {
             fiberPer100g: String(food.fiberPer100g ?? 0),
             sugarPer100g: String(food.sugarPer100g ?? 0),
             sodiumMgPer100g: String(food.sodiumMgPer100g ?? 0),
+            ...(food.servingSizeLabel ? { servingSizeLabel: food.servingSizeLabel } : {}),
+            ...(food.servingGrams != null && food.servingGrams > 0
+              ? { servingGrams: String(food.servingGrams) }
+              : {}),
           },
         });
       }, 110);
@@ -437,7 +472,43 @@ export default function LogFoodSearchScreen() {
           contentContainerStyle={{ paddingBottom: listBottomPadding }}
           ListFooterComponent={<View className="h-6" />}
         />
+
+        {loggedFoods.length > 0 ? (
+          <View
+            className="border-border/70 bg-background flex-row items-center gap-3 border-t px-4 pt-3"
+            style={{
+              paddingBottom: keyboardHeight > 0 ? 12 : Math.max(insets.bottom, 12),
+            }}>
+            <Pressable
+              onPress={() => setIsCartOpen(true)}
+              style={({ pressed }) => [{ opacity: pressed ? 0.75 : 1 }]}
+              className="bg-primary/10 h-12 flex-1 flex-row items-center justify-between rounded-md px-4">
+              <Text className="text-foreground text-sm font-bold">
+                {loggedFoods.length} na-log today
+              </Text>
+              <Text className="text-primary text-sm font-bold">
+                {formatNumberGrouped(todayTotalKcal)} kcal
+              </Text>
+            </Pressable>
+            <Button
+              className="h-12 rounded-md px-5"
+              onPress={() => router.dismissTo('/dashboard')}>
+              <Icon as={Check} className="text-primary-foreground size-4" />
+              <Text className="text-primary-foreground font-bold">Done</Text>
+            </Button>
+          </View>
+        ) : null}
       </View>
+
+      <LoggedFoodsCartModal
+        open={isCartOpen}
+        dayKey={todayKey}
+        onClose={() => setIsCartOpen(false)}
+        onDone={() => {
+          setIsCartOpen(false);
+          router.dismissTo('/dashboard');
+        }}
+      />
     </KeyboardAvoidingView>
   );
 }

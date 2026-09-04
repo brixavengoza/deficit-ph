@@ -1,7 +1,11 @@
 import * as SQLite from 'expo-sqlite';
 
 import { SEED_FOODS } from '@/lib/local-seed-foods';
-import { formatTimeLabelFromDate, parseTimeLabelToDate } from '@/utils/add-food-utils';
+import {
+  formatTimeLabelFromDate,
+  parseServingGramsFromLabel,
+  parseTimeLabelToDate,
+} from '@/utils/add-food-utils';
 import {
   calculateCalorieTargets,
   deriveMacrosFromCalories,
@@ -16,7 +20,7 @@ import { heightInputToCm, weightInputToKg } from '@/utils/units';
 // table rebuild (e.g. widening a CHECK) via the additive helpers below. Any rebuild must
 // live in a versioned branch that runs inside a transaction, verifies row-count before
 // DROP, and bumps this constant.
-const SCHEMA_VERSION = 3;
+const SCHEMA_VERSION = 4;
 
 type AppUnits = 'Metric' | 'Imperial';
 type AppTheme = 'Auto' | 'Light' | 'Dark';
@@ -109,6 +113,8 @@ export type SavedFoodModel = {
   sugarPer100g: number;
   sodiumMgPer100g: number;
   servingSizeLabel?: string;
+  /** Grams in ONE serving (explicit column, else parsed from the label, e.g. "1 can (155g)"). */
+  servingGrams?: number;
   source: 'user' | 'seed';
   createdAtIso: string;
   updatedAtIso: string;
@@ -221,6 +227,7 @@ type FoodRow = {
   sugar_per_100g: number | null;
   sodium_mg_per_100g: number | null;
   serving_size_label: string | null;
+  serving_grams: number | null;
   source: 'user' | 'seed';
   created_at: string;
   updated_at: string;
@@ -342,6 +349,7 @@ async function openAndPrepareDb() {
       sugar_per_100g REAL NOT NULL DEFAULT 0,
       sodium_mg_per_100g REAL NOT NULL DEFAULT 0,
       serving_size_label TEXT,
+      serving_grams REAL,
       source TEXT NOT NULL CHECK (source IN ('user', 'seed')),
       created_at TEXT NOT NULL DEFAULT (datetime('now')),
       updated_at TEXT NOT NULL DEFAULT (datetime('now')),
@@ -421,6 +429,7 @@ async function openAndPrepareDb() {
       sugar_per_100g REAL NOT NULL DEFAULT 0,
       sodium_mg_per_100g REAL NOT NULL DEFAULT 0,
       serving_size_label TEXT,
+      serving_grams REAL,
       provenance TEXT,
       verified INTEGER NOT NULL DEFAULT 0,
       revision INTEGER NOT NULL DEFAULT 0,
@@ -482,6 +491,11 @@ async function ensureNutritionColumns(db: SQLite.SQLiteDatabase) {
   await ensureColumn(db, 'foods', 'fiber_per_100g', 'REAL NOT NULL DEFAULT 0');
   await ensureColumn(db, 'foods', 'sugar_per_100g', 'REAL NOT NULL DEFAULT 0');
   await ensureColumn(db, 'foods', 'sodium_mg_per_100g', 'REAL NOT NULL DEFAULT 0');
+  // SCHEMA_VERSION 4: grams per serving so "2 servings" can scale by the food's REAL
+  // serving weight instead of a flat 100g for every food. Nullable — no backfill needed;
+  // reads fall back to parsing an explicit weight out of serving_size_label.
+  await ensureColumn(db, 'foods', 'serving_grams', 'REAL');
+  await ensureColumn(db, 'catalog_foods', 'serving_grams', 'REAL');
   await ensureColumn(db, 'food_logs', 'fiber_per_100g_snapshot', 'REAL NOT NULL DEFAULT 0');
   await ensureColumn(db, 'food_logs', 'sugar_per_100g_snapshot', 'REAL NOT NULL DEFAULT 0');
   await ensureColumn(db, 'food_logs', 'sodium_mg_per_100g_snapshot', 'REAL NOT NULL DEFAULT 0');
@@ -650,10 +664,14 @@ export type MacroTargetsModel = {
 export async function fetchMacroTargets(): Promise<MacroTargetsModel> {
   const db = await getDb();
   const goals = await db.getFirstAsync<GoalsRow>('SELECT * FROM user_goals WHERE id = 1');
+  // Display the STORED goal as-is (fallback only when missing/invalid). Re-clamping to
+  // 1200 here turned a maintenance-capped cut (e.g. TDEE 1151) into a hidden surplus
+  // and made this screen disagree with the stored value and the TDEE calculator.
+  const storedCalorieGoal = toNumber(goals?.daily_calorie_goal);
   return {
     mode: goals?.macro_target_mode === 'custom' ? 'custom' : 'auto',
     calorieGoalMode: goals?.calorie_goal_mode === 'manual' ? 'manual' : 'auto',
-    dailyCalorieGoal: Math.max(1200, toNumber(goals?.daily_calorie_goal) || 2000),
+    dailyCalorieGoal: storedCalorieGoal > 0 ? storedCalorieGoal : 2000,
     proteinTargetG: Math.max(0, toNumber(goals?.protein_target_g)),
     carbsTargetG: Math.max(0, toNumber(goals?.carbs_target_g)),
     fatTargetG: Math.max(0, toNumber(goals?.fat_target_g)),
@@ -837,21 +855,6 @@ export async function loadProfileBundle(): Promise<ProfileBundle> {
   };
 }
 
-export async function updatePersonalInfo(values: {
-  fullName: string;
-  username: string;
-}) {
-  const db = await getDb();
-  await db.runAsync(
-    `UPDATE profile
-     SET full_name = ?,
-         username = ?,
-         updated_at = ?
-     WHERE id = 1`,
-    [values.fullName.trim(), values.username.trim(), new Date().toISOString()]
-  );
-}
-
 export async function updateProfilePhoto(profilePhotoUri: string) {
   const db = await getDb();
   await db.runAsync('UPDATE profile SET profile_photo_uri = ?, updated_at = ? WHERE id = 1', [
@@ -952,6 +955,10 @@ function mapFoodRow(row: FoodRow): SavedFoodModel {
     sugarPer100g: toNumber(row.sugar_per_100g),
     sodiumMgPer100g: toNumber(row.sodium_mg_per_100g),
     servingSizeLabel: row.serving_size_label ?? undefined,
+    servingGrams:
+      row.serving_grams != null && toNumber(row.serving_grams) > 0
+        ? toNumber(row.serving_grams)
+        : (parseServingGramsFromLabel(row.serving_size_label) ?? undefined),
     source: row.source,
     createdAtIso: row.created_at,
     updatedAtIso: row.updated_at,
@@ -1007,7 +1014,7 @@ export async function searchFoodsByName(query: string): Promise<SavedFoodModel[]
   return rows.map(mapFoodRow);
 }
 
-export async function upsertUserFoodByName(input: {
+type UserFoodWriteInput = {
   name: string;
   kcalPer100g: number;
   proteinPer100g: number;
@@ -1017,7 +1024,14 @@ export async function upsertUserFoodByName(input: {
   sugarPer100g?: number;
   sodiumMgPer100g?: number;
   servingSizeLabel?: string;
-}): Promise<SavedFoodModel> {
+  servingGrams?: number;
+};
+
+function toServingGramsColumn(value?: number): number | null {
+  return value != null && Number.isFinite(value) && value > 0 ? value : null;
+}
+
+export async function upsertUserFoodByName(input: UserFoodWriteInput): Promise<SavedFoodModel> {
   const db = await getDb();
   const normalizedName = input.name.trim();
   const now = new Date().toISOString();
@@ -1043,7 +1057,8 @@ export async function upsertUserFoodByName(input: {
            fiber_per_100g = ?,
            sugar_per_100g = ?,
            sodium_mg_per_100g = ?,
-           serving_size_label = ?,
+           serving_size_label = COALESCE(?, serving_size_label),
+           serving_grams = COALESCE(?, serving_grams),
            deleted_at = NULL,
            updated_at = ?
        WHERE id = ?`,
@@ -1057,6 +1072,7 @@ export async function upsertUserFoodByName(input: {
         input.sugarPer100g ?? 0,
         input.sodiumMgPer100g ?? 0,
         emptyToNull(input.servingSizeLabel ?? ''),
+        toServingGramsColumn(input.servingGrams),
         now,
         existing.id,
       ]
@@ -1082,10 +1098,11 @@ export async function upsertUserFoodByName(input: {
       sugar_per_100g,
       sodium_mg_per_100g,
       serving_size_label,
+      serving_grams,
       source,
       created_at,
       updated_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'user', ?, ?)`,
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'user', ?, ?)`,
     [
       id,
       LOCAL_USER_ID,
@@ -1098,6 +1115,7 @@ export async function upsertUserFoodByName(input: {
       input.sugarPer100g ?? 0,
       input.sodiumMgPer100g ?? 0,
       emptyToNull(input.servingSizeLabel ?? ''),
+      toServingGramsColumn(input.servingGrams),
       now,
       now,
     ]
@@ -1106,6 +1124,30 @@ export async function upsertUserFoodByName(input: {
   const inserted = await db.getFirstAsync<FoodRow>('SELECT * FROM foods WHERE id = ?', [id]);
   if (!inserted) throw new Error('Failed to create saved food.');
   return mapFoodRow(inserted);
+}
+
+/**
+ * Insert a user food ONLY if no live food with that name exists yet; otherwise return the
+ * existing row untouched. The recipe-ingredient save path knows only calories (macros are
+ * unknown, not zero) — running it through the name-keyed upsert was silently wiping the
+ * real macros of any same-named saved food back to 0.
+ */
+export async function saveUserFoodIfMissing(input: UserFoodWriteInput): Promise<SavedFoodModel> {
+  const db = await getDb();
+  // Deliberately NOT filtered by deleted_at: this existence check must match the upsert's
+  // own lookup exactly, or a soft-deleted row would slip through to the upsert and get
+  // revived with its macros overwritten — the exact wipe this function exists to prevent.
+  const existing = await db.getFirstAsync<FoodRow>(
+    `SELECT *
+     FROM foods
+     WHERE owner_user_id = ?
+       AND source = 'user'
+       AND lower(name) = lower(?)
+     LIMIT 1`,
+    [LOCAL_USER_ID, input.name.trim()]
+  );
+  if (existing) return mapFoodRow(existing);
+  return upsertUserFoodByName(input);
 }
 
 function mapFoodLogRow(row: FoodLogRow): LoggedFoodModel {
@@ -1241,6 +1283,18 @@ export async function updateFoodLog(
   input: FoodLogWriteInput
 ): Promise<LoggedFoodModel> {
   const db = await getDb();
+  // Keep the entry on its ORIGINAL day: only the time-of-day comes from the edit form.
+  // Re-deriving consumed_at from "now" silently moved yesterday's meal into today,
+  // corrupting both days' totals and the streak.
+  const existing = await db.getFirstAsync<Pick<FoodLogRow, 'consumed_at'>>(
+    'SELECT consumed_at FROM food_logs WHERE id = ? AND deleted_at IS NULL',
+    [id]
+  );
+  if (!existing) throw new Error('Food log not found.');
+  const consumedAt = parseTimeLabelToDate(
+    input.logTime,
+    new Date(existing.consumed_at)
+  ).toISOString();
   await db.runAsync(
     `UPDATE food_logs
      SET food_id = ?,
@@ -1281,7 +1335,7 @@ export async function updateFoodLog(
       input.unit,
       input.gramsEquivalent,
       input.meal,
-      toConsumedAtIso(input.logTime),
+      consumedAt,
       input.totalKcal,
       input.proteinGrams,
       input.carbsGrams,
@@ -1310,13 +1364,32 @@ export async function softDeleteFoodLog(id: string) {
   ]);
 }
 
+// Same canonical bounds as onboarding (lib/onboarding-form.ts). A weigh-in now rewrites
+// the derived calorie/macro targets, so an implausible value (a typo like 1540, or lb
+// stored as kg) must be rejected here instead of silently poisoning the stored goal.
+export const MIN_WEIGHT_LOG_KG = 30;
+export const MAX_WEIGHT_LOG_KG = 300;
+
 export async function addWeightLog(weightKg: number, note?: string) {
+  if (
+    !Number.isFinite(weightKg) ||
+    weightKg < MIN_WEIGHT_LOG_KG ||
+    weightKg > MAX_WEIGHT_LOG_KG
+  ) {
+    throw new Error(
+      `Enter a weight between ${MIN_WEIGHT_LOG_KG} and ${MAX_WEIGHT_LOG_KG} kg.`
+    );
+  }
   const db = await getDb();
   const now = new Date().toISOString();
   await db.runAsync(
     'INSERT INTO weight_logs (id, weight_kg, logged_at, note, created_at) VALUES (?, ?, ?, ?, ?)',
     [createId('weight'), weightKg, now, note ? note.trim() : null, now]
   );
+  // The daily target is body-stat-derived; a new weigh-in IS a body-stat change. Without
+  // this, users logging weight in Progress kept a stale target until they happened to edit
+  // an unrelated setting. Same safety-gated path as updateBodyMeasurements.
+  await refreshCalorieTargets(db, { weightKg });
 }
 
 export async function addHydrationLog(volumeMl: number, source = 'quick-add') {
@@ -1617,9 +1690,12 @@ export async function fetchHomeDashboardSnapshot(dayCount = 7): Promise<HomeDash
       ? Number((currentWeightKg - previousWeightKg).toFixed(1))
       : 0;
 
+  // Same rule as fetchMacroTargets: show the stored, safety-gated goal as-is — a
+  // maintenance-capped cut can be < 1200 and must not be inflated into a surplus here.
+  const storedGoalKcal = toNumber(goals?.daily_calorie_goal);
   return {
     userName: profile?.full_name || 'Trackk User',
-    goalKcal: Math.max(1200, toNumber(goals?.daily_calorie_goal) || 2000),
+    goalKcal: storedGoalKcal > 0 ? storedGoalKcal : 2000,
     proteinTargetG: Math.max(1, toNumber(goals?.protein_target_g) || 120),
     carbsTargetG: Math.max(1, toNumber(goals?.carbs_target_g) || 220),
     fatTargetG: Math.max(1, toNumber(goals?.fat_target_g) || 70),

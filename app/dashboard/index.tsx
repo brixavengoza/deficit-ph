@@ -12,6 +12,7 @@ import {
 import { getNutritionScanCapability } from '@/lib/ai-capability';
 import { getFoodEmoji } from '@/lib/food-emoji';
 import { formatNumberGrouped } from '@/lib/number-format';
+import { useAuthStore } from '@/stores/use-auth-store';
 import { targetProgressPct } from '@/utils/calorie-targets';
 import { router, Stack } from 'expo-router';
 import {
@@ -288,6 +289,17 @@ export default function DashboardScreen() {
   const hydrationTargetMl = homeDashboard.data?.hydrationTargetMl ?? 2500;
   const currentWeightKg = todaySummary?.weightKg ?? homeDashboard.data?.currentWeightKg ?? null;
 
+  // Personal-info editing was removed from Profile (email is the identity now), so the
+  // local full_name can no longer be set by hand. Prefer the name the OAuth provider
+  // already gave us, then any legacy stored name, and otherwise greet without a name
+  // rather than showing a placeholder like "Trackk User" or a raw email address.
+  const providerName = useAuthStore((state) => {
+    const meta = state.user?.user_metadata as { full_name?: string; name?: string } | undefined;
+    return (meta?.full_name || meta?.name || '').trim();
+  });
+  const storedName = homeDashboard.data?.userName ?? '';
+  const greetingName = providerName || (storedName === 'Trackk User' ? '' : storedName);
+
   const macroTotals = [
     {
       label: 'Protein',
@@ -388,7 +400,7 @@ export default function DashboardScreen() {
                   {getTodayLabel()}
                 </Text>
                 <Text className="text-foreground mt-1 text-2xl font-black tracking-tight">
-                  Howdy, {homeDashboard.data?.userName ?? 'Trackk User'}
+                  {greetingName ? `Howdy, ${greetingName}` : 'Howdy!'}
                 </Text>
               </View>
               <Button
@@ -470,6 +482,11 @@ export default function DashboardScreen() {
                         </Text>
                         <Text className="text-muted-foreground mt-0.5 text-xs">
                           {item.quantity} {item.unit} • {item.meal} • {item.logTime}
+                        </Text>
+                        <Text className="text-muted-foreground mt-0.5 text-xs">
+                          P {formatNumberGrouped(item.proteinGrams, { maximumFractionDigits: 1 })}g
+                          • C {formatNumberGrouped(item.carbsGrams, { maximumFractionDigits: 1 })}g
+                          • F {formatNumberGrouped(item.fatsGrams, { maximumFractionDigits: 1 })}g
                         </Text>
                       </View>
                       <View className="items-end">

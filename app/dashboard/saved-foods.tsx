@@ -21,6 +21,8 @@ type SavedFoodListItem = {
   fiberPer100g: number;
   sugarPer100g: number;
   sodiumMgPer100g: number;
+  servingSizeLabel?: string;
+  servingGrams?: number;
 };
 
 function SavedFoodRow({
@@ -74,6 +76,8 @@ export default function SavedFoodsScreen() {
       fiberPer100g: item.fiberPer100g,
       sugarPer100g: item.sugarPer100g,
       sodiumMgPer100g: item.sodiumMgPer100g,
+      servingSizeLabel: item.servingSizeLabel,
+      servingGrams: item.servingGrams,
     }));
 
     if (!normalizedQuery) return mapped;
@@ -93,6 +97,13 @@ export default function SavedFoodsScreen() {
         fiberPer100g: String(food.fiberPer100g),
         sugarPer100g: String(food.sugarPer100g),
         sodiumMgPer100g: String(food.sodiumMgPer100g),
+        ...(food.servingSizeLabel ? { servingSizeLabel: food.servingSizeLabel } : {}),
+        ...(food.servingGrams != null && food.servingGrams > 0
+          ? { servingGrams: String(food.servingGrams) }
+          : {}),
+        // After logging, add-food returns HERE (not the search screen) so the user can
+        // keep adding from their saved list.
+        origin: 'saved',
       },
     });
   }, []);

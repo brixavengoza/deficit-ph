@@ -5,31 +5,81 @@ import * as ImagePicker from 'expo-image-picker';
 import { Camera } from 'lucide-react-native';
 import React from 'react';
 import { Alert, Image as RNImage, Pressable, View } from 'react-native';
+import { fetchAvatarUrl, uploadAvatar } from '@/lib/avatar';
+import { useAuthStore } from '@/stores/use-auth-store';
 import { useProfileBundleStore } from '@/stores/use-profile-bundle-store';
+
 export function ProfileHeaderSection() {
   const [photoSheetOpen, setPhotoSheetOpen] = React.useState(false);
   const [isPickingPhoto, setIsPickingPhoto] = React.useState(false);
-  const { fullName, username, profilePhotoUri } = useProfileBundleStore((state) => state.bundle);
+  const { email: localEmail, profilePhotoUri } = useProfileBundleStore((state) => state.bundle);
+  const authUser = useAuthStore((state) => state.user);
   const saveProfilePhoto = useProfileBundleStore((state) => state.saveProfilePhoto);
-  const memberSinceYear = new Date().getFullYear();
 
-  const initials = (fullName || 'JD')
-    .split(' ')
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((part) => part[0]?.toUpperCase() ?? '')
-    .join('');
+  // The signed-in account is the source of truth for identity; the locally cached copy
+  // is only a fallback for the moment before the session is restored.
+  const email = authUser?.email || localEmail || '';
+
+  // Real signup date. This previously used `new Date().getFullYear()`, so "Member since"
+  // always displayed the CURRENT year and silently changed every January.
+  const memberSinceYear = authUser?.created_at
+    ? new Date(authUser.created_at).getFullYear()
+    : null;
+
+  // Avatar letter comes from the email, since there is no name field any more.
+  const initials = (email.split('@')[0]?.trim()[0] ?? '?').toUpperCase();
 
   const showPhotoError = React.useCallback((message: string) => {
     Alert.alert('Profile Photo', message);
   }, []);
 
+  // Signed in on a new phone: the local database has no photo, but the account may
+  // already have one. Pull it down once so the avatar is not blank.
+  React.useEffect(() => {
+    if (!authUser?.id || profilePhotoUri) return;
+    let cancelled = false;
+    void (async () => {
+      try {
+        const remoteUrl = await fetchAvatarUrl(authUser.id);
+        if (!cancelled && remoteUrl) await saveProfilePhoto(remoteUrl);
+      } catch (error) {
+        console.warn('[ProfileHeaderSection.fetchAvatarUrl]', error);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [authUser?.id, profilePhotoUri, saveProfilePhoto]);
+
   const saveSelectedPhoto = React.useCallback(
     async (uri: string) => {
+      // Upload first so the value cached locally is the durable public URL rather than
+      // a file:// path, which would break as soon as the OS clears its cache directory.
+      if (authUser?.id) {
+        try {
+          const publicUrl = await uploadAvatar(uri, authUser.id);
+          await saveProfilePhoto(publicUrl);
+          setPhotoSheetOpen(false);
+          return;
+        } catch (error) {
+          console.error('[ProfileHeaderSection.uploadAvatar]', error);
+          // Keep the photo locally so the change is not simply lost, but say plainly
+          // that it did not sync, instead of pretending it uploaded.
+          await saveProfilePhoto(uri);
+          setPhotoSheetOpen(false);
+          showPhotoError(
+            error instanceof Error && error.message.includes('too large')
+              ? error.message
+              : 'Saved on this phone, but we could not upload it. It will not appear on your other devices.'
+          );
+          return;
+        }
+      }
+
       await saveProfilePhoto(uri);
       setPhotoSheetOpen(false);
     },
-    [saveProfilePhoto]
+    [authUser?.id, saveProfilePhoto, showPhotoError]
   );
 
   const choosePhoto = React.useCallback(async () => {
@@ -118,11 +168,18 @@ export function ProfileHeaderSection() {
             </View>
           </Pressable>
 
-          <View className="items-center">
-            <Text className="text-foreground text-2xl font-bold">{fullName}</Text>
-            <Text className="text-muted-foreground text-sm">
-              @{username} • Member since {memberSinceYear}
+          <View className="w-full items-center">
+            <Text
+              numberOfLines={1}
+              ellipsizeMode="middle"
+              className="text-foreground max-w-full px-4 text-xl font-bold">
+              {email || 'Signed in'}
             </Text>
+            {memberSinceYear ? (
+              <Text className="text-muted-foreground mt-0.5 text-sm">
+                Member since {memberSinceYear}
+              </Text>
+            ) : null}
           </View>
         </View>
       </View>

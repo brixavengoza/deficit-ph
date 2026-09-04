@@ -1,5 +1,6 @@
 import { Text } from '@/components/ui/text';
 import { useProfileBundleStore } from '@/stores/use-profile-bundle-store';
+import { weightKgToDisplay } from '@/utils/units';
 import { View } from 'react-native';
 
 function formatStatValue(value: string, options: { allowZero?: boolean } = {}) {
@@ -40,12 +41,17 @@ function StatTile({
 
 export function ProfileStatsRow() {
   const { units, weight, calorieGoal, streakDays } = useProfileBundleStore((state) => state.bundle);
+  // The bundle carries canonical kg — convert before pairing with an lb label, otherwise
+  // Imperial users see their kg number labelled "lb".
+  const weightKg = Number(weight);
+  const displayWeight =
+    Number.isFinite(weightKg) && weightKg > 0 ? String(weightKgToDisplay(weightKg, units)) : weight;
 
   return (
     <View className="mb-8 flex flex-row gap-2 px-4">
       <StatTile
         label="Weight"
-        value={formatStatValue(weight)}
+        value={formatStatValue(displayWeight)}
         unit={units === 'Metric' ? 'kg' : 'lb'}
       />
       <StatTile label="Goal" value={formatStatValue(calorieGoal)} unit="kcal" />

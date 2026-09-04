@@ -73,11 +73,33 @@ export function resolveMacroProfile(foodName: string, kcalPer100g: number): Food
   };
 }
 
-export function convertQuantityToGrams(quantity: number, unit: AddFoodUnitOption) {
+/**
+ * Extract an explicit gram (or ml, treated 1:1 like the rest of the app) weight from a
+ * serving-size label, e.g. "1 can (155g)" -> 155, "1 tbsp (15ml)" -> 15, "100g" -> 100.
+ * Volume-only labels ("1 cup", "1 tbsp") deliberately return null — density varies per
+ * food, so guessing grams there would corrupt logged nutrition (CLAUDE.md rule 6).
+ */
+export function parseServingGramsFromLabel(label?: string | null): number | null {
+  if (!label) return null;
+  const match = label.match(/(\d+(?:\.\d+)?)\s*(g|ml)\b/i);
+  if (!match) return null;
+  const grams = Number(match[1]);
+  return Number.isFinite(grams) && grams > 0 ? grams : null;
+}
+
+export function convertQuantityToGrams(
+  quantity: number,
+  unit: AddFoodUnitOption,
+  servingGrams?: number | null
+) {
   if (unit === 'grams') return quantity;
   if (unit === 'ml') return quantity;
   if (unit === 'oz') return quantity * OUNCES_TO_GRAMS;
-  return quantity * DEFAULT_SERVING_GRAMS;
+  const perServing =
+    servingGrams != null && Number.isFinite(servingGrams) && servingGrams > 0
+      ? servingGrams
+      : DEFAULT_SERVING_GRAMS;
+  return quantity * perServing;
 }
 
 export function convertRecipeQuantityToGrams(quantity: number, unit: RecipeIngredientUnitOption) {

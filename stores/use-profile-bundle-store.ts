@@ -4,7 +4,6 @@ import {
   updateBodyMeasurements,
   updateGoal,
   updateNotifications,
-  updatePersonalInfo,
   updateProfilePhoto,
   updateTheme,
   updateUnits,
@@ -38,10 +37,6 @@ type ProfileBundleState = {
   error: string | null;
   ensureLoaded: () => Promise<void>;
   refresh: () => Promise<void>;
-  savePersonalInfo: (values: {
-    fullName: string;
-    username: string;
-  }) => Promise<void>;
   saveProfilePhoto: (profilePhotoUri: string) => Promise<void>;
   saveBodyMeasurements: (values: {
     height: string;
@@ -79,23 +74,6 @@ export const useProfileBundleStore = create<ProfileBundleState>((set, get) => ({
         hasLoaded: true,
         isLoading: false,
       });
-    }
-  },
-
-  savePersonalInfo: async (values) => {
-    set({ isSaving: true, error: null });
-    try {
-      await updatePersonalInfo(values);
-      set((state) => ({
-        bundle: { ...state.bundle, ...values },
-        isSaving: false,
-      }));
-    } catch (error) {
-      set({
-        error: error instanceof Error ? error.message : 'Failed to save personal info.',
-        isSaving: false,
-      });
-      throw error;
     }
   },
 

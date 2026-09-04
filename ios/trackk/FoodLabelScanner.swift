@@ -51,54 +51,97 @@ class FoodLabelScanner: NSObject {
     rejecter reject: @escaping RCTPromiseRejectBlock
   ) {
     DispatchQueue.global(qos: .userInitiated).async {
-      guard let image = Self.loadImage(from: imageUri),
-        let preparedImage = Self.prepareImageForTextRecognition(image),
-        let cgImage = preparedImage.cgImage
-      else {
-        reject("invalid_image", "Unable to read the selected nutrition label image.", nil)
+      Self.performVisionTextRecognition(
+        imageUri: imageUri,
+        onError: { code, message, error in
+          reject(code, message, error)
+        },
+        onText: { text in
+          Task {
+            do {
+              let draft = try await Self.analyzeNutritionLabelText(text)
+              resolve([
+                "rawText": text,
+                "draft": draft,
+              ])
+            } catch {
+              // Apple Intelligence is an ENHANCEMENT tier (iOS 26 + eligible hardware).
+              // The OCR text is already in hand — return it so JS can fall back to the
+              // deterministic parser instead of failing the scan on most iPhones.
+              resolve([
+                "rawText": text,
+                "generativeError": Self.appleIntelligenceErrorMessage(for: error),
+              ])
+            }
+          }
+        }
+      )
+    }
+  }
+
+  // Vision-only OCR (no generative parse). Fast enough to run repeatedly for the live
+  // auto-detect loop; works on every iPhone this app supports.
+  @objc(recognizeText:resolver:rejecter:)
+  func recognizeText(
+    _ imageUri: String,
+    resolver resolve: @escaping RCTPromiseResolveBlock,
+    rejecter reject: @escaping RCTPromiseRejectBlock
+  ) {
+    DispatchQueue.global(qos: .userInitiated).async {
+      Self.performVisionTextRecognition(
+        imageUri: imageUri,
+        onError: { code, message, error in
+          reject(code, message, error)
+        },
+        onText: { text in
+          resolve(["rawText": text])
+        }
+      )
+    }
+  }
+
+  private static func performVisionTextRecognition(
+    imageUri: String,
+    onError: @escaping (String, String, Error?) -> Void,
+    onText: @escaping (String) -> Void
+  ) {
+    guard let image = loadImage(from: imageUri),
+      let preparedImage = prepareImageForTextRecognition(image),
+      let cgImage = preparedImage.cgImage
+    else {
+      onError("invalid_image", "Unable to read the selected nutrition label image.", nil)
+      return
+    }
+
+    let request = VNRecognizeTextRequest { request, error in
+      if let error {
+        onError("text_recognition_failed", error.localizedDescription, error)
         return
       }
 
-      let request = VNRecognizeTextRequest { request, error in
-        if let error {
-          reject("text_recognition_failed", error.localizedDescription, error)
-          return
-        }
+      let observations = request.results as? [VNRecognizedTextObservation] ?? []
+      let text = combinedRecognizedText(from: observations)
 
-        let observations = request.results as? [VNRecognizedTextObservation] ?? []
-        let text = Self.combinedRecognizedText(from: observations)
-
-        guard !text.isEmpty else {
-          reject("no_text_found", "No nutrition label text was detected.", nil)
-          return
-        }
-
-        Task {
-          do {
-            let draft = try await Self.analyzeNutritionLabelText(text)
-            resolve([
-              "rawText": text,
-              "draft": draft,
-            ])
-          } catch {
-            reject("apple_intelligence_failed", Self.appleIntelligenceErrorMessage(for: error), error)
-          }
-        }
+      guard !text.isEmpty else {
+        onError("no_text_found", "No nutrition label text was detected.", nil)
+        return
       }
 
-      request.recognitionLevel = .accurate
-      request.usesLanguageCorrection = false
-      request.minimumTextHeight = 0.003
+      onText(text)
+    }
 
-      do {
-        try VNImageRequestHandler(
-          cgImage: cgImage,
-          orientation: Self.cgImageOrientation(from: preparedImage.imageOrientation),
-          options: [:]
-        ).perform([request])
-      } catch {
-        reject("text_recognition_failed", error.localizedDescription, error)
-      }
+    request.recognitionLevel = .accurate
+    request.usesLanguageCorrection = false
+    request.minimumTextHeight = 0.003
+
+    do {
+      try VNImageRequestHandler(
+        cgImage: cgImage,
+        orientation: cgImageOrientation(from: preparedImage.imageOrientation),
+        options: [:]
+      ).perform([request])
+    } catch {
+      onError("text_recognition_failed", error.localizedDescription, error)
     }
   }
 

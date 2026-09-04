@@ -12,10 +12,13 @@ import {
 } from '@/hooks/use-trackk-query';
 import {
   convertQuantityToGrams,
+  DEFAULT_SERVING_GRAMS,
   formatTimeLabelFromDate,
   formatFoodTitle,
   normalizeTimeInput,
+  OUNCES_TO_GRAMS,
   parseKcalPer100g,
+  parseServingGramsFromLabel,
   parseTimeLabelToDate,
   resolveMacroProfile,
   roundTo,
@@ -40,6 +43,10 @@ import { z } from 'zod';
 const MEAL_OPTIONS = ['Breakfast', 'Lunch', 'Dinner', 'Snack'] as const;
 const UNIT_OPTIONS = ['grams', 'ml', 'oz', 'servings'] as const;
 const MAX_FOOD_QUANTITY_INPUT = 5000;
+// Hard sanity ceiling on one entry's total weight (10 kg) — the quantity bound alone
+// can't catch "5000 servings x 500 g".
+const MAX_GRAMS_EQUIVALENT = 10000;
+const SERVING_QUICK_QUANTITIES = ['0.5', '1', '2', '3'] as const;
 
 type MealOption = (typeof MEAL_OPTIONS)[number];
 type UnitOption = (typeof UNIT_OPTIONS)[number];
@@ -87,6 +94,9 @@ export default function AddFoodScreen() {
     fiberPer100g?: string;
     sugarPer100g?: string;
     sodiumMgPer100g?: string;
+    servingSizeLabel?: string;
+    servingGrams?: string;
+    origin?: string;
   }>();
 
   const [isSubmitting, setIsSubmitting] = React.useState(false);
@@ -103,6 +113,13 @@ export default function AddFoodScreen() {
     () => (entryId ? (loggedFoods.find((item) => item.id === entryId) ?? null) : null),
     [entryId, loggedFoods]
   );
+  // Editing before the logs query resolves would fall into the INSERT branch and create a
+  // bogus "Selected Food" duplicate — hold the submit button until the entry is loaded.
+  // Once the query settles without the entry (deleted, or query error), stay disabled but
+  // say so instead of showing "Loading..." forever.
+  const editLookupSettled = logsQuery.isSuccess || logsQuery.isError;
+  const isEditEntryPending = Boolean(entryId) && !editingEntry && !editLookupSettled;
+  const isEditEntryMissing = Boolean(entryId) && !editingEntry && editLookupSettled;
 
   const foodName = React.useMemo(
     () => editingEntry?.foodName ?? formatFoodTitle(params.foodName),
@@ -163,7 +180,36 @@ export default function AddFoodScreen() {
     params.sodiumMgPer100g,
     params.sugarPer100g,
   ]);
-  const defaultQuantity = '100';
+  // Grams in one serving of THIS food. Editing an entry logged in servings recovers it
+  // from the entry's own snapshot (gramsEquivalent / quantity); a new log takes it from
+  // the food's serving_grams column (or its label) forwarded as a param. null = unknown,
+  // in which case the servings unit falls back to the legacy flat 100g.
+  const servingGrams = React.useMemo<number | null>(() => {
+    if (editingEntry) {
+      if (editingEntry.unit === 'servings' && editingEntry.quantity > 0) {
+        const perServing = editingEntry.gramsEquivalent / editingEntry.quantity;
+        return Number.isFinite(perServing) && perServing > 0 ? roundTo(perServing, 1) : null;
+      }
+      return null;
+    }
+    const fromParam = Number(Array.isArray(params.servingGrams) ? params.servingGrams[0] : params.servingGrams);
+    if (Number.isFinite(fromParam) && fromParam > 0) return fromParam;
+    return parseServingGramsFromLabel(
+      Array.isArray(params.servingSizeLabel) ? params.servingSizeLabel[0] : params.servingSizeLabel
+    );
+  }, [editingEntry, params.servingGrams, params.servingSizeLabel]);
+  const servingSizeLabel = React.useMemo(() => {
+    if (editingEntry) return null;
+    const raw = Array.isArray(params.servingSizeLabel)
+      ? params.servingSizeLabel[0]
+      : params.servingSizeLabel;
+    return raw?.trim() ? raw.trim() : null;
+  }, [editingEntry, params.servingSizeLabel]);
+
+  // When the food has a real serving weight, "1 serving" is the friendlier default;
+  // otherwise keep the original 100 g default.
+  const defaultQuantity = servingGrams != null ? '1' : '100';
+  const defaultUnit: UnitOption = servingGrams != null ? 'servings' : UNIT_OPTIONS[0];
 
   const {
     control,
@@ -177,7 +223,7 @@ export default function AddFoodScreen() {
     resolver: zodResolver(addFoodSchema),
     defaultValues: {
       quantity: editingEntry ? String(editingEntry.quantity) : defaultQuantity,
-      unit: editingEntry ? editingEntry.unit : UNIT_OPTIONS[0],
+      unit: editingEntry ? editingEntry.unit : defaultUnit,
       meal: editingEntry ? editingEntry.meal : defaultMeal,
       logTime: editingEntry ? editingEntry.logTime : defaultCurrentTime,
     },
@@ -186,11 +232,11 @@ export default function AddFoodScreen() {
   React.useEffect(() => {
     reset({
       quantity: editingEntry ? String(editingEntry.quantity) : defaultQuantity,
-      unit: editingEntry ? editingEntry.unit : UNIT_OPTIONS[0],
+      unit: editingEntry ? editingEntry.unit : defaultUnit,
       meal: editingEntry ? editingEntry.meal : defaultMeal,
       logTime: editingEntry ? editingEntry.logTime : defaultCurrentTime,
     });
-  }, [defaultCurrentTime, defaultMeal, editingEntry, reset]);
+  }, [defaultCurrentTime, defaultMeal, defaultQuantity, defaultUnit, editingEntry, reset]);
 
   const quantityRaw = watch('quantity');
   const unit = watch('unit');
@@ -213,12 +259,14 @@ export default function AddFoodScreen() {
       };
     }
 
-    const gramsEquivalent = convertQuantityToGrams(quantity, unit);
+    const gramsEquivalent = convertQuantityToGrams(quantity, unit, servingGrams);
     const scale = gramsEquivalent / 100;
     const totalKcal = roundTo(kcalPer100g * scale, 0);
-    const proteinGrams = roundTo(macroProfile.proteinPer100g * scale, 0);
-    const carbsGrams = roundTo(macroProfile.carbsPer100g * scale, 0);
-    const fatsGrams = roundTo(macroProfile.fatsPer100g * scale, 0);
+    // One decimal, matching fiber/sugar — whole-gram rounding stored 0 g for small
+    // portions (30 g of a 1.1 g-protein/100g food) while calories stayed non-zero.
+    const proteinGrams = roundTo(macroProfile.proteinPer100g * scale, 1);
+    const carbsGrams = roundTo(macroProfile.carbsPer100g * scale, 1);
+    const fatsGrams = roundTo(macroProfile.fatsPer100g * scale, 1);
     const fiberGrams = roundTo((macroProfile.fiberPer100g ?? 0) * scale, 1);
     const sugarGrams = roundTo((macroProfile.sugarPer100g ?? 0) * scale, 1);
     const sodiumMg = roundTo((macroProfile.sodiumMgPer100g ?? 0) * scale, 0);
@@ -237,7 +285,7 @@ export default function AddFoodScreen() {
       carbsPct: (carbsGrams / totalMacroGrams) * 100,
       fatsPct: (fatsGrams / totalMacroGrams) * 100,
     };
-  }, [kcalPer100g, macroProfile, quantityRaw, unit]);
+  }, [kcalPer100g, macroProfile, quantityRaw, servingGrams, unit]);
 
   const summaryPanelClass = isDarkMode ? 'bg-surface-dark' : 'bg-primary/10';
   const summaryValueClass = isDarkMode ? 'text-white' : 'text-foreground';
@@ -250,7 +298,17 @@ export default function AddFoodScreen() {
       setIsSubmitting(true);
       try {
         const quantity = Number(values.quantity);
-        const gramsEquivalent = roundTo(convertQuantityToGrams(quantity, values.unit), 1);
+        const gramsEquivalent = roundTo(
+          convertQuantityToGrams(quantity, values.unit, servingGrams),
+          1
+        );
+        if (gramsEquivalent > MAX_GRAMS_EQUIVALENT) {
+          setError('quantity', {
+            message: `That is too large (${formatNumberGrouped(gramsEquivalent)} g). Check the quantity and unit.`,
+          });
+          setIsSubmitting(false);
+          return;
+        }
 
         const nextPayload = {
           quantity: roundTo(quantity, 2),
@@ -298,8 +356,17 @@ export default function AddFoodScreen() {
         }
         if (editingEntry) {
           router.back();
+        } else if (
+          (Array.isArray(params.origin) ? params.origin[0] : params.origin) === 'saved' &&
+          router.canGoBack()
+        ) {
+          // Came from the Saved Foods list — return there so the user can keep adding
+          // saved items; Done lives on the search screen one level below.
+          router.back();
         } else {
-          router.replace('/dashboard');
+          // Land back on the search screen (not the dashboard) so logging a whole meal is
+          // one flow: log, add the next food, then tap Done there when tapos na.
+          router.dismissTo('/dashboard/log-food-search');
         }
       } catch (error) {
         const message = error instanceof Error ? error.message : 'Failed to log food';
@@ -316,9 +383,43 @@ export default function AddFoodScreen() {
       kcalPer100g,
       macroProfile,
       nutrition,
+      params.origin,
+      servingGrams,
       setError,
       updateFoodLogMutation,
     ]
+  );
+
+  // Switching the unit converts the CURRENT amount into the new unit instead of keeping
+  // the raw number ("1 serving" -> grams must become 155, not 1 gram; "100 grams" ->
+  // servings must become ~0.65, not 100 servings).
+  const handleUnitChange = React.useCallback(
+    (nextUnit: UnitOption) => {
+      const currentQuantity = Number(quantityRaw);
+      if (nextUnit !== unit && Number.isFinite(currentQuantity) && currentQuantity > 0) {
+        const grams = convertQuantityToGrams(currentQuantity, unit, servingGrams);
+        const perServing =
+          servingGrams != null && servingGrams > 0 ? servingGrams : DEFAULT_SERVING_GRAMS;
+        const nextQuantity =
+          nextUnit === 'oz'
+            ? roundTo(grams / OUNCES_TO_GRAMS, 2)
+            : nextUnit === 'servings'
+              ? roundTo(grams / perServing, 2)
+              : roundTo(grams, 1);
+        if (
+          Number.isFinite(nextQuantity) &&
+          nextQuantity > 0 &&
+          nextQuantity <= MAX_FOOD_QUANTITY_INPUT
+        ) {
+          setValue('quantity', String(nextQuantity), {
+            shouldValidate: true,
+            shouldDirty: true,
+          });
+        }
+      }
+      setValue('unit', nextUnit, { shouldValidate: true, shouldDirty: true });
+    },
+    [quantityRaw, servingGrams, setValue, unit]
   );
 
   const handleOpenTimeDialog = React.useCallback(() => {
@@ -366,6 +467,16 @@ export default function AddFoodScreen() {
                 {formatNumberGrouped(kcalPer100g)} kcal per {formatMeasure(100, 'g')}
               </Text>
             </View>
+            {servingGrams != null ? (
+              <Text className="text-muted-foreground mt-2 text-xs font-medium">
+                {servingSizeLabel ? `${servingSizeLabel} = ` : '1 serving = '}
+                {formatMeasure(servingGrams, 'g')}
+              </Text>
+            ) : servingSizeLabel ? (
+              <Text className="text-muted-foreground mt-2 text-xs font-medium">
+                Serving size: {servingSizeLabel}
+              </Text>
+            ) : null}
           </View>
 
           <View className="px-4 pb-5">
@@ -389,7 +500,7 @@ export default function AddFoodScreen() {
                     Protein
                   </Text>
                   <Text className={`${summaryValueClass} mt-1 text-base font-black`}>
-                    {formatMeasure(nutrition.proteinGrams, 'g')}
+                    {formatNumberGrouped(nutrition.proteinGrams, { maximumFractionDigits: 1 })}g
                   </Text>
                   <View className={`${summaryTrackClass} mt-2 h-1.5 overflow-hidden rounded-full`}>
                     <View
@@ -404,7 +515,7 @@ export default function AddFoodScreen() {
                     Carbs
                   </Text>
                   <Text className={`${summaryValueClass} mt-1 text-base font-black`}>
-                    {formatMeasure(nutrition.carbsGrams, 'g')}
+                    {formatNumberGrouped(nutrition.carbsGrams, { maximumFractionDigits: 1 })}g
                   </Text>
                   <View className={`${summaryTrackClass} mt-2 h-1.5 overflow-hidden rounded-full`}>
                     <View
@@ -419,7 +530,7 @@ export default function AddFoodScreen() {
                     Fat
                   </Text>
                   <Text className={`${summaryValueClass} mt-1 text-base font-black`}>
-                    {formatMeasure(nutrition.fatsGrams, 'g')}
+                    {formatNumberGrouped(nutrition.fatsGrams, { maximumFractionDigits: 1 })}g
                   </Text>
                   <View className={`${summaryTrackClass} mt-2 h-1.5 overflow-hidden rounded-full`}>
                     <View
@@ -487,6 +598,45 @@ export default function AddFoodScreen() {
                   <Text className="text-primary text-[10px] font-bold">Change</Text>
                 </Pressable>
               </View>
+              {unit === 'servings' ? (
+                <View className="mt-3">
+                  <View className="flex-row gap-2">
+                    {SERVING_QUICK_QUANTITIES.map((option) => {
+                      const active = quantityRaw === option;
+                      return (
+                        <Pressable
+                          key={option}
+                          onPress={() =>
+                            setValue('quantity', option, {
+                              shouldValidate: true,
+                              shouldDirty: true,
+                            })
+                          }
+                          className={`flex-1 items-center rounded-md border px-2 py-2 ${
+                            active
+                              ? 'border-primary bg-primary/10'
+                              : 'border-border bg-background-subtle'
+                          }`}>
+                          <Text
+                            className={
+                              active
+                                ? 'text-primary text-sm font-bold'
+                                : 'text-foreground text-sm font-medium'
+                            }>
+                            {option}x
+                          </Text>
+                        </Pressable>
+                      );
+                    })}
+                  </View>
+                  {servingGrams == null ? (
+                    <Text className="text-muted-foreground mt-2 pl-1 text-xs">
+                      This food has no exact serving weight, so 1 serving is treated as{' '}
+                      {formatMeasure(DEFAULT_SERVING_GRAMS, 'g')}. Using grams is more accurate.
+                    </Text>
+                  ) : null}
+                </View>
+              ) : null}
             </View>
 
             <View>
@@ -563,17 +713,21 @@ export default function AddFoodScreen() {
           <View className="bg-background/90 rounded-md">
             <Button
               onPress={handleSubmit(handleLogFood)}
-              disabled={isSubmitting}
+              disabled={isSubmitting || isEditEntryPending || isEditEntryMissing}
               className="h-14 rounded-md">
               <Icon as={Check} className="size-5 text-white" />
               <Text>
-                {isSubmitting
-                  ? editingEntry
-                    ? 'Saving...'
-                    : 'Logging...'
-                  : editingEntry
-                    ? 'Save Changes'
-                    : 'Log Food'}
+                {isEditEntryPending
+                  ? 'Loading...'
+                  : isEditEntryMissing
+                    ? 'Entry not found'
+                    : isSubmitting
+                      ? editingEntry
+                        ? 'Saving...'
+                        : 'Logging...'
+                      : editingEntry
+                        ? 'Save Changes'
+                        : 'Log Food'}
               </Text>
             </Button>
           </View>
@@ -584,7 +738,7 @@ export default function AddFoodScreen() {
         open={isUnitDialogOpen}
         selected={unit}
         onClose={() => setIsUnitDialogOpen(false)}
-        onSelect={(value) => setValue('unit', value, { shouldValidate: true, shouldDirty: true })}
+        onSelect={handleUnitChange}
       />
 
       <AddFoodTimePickerModal

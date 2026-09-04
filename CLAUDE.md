@@ -30,15 +30,32 @@ product name is **Deficit PH**.
 
 ## Non-negotiable rules
 
-1. **expo-sqlite is the datastore. Supabase is deprecated** — do not add Supabase calls
-   or network data dependencies. The app must work fully offline. `supabase/` is legacy.
-2. **`lib/local-data.ts` is the only data-access layer.** All reads/writes go through it.
-   It maps app-facing enums (`'Very Active'`) to DB enums (`'very'`) via the `*_TO_DB` /
-   `*_FROM_DB` tables — keep that mapping intact on both sides when adding fields.
+1. **expo-sqlite is the datastore for everything a user logs. Supabase is now ALSO in
+   use, but only for accounts and shared foods.** (Superseded 2026-09-04; this rule
+   previously said "Supabase is deprecated, do not add Supabase calls".) The split:
+   - **Local SQLite owns:** food logs, weight, hydration, targets, profile settings.
+     Logging must keep working with no network, and a cloud failure must never block it.
+   - **Supabase owns:** authentication (login is required at app start) and the shared
+     food catalog other users can search. Project `fxqurlhvtbpmydwmfpzc` (ap-southeast-1),
+     schema applied and live, see `supabase/migrations/README.md`.
+   - Never commit keys. Supabase URL and publishable key come from `EXPO_PUBLIC_*` env
+     vars; `.env` is gitignored.
+2. **Two data-access layers, one job each. Nothing else touches a database.**
+   - `lib/local-data.ts` is the ONLY module that touches SQLite. It maps app-facing enums
+     (`'Very Active'`) to DB enums (`'very'`) via the `*_TO_DB` / `*_FROM_DB` tables.
+     Keep that mapping intact on both sides when adding fields.
+   - `lib/supabase.ts` is the ONLY module that imports `@supabase/supabase-js`. It must
+     lazy-initialise (never at cold start) or the iOS upload trips ITMS-91053.
+   - Screens call hooks, never either module directly.
 3. **Strict TypeScript. No `any`.** Type props, hook returns, and store slices.
 4. **Reuse before you build.** Check `components/ui/` and `utils/` before adding anything.
-5. **User-facing copy is Taglish / Gen Z** — use the `taglish-genz` skill. Code, comments,
-   and identifiers stay in English.
+5. **User-facing copy is PURE ENGLISH.** (Changed 2026-09-04; this rule previously
+   required Taglish and pointed at the `taglish-genz` skill. That skill is now
+   DEPRECATED and must not be used.) No Tagalog words in any user-visible string:
+   titles, buttons, errors, empty states, hints, placeholders. Keep the tone plain,
+   warm and short, not corporate. Filipino FOOD NAMES stay as they are ("Adobong
+   Pusit", "Sinigang"): those are proper nouns, not copy. Code, comments and
+   identifiers stay in English as before.
 6. **Money & nutrition math is safety-critical.** Calorie/macro/target changes must go
    through `utils/calorie-targets.ts` and be covered by reasoning about edge cases
    (zero, negative, missing weight/height, unit conversion Metric↔Imperial).
@@ -58,8 +75,9 @@ npm run release:check   # = npm run typecheck && npm run test:nutrition-parser
 ## Skills (auto-discovered from `.claude/skills/`)
 
 - `react-best-practices`, `react-native-reusables-ui`, `data-fetching`,
-  `forms-validation-errors`, `async-error-handling`, `naming-conventions`,
-  `taglish-genz` — day-to-day coding standards for this repo.
+  `forms-validation-errors`, `async-error-handling`, `naming-conventions`
+  - day-to-day coding standards for this repo.
+  (`taglish-genz` is DEPRECATED as of 2026-09-04: copy is pure English now.)
 - **`orchestrate`** — the multi-agent red-team pipeline for high-stakes tasks
   (parallel specialists → adversarial red-team → synthesis → confidence audit).
 - **`publish-gate`** — release-readiness checklist.

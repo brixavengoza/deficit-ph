@@ -1,5 +1,7 @@
 import { NativeModules, Platform } from 'react-native';
 
+import { isOcrLinked } from '@/lib/ocr';
+
 /**
  * AI capability layer — a single, typed contract for every on-device AI surface.
  *
@@ -46,56 +48,73 @@ export type AiCapability = {
 type NativeFoodLabelScanner = {
   scanNutritionLabel?: unknown;
   recognizeNutritionLabelImage?: unknown;
+  recognizeText?: unknown;
 };
 
 const nativeScanner = NativeModules.FoodLabelScanner as NativeFoodLabelScanner | undefined;
 
 /**
- * Cheap, synchronous: is the native scanner module even compiled into this build?
- * Screens should call this BEFORE rendering any camera UI.
+ * Cheap, synchronous: is the native iOS `FoodLabelScanner` bridge compiled into this
+ * build? (Android's OCR path is a separate Expo module — see `lib/ocr.ts:isOcrLinked`.)
+ * Screens should decide capability BEFORE rendering any camera UI.
  */
 export function isNutritionScannerLinked(): boolean {
-  // Cross-platform: true wherever a native `FoodLabelScanner` module is linked (iOS today,
-  // Android once its ML Kit module registers). Either capability — live scan or still-image
-  // read — counts as "the scanner is available on this build".
   return (
     typeof nativeScanner?.scanNutritionLabel === 'function' ||
-    typeof nativeScanner?.recognizeNutritionLabelImage === 'function'
+    typeof nativeScanner?.recognizeNutritionLabelImage === 'function' ||
+    typeof nativeScanner?.recognizeText === 'function'
   );
 }
 
 /**
  * Synchronous capability for the nutrition scanner. Safe to call in render.
  *
- * The scanner is a FREE feature, so native-module linkage (iOS or Android) is a sufficient gate
- * today: an ineligible device still fails safe at call time with a typed error and the screen
- * shows the manual-entry fallback.
+ * The universal tier is OCR + the deterministic parser: Apple Vision on iOS (via the
+ * FoodLabelScanner bridge), ML Kit on Android (via the Expo module). iOS additionally
+ * claims the generative tier from linkage — an ineligible device (pre-iOS 26 / non-Apple-
+ * Intelligence hardware) now degrades to the OCR draft at call time instead of erroring,
+ * so the linkage-based claim is safe for this FREE feature.
  */
 export function getNutritionScanCapability(): AiCapability {
-  if (!isNutritionScannerLinked()) {
-    // Mobile builds without the native module report `module-not-linked` (a custom dev build
-    // adds it); web and any other platform can never link it, so they are `unsupported-platform`.
-    const reason: AiUnavailableReason =
-      Platform.OS === 'ios' || Platform.OS === 'android'
-        ? 'module-not-linked'
-        : 'unsupported-platform';
+  if (Platform.OS === 'android') {
+    if (isOcrLinked()) {
+      return {
+        feature: 'nutrition-scan',
+        tier: 'ocr',
+        generativeAvailable: false,
+        reason: 'available',
+      };
+    }
     return {
       feature: 'nutrition-scan',
       tier: 'unavailable',
       generativeAvailable: false,
-      reason,
+      reason: 'module-not-linked',
     };
   }
 
-  // iOS parses the OCR'd label text with Apple FoundationModels (generative); Android reads the
-  // label with ML Kit OCR + the shared TS parser (classic on-device ML). Both surface the same
-  // scanner UI and the same editable draft, so callers only need to branch on `unavailable`.
-  const isGenerative = Platform.OS === 'ios';
+  if (Platform.OS === 'ios') {
+    if (isNutritionScannerLinked()) {
+      return {
+        feature: 'nutrition-scan',
+        tier: 'generative',
+        generativeAvailable: true,
+        reason: 'available',
+      };
+    }
+    return {
+      feature: 'nutrition-scan',
+      tier: 'unavailable',
+      generativeAvailable: false,
+      reason: 'module-not-linked',
+    };
+  }
+
   return {
     feature: 'nutrition-scan',
-    tier: isGenerative ? 'generative' : 'ocr',
-    generativeAvailable: isGenerative,
-    reason: 'available',
+    tier: 'unavailable',
+    generativeAvailable: false,
+    reason: 'unsupported-platform',
   };
 }
 

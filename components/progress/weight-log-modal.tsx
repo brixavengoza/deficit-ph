@@ -2,6 +2,9 @@ import { Button } from '@/components/ui/button';
 import { Icon } from '@/components/ui/icon';
 import { Input } from '@/components/ui/input';
 import { Text } from '@/components/ui/text';
+import { MAX_WEIGHT_LOG_KG, MIN_WEIGHT_LOG_KG } from '@/lib/local-data';
+import { useProfileBundleStore } from '@/stores/use-profile-bundle-store';
+import { LB_TO_KG } from '@/utils/units';
 import { Check, CircleAlert, X } from 'lucide-react-native';
 import React from 'react';
 import { KeyboardAvoidingView, Modal, Platform, Pressable, View } from 'react-native';
@@ -27,8 +30,19 @@ export function WeightLogModal({
   onClose,
   onSave,
 }: WeightLogModalProps) {
-  const [unit, setUnit] = React.useState<WeightUnit>('kg');
+  // Default the toggle from the user's Units preference — an Imperial user typing 154
+  // with a silent "kg" default would store 154 kg and (since weigh-ins now recompute the
+  // calorie target) instantly corrupt their daily goal.
+  const preferredUnits = useProfileBundleStore((state) => state.bundle.units);
+  const [unit, setUnit] = React.useState<WeightUnit>(
+    preferredUnits === 'Imperial' ? 'lbs' : 'kg'
+  );
   const [error, setError] = React.useState<string | null>(null);
+
+  React.useEffect(() => {
+    if (!open) return;
+    setUnit(preferredUnits === 'Imperial' ? 'lbs' : 'kg');
+  }, [open, preferredUnits]);
 
   const handleChangeValue = (nextValue: string) => {
     onChangeValue(nextValue);
@@ -47,7 +61,13 @@ export function WeightLogModal({
       return;
     }
 
-    const weightKg = unit === 'lbs' ? parsed * 0.45359237 : parsed;
+    const weightKg = unit === 'lbs' ? parsed * LB_TO_KG : parsed;
+    if (weightKg < MIN_WEIGHT_LOG_KG || weightKg > MAX_WEIGHT_LOG_KG) {
+      const min = unit === 'lbs' ? Math.round(MIN_WEIGHT_LOG_KG / LB_TO_KG) : MIN_WEIGHT_LOG_KG;
+      const max = unit === 'lbs' ? Math.round(MAX_WEIGHT_LOG_KG / LB_TO_KG) : MAX_WEIGHT_LOG_KG;
+      setError(`Enter a weight between ${min} and ${max} ${unit}.`);
+      return;
+    }
     onSave(Number(weightKg.toFixed(2)));
   };
 

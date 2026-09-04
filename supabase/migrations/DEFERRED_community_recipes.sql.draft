@@ -2,9 +2,13 @@
 -- deficit-ph backend foundation — DESIGN / DOCUMENTATION ONLY. DO NOT APPLY YET.
 -- =============================================================================
 -- This migration is written but INTENTIONALLY NOT APPLIED. Provisioning it requires
--- a live Supabase project + business decisions the user has not made in this session
--- (project region for PH data residency, auth providers, RevenueCat, App Store Connect).
+-- a live Supabase project + business decisions (auth providers, App Store Connect).
 -- It is checked in as the reviewed design so the future backend pass can apply it as-is.
+--
+-- 2026-08-13: the `entitlements` table and the `recipes_enforce_publish_cap` trigger were
+-- REMOVED per the 2026-07-21 paid-upfront decision (see issues/HANDOFF.md §1) — the app is
+-- a one-time store purchase, so there is no free tier to protect, no IAP to verify, and no
+-- publish cap. Everything else stands as reviewed.
 --
 -- It encodes every relevant Critical/High red-team fix:
 --   * separate catalog_foods (never widen the local foods.source CHECK).
@@ -15,8 +19,6 @@
 --   * recipe_reports UNIQUE(reporter_id, recipe_id) (anti-sybil) + never auto-hide on raw
 --     counts alone.
 --   * blocked feed filtering uses NOT EXISTS (never NOT IN — the NULL trap zeroes results).
---   * entitlements is populated by a RevenueCat webhook / edge function and RLS reads THAT,
---     never a client-supplied "paid" flag (server backstop for the recipe cap).
 --   * offline-first caveat: catalog_foods is readable by anon; recipes require an
 --     authenticated session, so the community tab must degrade gracefully offline.
 -- =============================================================================
@@ -58,28 +60,6 @@ create policy catalog_foods_public_read on public.catalog_foods
 -- NOTE FOR THE CLIENT SYNC JOB: upsert with
 --   INSERT ... ON CONFLICT (id) DO UPDATE SET <server-owned columns>, never INSERT OR REPLACE,
 -- pull incrementally by `revision`, and chunk off the launch critical path.
-
--- -----------------------------------------------------------------------------
--- entitlements — server-authoritative one-time-unlock ("Unli Mode") + recipe cap backstop.
--- Populated ONLY by a RevenueCat webhook (or App Store Server Notifications / Play RTDN)
--- via an edge function running as service_role. The client NEVER writes here; a rooted user
--- editing local SQLite cannot grant themselves entitlement because RLS reads THIS table.
--- -----------------------------------------------------------------------------
-create table if not exists public.entitlements (
-  user_id uuid primary key references auth.users (id) on delete cascade,
-  unlocked boolean not null default false,     -- one-time purchase active
-  product_id text,
-  store text,                                  -- 'app_store' | 'play_store'
-  recipe_publish_limit integer not null default 5,
-  last_verified_at timestamptz,
-  updated_at timestamptz not null default now()
-);
-
-alter table public.entitlements enable row level security;
-
--- A user may READ their own entitlement (to reconcile the local cache). No client writes.
-create policy entitlements_read_own on public.entitlements
-  for select using (auth.uid() = user_id);
 
 -- -----------------------------------------------------------------------------
 -- recipes — community-published recipes (UGC). Apple 1.2 compliant moderation.
@@ -177,53 +157,6 @@ drop trigger if exists recipes_pin_moderation_trg on public.recipes;
 create trigger recipes_pin_moderation_trg
   before insert or update on public.recipes
   for each row execute function public.recipes_pin_moderation();
-
--- Server-backstopped publish cap: block a NEW public recipe once the author is at their
--- limit unless they hold the one-time unlock. Checked against the AUTHORITATIVE server
--- count, never a stale client cache. (Runs as a constraint trigger so it also fires when a
--- private recipe is flipped to public.)
---
--- Concurrency note: a plain "count then compare" in a BEFORE trigger is NOT atomic — two
--- simultaneous publish requests from the same author can each read count=cap-1 and both
--- pass, landing one over the limit. Postgres has no cheap unique/partial index that can
--- express "at most N rows per author" (unlike "at most 1"), so this takes a per-author
--- advisory transaction lock before counting: the first concurrent request holds the lock
--- for the rest of its transaction, so the second one blocks until the first commits (or
--- rolls back) and only then sees the up-to-date count. Different authors never contend.
-create or replace function public.recipes_enforce_publish_cap() returns trigger as $$
-declare
-  published_count integer;
-  is_unlocked boolean;
-  cap integer;
-begin
-  if new.visibility <> 'public' then
-    return new;
-  end if;
-  perform pg_advisory_xact_lock(hashtextextended(new.author_id::text, 0));
-  select coalesce(bool_or(unlocked), false), coalesce(max(recipe_publish_limit), 5)
-    into is_unlocked, cap
-    from public.entitlements where user_id = new.author_id;
-  if is_unlocked then
-    return new;
-  end if;
-  select count(*) into published_count
-    from public.recipes
-    where author_id = new.author_id
-      and visibility = 'public'
-      and deleted_at is null
-      and id <> new.id;
-  if published_count >= cap then
-    raise exception 'recipe publish limit reached (% of %). Unlock Unli Mode to publish more.',
-      published_count, cap using errcode = 'check_violation';
-  end if;
-  return new;
-end;
-$$ language plpgsql;
-
-drop trigger if exists recipes_enforce_publish_cap_trg on public.recipes;
-create trigger recipes_enforce_publish_cap_trg
-  before insert or update of visibility on public.recipes
-  for each row execute function public.recipes_enforce_publish_cap();
 
 -- -----------------------------------------------------------------------------
 -- recipe_ingredients — SNAPSHOT nutrition per ingredient (mirrors food_logs' immutability).
@@ -328,6 +261,7 @@ commit;
 --     Apple must be offered too (entitlement already present). Email/OTP alone does not force it.
 --   * EULA/terms with a zero-tolerance objectionable-content clause shown BEFORE first post,
 --     plus a committed ~24h takedown SLA and a published contact (reuse privacy@deficitph.com).
---   * @supabase/supabase-js + react-native-purchases must lazy-init (not at cold start) and
---     ship valid privacy manifests, or the upload bounces (ITMS-91053/91061).
+--   * @supabase/supabase-js must lazy-init (not at cold start) and ship a valid privacy
+--     manifest, or the upload bounces (ITMS-91053/91061). (react-native-purchases dropped
+--     with the paid-upfront decision — no IAP SDK ships at all.)
 -- =============================================================================

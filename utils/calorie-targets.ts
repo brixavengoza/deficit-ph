@@ -38,15 +38,21 @@ export type CalorieTargets = {
   fat: number;
 };
 
-export function calculateCalorieTargets(input: {
+export type TdeeInput = {
   activityLevel?: CalorieTargetActivity | null;
   age?: number | string | null;
-  goal?: CalorieTargetGoal | null;
   heightCm?: number | string | null;
   sex?: CalorieTargetSex | null;
   weightKg?: number | string | null;
-}): CalorieTargets | null {
-  if (!input.goal || !input.sex || !input.activityLevel) return null;
+};
+
+/**
+ * Raw Mifflin-St Jeor TDEE (rounded, no floors). This is the number a "TDEE Calculator"
+ * must display as maintenance — calculateCalorieTargets floors its maintain goal at 1200,
+ * which is the right STORED target but a wrong answer to "what is my TDEE?".
+ */
+export function calculateTdee(input: TdeeInput): number | null {
+  if (!input.sex || !input.activityLevel) return null;
 
   const age = Number(input.age);
   const heightCm = Number(input.heightCm);
@@ -58,9 +64,18 @@ export function calculateCalorieTargets(input: {
 
   const bmrBase = 10 * weightKg + 6.25 * heightCm - 5 * age;
   const bmr = input.sex === 'male' ? bmrBase + 5 : bmrBase - 161;
-  const tdee = bmr * ACTIVITY_FACTOR[input.activityLevel];
+  return Math.round(bmr * ACTIVITY_FACTOR[input.activityLevel]);
+}
 
-  const maintenanceCalories = Math.round(tdee);
+export function calculateCalorieTargets(
+  input: TdeeInput & { goal?: CalorieTargetGoal | null }
+): CalorieTargets | null {
+  if (!input.goal) return null;
+
+  const tdee = calculateTdee(input);
+  if (tdee == null) return null;
+
+  const maintenanceCalories = tdee;
   const rawTarget = Math.round(tdee + GOAL_ADJUSTMENT[input.goal]);
 
   let dailyCalories: number;
@@ -68,7 +83,10 @@ export function calculateCalorieTargets(input: {
     // Apply the sex-aware minimum, but a cut must NEVER exceed maintenance TDEE —
     // otherwise the raised floor would turn a deficit into a surplus for small/older
     // normal-BMI users (e.g. male 45kg/150cm/60y: maintenance 1311, floor 1500).
-    const flooredLose = Math.max(rawTarget, MIN_DAILY_CALORIES[input.sex]);
+    // NOTE: this can legitimately return < 1200 when the TDEE itself is < 1200 —
+    // readers must display the stored value as-is, never re-inflate it to 1200
+    // (an inflated "lose" target above maintenance is a hidden surplus).
+    const flooredLose = Math.max(rawTarget, MIN_DAILY_CALORIES[input.sex ?? 'female']);
     dailyCalories = Math.min(flooredLose, maintenanceCalories);
   } else {
     // maintain / gain: do not raise the floor for small users; keep the absolute min.

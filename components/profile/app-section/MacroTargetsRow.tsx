@@ -146,7 +146,7 @@ function MacroTargetsModal({ open, onClose }: { open: boolean; onClose: () => vo
               <View>
                 <Text className="text-foreground text-lg font-bold">Macro Targets</Text>
                 <Text className="text-muted-foreground mt-1 text-xs">
-                  Optional 'to — calories pa rin ang main focus.
+                  Optional. Calories are still the main focus.
                 </Text>
               </View>
               <Pressable
@@ -199,9 +199,8 @@ function MacroTargetsModal({ open, onClose }: { open: boolean; onClose: () => vo
                     <MacroReadRow label="Fat" value={data?.fatTargetG ?? 0} />
                   </View>
                   <Text className="text-muted-foreground text-xs leading-4">
-                    Auto-set base sa calorie goal mo (30% protein / 40% carbs / 30% fat), and
-                    nag-a-adjust 'pag nagbago ang weight o goal mo. Tap Custom para sa sariling grams
-                    mo.
+                    Auto-set from your calorie goal (30% protein / 40% carbs / 30% fat), and
+                    adjusts when your weight or goal changes. Tap Custom to set your own grams.
                   </Text>
                 </View>
               ) : (
@@ -244,9 +243,9 @@ function MacroTargetsModal({ open, onClose }: { open: boolean; onClose: () => vo
                     </View>
                     {reconciliation.diverges ? (
                       <Text className="text-warning mt-2 text-xs leading-4">
-                        Heads up: ang macros mo ay {formatNumberGrouped(reconciliation.macroCalories)}{' '}
-                        kcal, medyo malayo sa calorie goal mo. Pwede pa rin i-save — pang-guide lang
-                        'to. 💚
+                        Heads up: your macros add up to{' '}
+                        {formatNumberGrouped(reconciliation.macroCalories)} kcal, which is some way
+                        off your calorie goal. You can still save. This is just a guide. 💚
                       </Text>
                     ) : null}
                   </View>
